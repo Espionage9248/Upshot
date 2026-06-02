@@ -1,0 +1,19 @@
+{
+  "name": "@upshot/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint/index.js",
+    "./vitest": "./vitest/preset.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^10",
+    "globals": "^17",
+    "typescript-eslint": "^8"
+  },
+  "peerDependencies": {
+    "eslint": "^10",
+    "vitest": "^4"
+  }
+}
