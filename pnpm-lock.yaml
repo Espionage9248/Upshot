@@ -88,6 +88,12 @@ importers:
         specifier: workspace:*
         version: link:../config
 
+  packages/db:
+    devDependencies:
+      '@upshot/config':
+        specifier: workspace:*
+        version: link:../config
+
 packages:
 
   '@alloc/quick-lru@5.2.0':
