@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Upshot V2 — Expansion (Round 2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── Canonical token contract (ds/tokens.css) — light (:root) + dark (.dark)
+        as true peers. The round-2 screens now consume these directly. ── */
+  :root {
+    --font-sans: "Figtree", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --spacing: 0.25rem;
+    --radius-data: 9px; --radius-sm: 6px; --radius-card: 18px; --radius-pill: 999px;
+    --duration-fast: 120ms; --duration-base: 180ms; --duration-slow: 280ms;
+    --ease-out: cubic-bezier(0.2,0.7,0.3,1); --ease-in-out: cubic-bezier(0.65,0,0.35,1); --ease-spring: cubic-bezier(0.34,1.4,0.64,1);
+  }
+  /* LIGHT — warm paper */
+  :root {
+    color-scheme: light;
+    --n-0: oklch(1 0 0); --n-25: oklch(0.988 0.005 75); --n-50: oklch(0.972 0.008 70);
+    --n-100: oklch(0.952 0.009 68); --n-200: oklch(0.918 0.010 66); --n-300: oklch(0.865 0.011 64);
+    --n-400: oklch(0.740 0.012 62); --n-500: oklch(0.605 0.013 60); --n-600: oklch(0.500 0.013 58);
+    --n-700: oklch(0.405 0.013 58); --n-800: oklch(0.300 0.013 56); --n-900: oklch(0.235 0.013 56);
+    --bg: var(--n-50); --surface: var(--n-0); --surface-2: var(--n-100); --surface-3: var(--n-200);
+    --line: oklch(0.45 0.012 60 / 0.16); --line-soft: oklch(0.45 0.012 60 / 0.09);
+    --text: var(--n-900); --text-2: var(--n-600); --text-3: var(--n-500);
+    --coral: #ff705c; --coral-text: oklch(0.535 0.165 28); --coral-dim: color-mix(in oklch, #ff705c 13%, transparent);
+    --on-coral: oklch(0.22 0.03 30); --yellow: #ffee52; --focus: #ff705c;
+    --income: oklch(0.50 0.14 158); --expense: oklch(0.53 0.17 25); --transfer: oklch(0.50 0.10 255);
+    --saved: oklch(0.50 0.10 200); --debt: oklch(0.52 0.13 58); --warn: oklch(0.55 0.13 66); --proj: oklch(0.58 0.012 60);
+    --viz-1: #ff705c; --viz-2: oklch(0.60 0.12 205); --viz-3: oklch(0.68 0.13 78); --viz-4: oklch(0.52 0.13 288);
+    --viz-5: oklch(0.58 0.12 150); --viz-6: oklch(0.58 0.15 342); --viz-7: oklch(0.58 0.05 60);
+    --elev-1: 0 1px 2px rgba(40,30,20,0.06), 0 1px 3px rgba(40,30,20,0.05);
+    --elev-2: 0 2px 4px rgba(40,30,20,0.06), 0 6px 16px rgba(40,30,20,0.08);
+    --elev-3: 0 8px 18px rgba(40,30,20,0.10), 0 18px 40px rgba(40,30,20,0.12);
+    --elev-pop: 0 8px 28px rgba(40,30,20,0.16), 0 0 0 1px rgba(40,30,20,0.04);
+  }
+  /* DARK — warm charcoal */
+  .dark {
+    color-scheme: dark;
+    --n-0: oklch(0.300 0.016 58); --n-25: oklch(0.250 0.015 58); --n-50: oklch(0.213 0.013 58);
+    --n-100: oklch(0.250 0.015 58); --n-200: oklch(0.300 0.016 58); --n-300: oklch(0.355 0.016 58);
+    --n-400: oklch(0.430 0.015 58); --n-500: oklch(0.585 0.013 60); --n-600: oklch(0.660 0.013 62);
+    --n-700: oklch(0.745 0.013 64); --n-800: oklch(0.840 0.012 68); --n-900: oklch(0.948 0.012 75);
+    --bg: oklch(0.172 0.012 58); --surface: oklch(0.213 0.013 58); --surface-2: oklch(0.250 0.015 58); --surface-3: oklch(0.300 0.016 58);
+    --line: oklch(0.355 0.015 58 / 0.70); --line-soft: oklch(0.355 0.015 58 / 0.38);
+    --text: oklch(0.948 0.012 75); --text-2: oklch(0.745 0.013 64); --text-3: oklch(0.585 0.012 60);
+    --coral: #ff705c; --coral-text: oklch(0.760 0.150 30); --coral-dim: color-mix(in oklch, #ff705c 16%, transparent);
+    --on-coral: oklch(0.20 0.03 30); --yellow: #ffee52; --focus: #ff8473;
+    --income: oklch(0.78 0.125 158); --expense: oklch(0.685 0.135 22); --transfer: oklch(0.72 0.085 250);
+    --saved: oklch(0.80 0.110 195); --debt: oklch(0.785 0.130 70); --warn: oklch(0.805 0.130 80); --proj: oklch(0.630 0.014 70);
+    --viz-1: #ff705c; --viz-2: oklch(0.80 0.11 200); --viz-3: oklch(0.82 0.13 92); --viz-4: oklch(0.71 0.10 285);
+    --viz-5: oklch(0.80 0.12 150); --viz-6: oklch(0.74 0.13 340); --viz-7: oklch(0.72 0.045 60);
+    --elev-1: 0 1px 0 rgba(255,255,255,0.03) inset, 0 2px 8px rgba(0,0,0,0.20);
+    --elev-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 22px rgba(0,0,0,0.28);
+    --elev-3: 0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 50px rgba(0,0,0,0.42);
+    --elev-pop: 0 1px 0 rgba(255,255,255,0.05) inset, 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.4);
+  }
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+  #root { height: 100vh; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="screens/expansion.jsx"></script>
+<script type="text/babel" src="lib/design-canvas.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const Canvas = window.DesignCanvas;
+  const Section = window.DCSection;
+  const Artboard = window.DCArtboard;
+
+  function useMode() {
+    const [dark, setDark] = React.useState(() => {
+      try { const v = localStorage.getItem('upshot-exp-mode'); return v ? v === 'dark' : true; } catch { return true; }
+    });
+    React.useEffect(() => {
+      document.documentElement.classList.toggle('dark', dark);
+      try { localStorage.setItem('upshot-exp-mode', dark ? 'dark' : 'light'); } catch {}
+    }, [dark]);
+    return [dark, setDark];
+  }
+
+  function ModeToggle({ dark, setDark }) {
+    const Btn = ({ on, label, glyph, onClick }) => (
+      <button onClick={onClick} aria-pressed={on}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, border: 'none', cursor: 'pointer',
+          fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, background: on ? 'var(--coral)' : 'transparent', color: on ? 'var(--on-coral)' : 'var(--text-3)' }}>
+        <span style={{ fontSize: 13 }}>{glyph}</span>{label}
+      </button>
+    );
+    return (
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: 3, padding: 3,
+        background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 999, boxShadow: 'var(--elev-2)' }}>
+        <Btn on={!dark} label="Light" glyph="☀" onClick={() => setDark(false)} />
+        <Btn on={dark} label="Dark" glyph="☾" onClick={() => setDark(true)} />
+      </div>
+    );
+  }
+
+  function App() {
+    const [dark, setDark] = useMode();
+    return (
+      <React.Fragment>
+        <ModeToggle dark={dark} setDark={setDark} />
+        <Canvas>
+        <Section id="ia" title="Information architecture" subtitle="Where every committed capability lives — and why">
+          <Artboard id="ia-map" label="Revised IA map" width={1240} height={900}>
+            <window.IAMap />
+          </Artboard>
+        </Section>
+
+        <Section id="dashboard" title="Dashboard — two directions" subtitle="Configurable · net worth · named health state">
+          <Artboard id="dash-calm" label="D1 · Calm default" width={1200} height={968}>
+            <window.DashCalm />
+          </Artboard>
+          <Artboard id="dash-grid" label="D2 · Configurable bento" width={1200} height={968}>
+            <window.DashGrid />
+          </Artboard>
+          <Artboard id="dash-edit" label="D2 · Arrange mode" width={1200} height={968}>
+            <window.DashEdit />
+          </Artboard>
+        </Section>
+
+        <Section id="surfaces" title="New surfaces" subtitle="Where the committed capabilities live, in the converged language">
+          <Artboard id="networth" label="Net worth & assets" width={1200} height={900}>
+            <window.NetWorth />
+          </Artboard>
+          <Artboard id="recurring" label="Recurring intelligence" width={1200} height={900}>
+            <window.Recurring />
+          </Artboard>
+          <Artboard id="analytics" label="Analytics · heatmap + streaks + insights" width={1200} height={900}>
+            <window.Analytics />
+          </Artboard>
+          <Artboard id="tax" label="Tax time" width={1200} height={900}>
+            <window.TaxTime />
+          </Artboard>
+        </Section>
+
+        <Section id="components" title="New components + command palette" subtitle="Specced in the converged language">
+          <Artboard id="gallery" label="Component gallery" width={1200} height={1000}>
+            <window.ComponentsGallery />
+          </Artboard>
+          <Artboard id="cmdk" label="Command palette (⌘K)" width={960} height={720}>
+            <window.CommandPalette />
+          </Artboard>
+        </Section>
+        </Canvas>
+      </React.Fragment>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

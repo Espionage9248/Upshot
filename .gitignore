@@ -1,0 +1,77 @@
+# ───────────────────────────────────────────────────────────
+# Upshot — .gitignore
+# Private, self-hosted personal finance app. Treat all financial
+# data and secrets as radioactive: they must NEVER be committed.
+# ───────────────────────────────────────────────────────────
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Secrets — NEVER commit ──
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+
+# ── Database & financial data — NEVER commit ──
+# DB is encrypted at rest, but the file itself + WAL still never belong in git.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/
+backups/
+
+# Financial data exports / imports (statements, CSVs, the 2Up source).
+# Real data only — sanitized test fixtures live under a fixtures/ path and
+# can be force-added if ever needed (git add -f).
+*.csv
+exports/
+*.statement.*
+*.pdf
+
+# ── V1 reference material (local-only; not part of the V2 codebase) ──
+reference/
+
+# ── Master plan stays a local working doc (backups kept elsewhere) ──
+# Note: explicit file, NOT a `*.md` rule — design docs/specs (incl. the bundles'
+# `Upshot Component Specs.md` and `DESIGN-BRIEF.md`) ARE tracked.
+/PLAN-V2.md
+
+# ── Design handoff bundles are tracked deliverables ──
+# Re-include their build/ dir (screen sources) which the generic `build/` rule above would otherwise drop.
+!design_handoff_upshot/build/
+
+# Testing / tooling output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.vitest/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude / local agent config
+.claude/
+
+# Claude Code personal permissions (do not commit)
+.claude/settings.local.json
