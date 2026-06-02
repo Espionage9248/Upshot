@@ -55,7 +55,7 @@ The approved visual language lives in [`design_handoff_upshot/`](design_handoff_
 - **`Upshot Component Specs.md`** — per-component anatomy, variants, sizes, and **every state**, mapped to Radix + CVA.
 - Living HTML/JSX render the whole system light + dark — **visual references only**, recreated in-stack (no Babel-in-browser shipped).
 
-The product is organised as **five rooms + ⌘K** (Today · Money · Budget · Plan · Analyze), with Settings reached via the gear. Identity: a warm, editorial shell carrying confident, **colourblind-safe** money — Figtree for UI, JetBrains Mono for figures (tabular), meaning never carried by colour alone, WCAG AA in both modes. See [`DESIGN-BRIEF.md`](DESIGN-BRIEF.md) for the intent and decision history.
+The product is organised as **five rooms + ⌘K** (Today · Money · Budget · Plan · Analyze), with Settings reached via the gear. Identity: a warm, editorial shell carrying confident, **colourblind-safe** money — Figtree for UI, JetBrains Mono for figures (tabular), meaning never carried by colour alone, WCAG AA in both modes. See [`DESIGN-BRIEF.md`](DESIGN-BRIEF.md) for the intent and decision history. The brand mark (**"Apex"**) and icon system (Lucide, re-skinned) ship in [`design_handoff_brand_icons/`](design_handoff_brand_icons/).
 
 ---
 

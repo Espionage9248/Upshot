@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Upshot — Brand mark &amp; Iconography</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --font-sans: "Figtree", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --radius-data: 9px; --radius-sm: 6px; --radius-card: 18px; --radius-pill: 999px;
+  }
+  :root, .pf-light {
+    color-scheme: light;
+    --n-0: oklch(1 0 0); --n-50: oklch(0.972 0.008 70); --n-100: oklch(0.952 0.009 68); --n-200: oklch(0.918 0.010 66); --n-300: oklch(0.865 0.011 64);
+    --n-500: oklch(0.605 0.013 60); --n-600: oklch(0.500 0.013 58); --n-900: oklch(0.235 0.013 56);
+    --bg: var(--n-50); --surface: var(--n-0); --surface-2: var(--n-100); --surface-3: var(--n-200);
+    --line: oklch(0.45 0.012 60 / 0.16); --line-soft: oklch(0.45 0.012 60 / 0.09);
+    --text: var(--n-900); --text-2: var(--n-600); --text-3: var(--n-500);
+    --coral: #ff705c; --coral-text: oklch(0.535 0.165 28); --coral-dim: color-mix(in oklch, #ff705c 13%, transparent);
+    --on-coral: oklch(0.22 0.03 30); --focus: #ff705c;
+    --income: oklch(0.50 0.14 158); --expense: oklch(0.53 0.17 25); --transfer: oklch(0.50 0.10 255); --saved: oklch(0.50 0.10 200); --debt: oklch(0.52 0.13 58); --warn: oklch(0.55 0.13 66);
+    --elev-1: 0 1px 2px rgba(40,30,20,0.06), 0 1px 3px rgba(40,30,20,0.05);
+    --elev-2: 0 2px 4px rgba(40,30,20,0.06), 0 6px 16px rgba(40,30,20,0.08);
+  }
+  .pf-dark {
+    color-scheme: dark;
+    --n-0: oklch(0.300 0.016 58); --n-50: oklch(0.213 0.013 58); --n-100: oklch(0.250 0.015 58); --n-200: oklch(0.300 0.016 58); --n-300: oklch(0.355 0.016 58);
+    --n-500: oklch(0.585 0.013 60); --n-600: oklch(0.660 0.013 62); --n-900: oklch(0.948 0.012 75);
+    --bg: oklch(0.172 0.012 58); --surface: oklch(0.213 0.013 58); --surface-2: oklch(0.250 0.015 58); --surface-3: oklch(0.300 0.016 58);
+    --line: oklch(0.355 0.015 58 / 0.70); --line-soft: oklch(0.355 0.015 58 / 0.38);
+    --text: oklch(0.948 0.012 75); --text-2: oklch(0.745 0.013 64); --text-3: oklch(0.585 0.012 60);
+    --coral: #ff705c; --coral-text: oklch(0.760 0.150 30); --coral-dim: color-mix(in oklch, #ff705c 16%, transparent);
+    --on-coral: oklch(0.20 0.03 30); --focus: #ff8473;
+    --income: oklch(0.78 0.125 158); --expense: oklch(0.685 0.135 22); --transfer: oklch(0.72 0.085 250); --saved: oklch(0.80 0.110 195); --debt: oklch(0.785 0.130 70); --warn: oklch(0.805 0.130 80);
+    --elev-1: 0 1px 0 rgba(255,255,255,0.03) inset, 0 2px 8px rgba(0,0,0,0.20);
+    --elev-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 22px rgba(0,0,0,0.28);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  ::-webkit-scrollbar { width: 11px; height: 11px; } ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 999px; border: 3px solid var(--bg); }
+</style>
+</head>
+<body>
+<!-- shared brand gradient (objectBoundingBox → scales to any tile) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <radialGradient id="upGrad" cx="0.3" cy="0.2" r="1.05">
+    <stop offset="0" stop-color="#ffb199" /><stop offset="0.55" stop-color="#ff705c" /><stop offset="1" stop-color="#e8553f" />
+  </radialGradient>
+</defs></svg>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+const MONO = 'var(--font-mono)';
+
+/* ───── mark glyphs (geometry only — scale via viewBox) ───── */
+// Apex — a confident upward sweep arriving at a point ("the upshot")
+function ApexGlyph({ c = '#fff', sw = 9 }) {
+  return (<g fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M28 70 Q47 67 64 41" /><circle cx="68" cy="34" r={sw * 0.95} fill={c} stroke="none" />
+  </g>);
+}
+function AscentGlyph({ c = '#fff', sw = 9 }) {
+  return (<g fill="none" stroke={c} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M50 72 V34" /><path d="M34 50 L50 32 L66 50" />
+  </g>);
+}
+function RiseGlyph({ c = '#fff' }) {
+  return (<g fill={c}>
+    <rect x="28" y="52" width="11" height="20" rx="5" /><rect x="44.5" y="40" width="11" height="32" rx="5" /><rect x="61" y="28" width="11" height="44" rx="5" />
+  </g>);
+}
+const GLYPHS = { apex: ApexGlyph, ascent: AscentGlyph, rise: RiseGlyph };
+
+// full mark: gradient squircle tile + white glyph
+function Mark({ kind = 'apex', size = 96, radiusPct = 0.26, sw = 9, glyph = '#fff' }) {
+  const G = GLYPHS[kind];
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: 'block' }} role="img" aria-label="Upshot">
+      <rect x="0" y="0" width="100" height="100" rx={100 * radiusPct} fill="url(#upGrad)" />
+      <G c={glyph} sw={sw} />
+    </svg>
+  );
+}
+// monochrome glyph (currentColor), no tile
+function MarkMono({ kind = 'apex', size = 96, sw = 9 }) {
+  const G = GLYPHS[kind];
+  return <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: 'block', color: 'currentColor' }} role="img" aria-label="Upshot"><G c="currentColor" sw={sw} /></svg>;
+}
+function Wordmark({ size = 34, color = 'var(--text)' }) {
+  return <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 800, fontSize: size, letterSpacing: '-0.03em', color }}>Upshot</span>;
+}
+
+/* ───── page chrome ───── */
+function useMode() {
+  const [dark, setDark] = React.useState(() => { try { const v = localStorage.getItem('upshot-brand-mode'); return v ? v === 'dark' : false; } catch { return false; } });
+  React.useEffect(() => { try { localStorage.setItem('upshot-brand-mode', dark ? 'dark' : 'light'); } catch {} }, [dark]);
+  return [dark, setDark];
+}
+function Toggle({ dark, setDark }) {
+  const B = ({ on, label, g, fn }) => <button onClick={fn} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, background: on ? 'var(--coral)' : 'transparent', color: on ? 'var(--on-coral)' : 'var(--text-3)' }}><span>{g}</span>{label}</button>;
+  return <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 60, display: 'flex', gap: 3, padding: 3, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 999, boxShadow: 'var(--elev-2)' }}><B on={!dark} label="Light" g="☀" fn={() => setDark(false)} /><B on={dark} label="Dark" g="☾" fn={() => setDark(true)} /></div>;
+}
+function Kicker({ children }) { return <div style={{ fontSize: 11, letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--coral-text)', fontWeight: 700 }}>{children}</div>; }
+function Card({ children, style, pad = 22 }) { return <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-card)', padding: pad, boxShadow: 'var(--elev-1)', ...style }}>{children}</div>; }
+function Tag({ children, tone = 'var(--income)' }) { return <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: tone, padding: '3px 9px', borderRadius: 999, background: `color-mix(in oklch, ${tone} 13%, transparent)`, border: `1px solid color-mix(in oklch, ${tone} 28%, transparent)` }}>{children}</span>; }
+function SubHead({ children }) { return <div style={{ fontSize: 11, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 700, marginBottom: 14 }}>{children}</div>; }
+function Mono({ children }) { return <code style={{ fontFamily: MONO, fontSize: 11.5, color: 'var(--text-2)', background: 'var(--surface-2)', padding: '1px 6px', borderRadius: 5, border: '1px solid var(--line-soft)', whiteSpace: 'nowrap' }}>{children}</code>; }
+function Section({ n, title, lead, id }) {
+  return (
+    <div id={id} style={{ marginBottom: 24, maxWidth: 760 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <span className="tnum" style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: 'var(--on-coral)', background: 'var(--coral)', borderRadius: 7, padding: '3px 8px' }}>{n}</span>
+        <h2 style={{ fontSize: 27, fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>{title}</h2>
+      </div>
+      {lead && <p style={{ fontSize: 14.5, lineHeight: 1.6, color: 'var(--text-2)', margin: 0 }}>{lead}</p>}
+    </div>
+  );
+}
+
+/* ───── C1 ───── */
+function Directions() {
+  const dirs = [
+    ['apex', 'Apex', '“The upshot” — a confident upward sweep arriving at a point. On-name (the result you reach), reads as calm finance growth, and the line-and-dot simplifies cleanly to a favicon.', true],
+    ['ascent', 'Ascent', 'A bold upward arrow. Strongest at tiny sizes, but more generic — closer to a stock “growth” glyph.', false],
+    ['rise', 'Rise', 'Three ascending bars — nods to the Analyze room and to charts. Distinct, but reads more “dashboard” than “brand”.', false],
+  ];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      {dirs.map(([k, name, body, rec]) => (
+        <Card key={k} pad={22} style={rec ? { borderColor: 'color-mix(in oklch, var(--coral) 40%, var(--line))' } : null}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Mark kind={k} size={72} />
+            {rec ? <Tag tone="var(--coral-text)">Recommended</Tag> : <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: MONO }}>alt</span>}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{name}</div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.5 }}>{body}</div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function Bg({ kind, children, label }) {
+  const styles = {
+    light: { background: '#f7f5f1', color: '#2a2520' },
+    dark: { background: '#1c1916', color: '#f3efe9' },
+    tile: { background: 'radial-gradient(120% 120% at 30% 20%, #ffb199, #ff705c 55%, #e8553f)', color: '#fff' },
+  }[kind];
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ ...styles, borderRadius: 'var(--radius-card)', border: '1px solid var(--line)', height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>{children}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 7, textAlign: 'center' }}>{label}</div>
+    </div>
+  );
+}
+
+function SizeRow() {
+  const sizes = [[112, 'full', 9], [64, 'full', 9], [40, 'full', 9.5], [32, 'full', 10], [16, 'glyph', 13]];
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 26, flexWrap: 'wrap' }}>
+      {sizes.map(([s, mode, sw]) => (
+        <div key={s} style={{ textAlign: 'center' }}>
+          {mode === 'full' ? <Mark size={s} sw={s <= 32 ? 11 : 9} radiusPct={s <= 32 ? 0.28 : 0.26} /> : <Mark size={s} sw={14} radiusPct={0.3} />}
+          <div className="tnum" style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 8, fontFamily: MONO }}>{s}px</div>
+          <div style={{ fontSize: 9.5, color: 'var(--text-3)' }}>{mode === 'glyph' ? 'simplified' : 'full'}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const EXPORTS = [
+  ['GitHub', 'Social preview', '1280×640', 'PNG', 'mark + wordmark, safe-area centred'],
+  ['GitHub', 'Avatar', '512×512', 'PNG/SVG', 'mark on tile'],
+  ['Docker / GHCR', 'Registry logo', '512×512', 'PNG + SVG', 'mark on tile'],
+  ['PWA', 'Icon', '512 & 192', 'PNG', 'standard, transparent corners'],
+  ['PWA', 'Maskable', '512', 'PNG', 'full-bleed tile, glyph in safe zone'],
+  ['iOS', 'apple-touch', '180×180', 'PNG', 'full-bleed tile (no transparency)'],
+  ['Web', 'Favicon', '32 & 16', 'PNG + SVG', 'simplified glyph'],
+  ['Any', 'Monochrome', 'vector', 'SVG', 'currentColor glyph + wordmark'],
+];
+
+function C1() {
+  return (
+    <section style={{ marginBottom: 60 }}>
+      <Section n="C1" title="Brand mark" id="c1"
+        lead="One mark for the GitHub repo and the GHCR container, evolved from the rail squircle. My recommendation: a small family — the full gradient-tile mark for ≥32px, and a simplified standalone glyph for ≤16px, since the fine line + gradient won't hold at favicon size." />
+      <div style={{ marginBottom: 16 }}><SubHead>Three directions · pick one</SubHead><Directions /></div>
+
+      <Card style={{ marginBottom: 16 }}>
+        <SubHead>Recommended — “Apex” · scales 112 → 16</SubHead>
+        <SizeRow />
+        <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.5, marginTop: 18, maxWidth: 680 }}>
+          The full mark (tile + sweep + dot) carries from app icon down to ~32px. At <b style={{ color: 'var(--text)' }}>16px the line thins out</b>, so the favicon switches to a <b style={{ color: 'var(--text)' }}>simplified glyph</b>: a heavier stroke and a larger dot on a tighter tile. That's the family — full mark + small-size glyph.
+        </div>
+      </Card>
+
+      <Card style={{ marginBottom: 16 }}>
+        <SubHead>On light · on dark · as its own tile</SubHead>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <Bg kind="light" label="on light surface"><Mark size={72} /></Bg>
+          <Bg kind="dark" label="on dark surface"><Mark size={72} /></Bg>
+          <Bg kind="tile" label="app tile — glyph reversed out (recommended PWA/app icon)"><MarkMono size={64} /></Bg>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 12 }}>The gradient tile is the identity — it reads on light and dark without modification. For the app tile, the glyph reverses out of the coral; for flat/monochrome contexts use the single-colour glyph.</div>
+      </Card>
+
+      <Card style={{ marginBottom: 16 }}>
+        <SubHead>Wordmark &amp; lockups · Figtree 800, −0.03em</SubHead>
+        <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ textAlign: 'center' }}><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><Mark size={44} /><Wordmark size={34} /></div><div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 10 }}>horizontal lockup</div></div>
+          <div style={{ textAlign: 'center' }}><div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}><Mark size={48} /><Wordmark size={22} /></div><div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 10 }}>stacked</div></div>
+          <div style={{ textAlign: 'center' }}><Mark size={48} /><div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 10 }}>mark only</div></div>
+          <div style={{ textAlign: 'center' }}><Wordmark size={30} /><div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 14 }}>wordmark only</div></div>
+          <div style={{ textAlign: 'center', color: 'var(--text)' }}><MarkMono size={40} /><div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 10 }}>monochrome glyph</div></div>
+        </div>
+      </Card>
+
+      <Card>
+        <SubHead>Exports to deliver · master SVG + raster</SubHead>
+        <div style={{ display: 'grid', gridTemplateColumns: '120px 1.1fr 90px 90px 1.6fr', gap: '0 14px' }}>
+          {['Lives', 'Asset', 'Size', 'Format', 'Notes'].map((h) => <div key={h} style={{ fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 700, paddingBottom: 9, borderBottom: '1px solid var(--line)' }}>{h}</div>)}
+          {EXPORTS.map((r, i) => r.map((cell, j) => (
+            <div key={i + '-' + j} style={{ fontSize: 12.5, color: j === 1 ? 'var(--text)' : 'var(--text-2)', fontWeight: j === 1 ? 600 : 400, padding: '10px 0', borderBottom: '1px solid var(--line-soft)', fontFamily: j === 2 || j === 3 ? MONO : 'var(--font-sans)' }}>{cell}</div>
+          )))}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 14 }}>Generated files ship in the handoff bundle's <Mono>brand/</Mono> folder (SVG masters + PNGs). The mark uses <b style={{ color: 'var(--text-2)' }}>no new tokens</b> — the gradient is the existing rail gradient.</div>
+      </Card>
+    </section>
+  );
+}
+
+/* ───── C2 ───── */
+const ICONS = {
+  today:'M12 3.6v2M5 7l1.4 1.4M3.6 12h2M19 7l-1.4 1.4M20.4 12h-2M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7zM7.5 17.5h9',
+  ledger:'M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3V3.5zM9 8h6M9 11.5h6M9 15h3',
+  wallet:'M4 7.5h13a2 2 0 012 2V17a2 2 0 01-2 2H5a1.5 1.5 0 01-1.5-1.5V7.5zM4 7.5L15 4v3.5M17 12.5h.01',
+  plan:'M12 4l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 16l8 4 8-4',
+  look:'M5 19V5M5 19h14M9 16v-4M13 16V9M17 16v-7',
+  gear:'M12 9.2a2.8 2.8 0 100 5.6 2.8 2.8 0 000-5.6zM12 3.5l1 2.2 2.4-.5.6 2.4 2.2 1-1 2.2 1.4 2-2 1.4.4 2.4-2.4.6-1 2.2H11l-1-2.2-2.4-.5-.4-2.4-2-1.4 1.4-2-1-2.2 2.2-1 .6-2.4 2.4.5z',
+  search:'M11 4.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM20 20l-4.4-4.4',
+  bell:'M12 4a5 5 0 015 5c0 5 2 6 2 6H5s2-1 2-6a5 5 0 015-5zM10 19a2 2 0 004 0',
+  sync:'M19 8a7 7 0 10.5 6M19 4v4h-4',
+  command:'M9 6a3 3 0 10-3 3h3V6zM15 6a3 3 0 113 3h-3V6zM9 18a3 3 0 11-3-3h3v3zM15 18a3 3 0 103-3h-3v3zM9 9h6v6H9z',
+  home:'M4 11l8-6.5L20 11M6 9.5V20h12V9.5M10 20v-5h4v5',
+  card:'M3.5 6.5h17v11h-17zM3.5 10.5h17M7 14.5h4',
+  percent:'M7 7.5a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4zM17 14.1a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4zM6 18L18 6',
+  link:'M9 12h6M10 8.5H8a3.5 3.5 0 000 7h2M14 8.5h2a3.5 3.5 0 010 7h-2',
+  clock:'M12 4.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zM12 8.5V12l2.5 1.5',
+  flag:'M6 21V4.5M6 5h11l-2 3.5L17 12H6',
+  pause:'M9 5v14M15 5v14',
+  tag:'M4 4.5h7l9 9-6.5 6.5-9-9V4.5zM8 8.5h0',
+  swap:'M7 8h12l-3-3M17 16H5l3 3',
+  repeat:'M5 9a6 6 0 016-6h3l-2-2M19 15a6 6 0 01-6 6h-3l2 2M16 3l2 2-2 2M8 21l-2-2 2-2',
+  shield:'M12 3.5l7 2.5v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z',
+  trend:'M4 16l5-5 3 3 6-7M14 7h4v4',
+  filter:'M4 6h16M7 12h10M10 18h4',
+  arrowR:'M5 12h13M13 6l6 6-6 6',
+  down:'M12 5v14M6 13l6 6 6-6',
+  up:'M12 19V5M6 11l6-6 6 6',
+  scale:'M12 4v16M7 20h10M12 6l-6 2 6-2 6 2M6 8l-2.5 5h5zM18 8l-2.5 5h5zM3.5 13a2.5 2.5 0 005 0M15.5 13a2.5 2.5 0 005 0',
+  merge:'M6 4v6a4 4 0 004 4h8M18 4v6a4 4 0 01-4 4M16 18l3-2-3-2',
+  plus:'M12 5v14M5 12h14',
+  check:'M5 12.5l4.5 4.5L19 7',
+};
+function Icon({ name, size = 22, stroke = 1.6, color = 'currentColor' }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONS[name] || ICONS.plus} /></svg>;
+}
+function IconCell({ name }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 6px', borderRadius: 10, border: '1px solid var(--line-soft)', background: 'var(--surface)' }}>
+      <span style={{ color: 'var(--text)' }}><Icon name={name} size={24} /></span>
+      <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: MONO }}>{name}</span>
+    </div>
+  );
+}
+function IconGroup({ label, names }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 700, marginBottom: 10 }}>{label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(78px, 1fr))', gap: 10 }}>
+        {names.map((n) => <IconCell key={n} name={n} />)}
+      </div>
+    </div>
+  );
+}
+
+function C2() {
+  return (
+    <section style={{ marginBottom: 40 }}>
+      <Section n="C2" title="UI icon system" id="c2"
+        lead="Formalising the line set the app already references (UIcon). Recommendation: adopt Lucide — ISC-licensed (permissive; it forked the MIT Feather set), 24px grid, rounded, already the family the current paths echo — re-skinned to our spec, plus a few custom finance glyphs. It gives a maintained, accessible base without hand-owning hundreds of icons; the trade-off vs fully bespoke is a little less uniqueness, bought back by the custom finance marks and the coral active state. Ship the Lucide LICENSE in the repo (see handoff)." />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <Card>
+          <SubHead>Style spec</SubHead>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+            <div style={{ position: 'relative', width: 96, height: 96, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--line)', flexShrink: 0 }}>
+              <div style={{ position: 'absolute', inset: 8, backgroundImage: 'linear-gradient(var(--line-soft) 1px, transparent 1px), linear-gradient(90deg, var(--line-soft) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--coral)' }}><Icon name="trend" size={56} stroke={1.9} /></div>
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.7 }}>
+              <div><b style={{ color: 'var(--text)' }}>Grid</b> 24×24, 2px padding</div>
+              <div><b style={{ color: 'var(--text)' }}>Stroke</b> 1.6 rest · <span style={{ color: 'var(--coral-text)' }}>1.9 + coral active</span></div>
+              <div><b style={{ color: 'var(--text)' }}>Terminals</b> round caps &amp; joins</div>
+              <div><b style={{ color: 'var(--text)' }}>Optical sizing</b> 16 / 18 / 21 / 24</div>
+              <div><b style={{ color: 'var(--text)' }}>Colour</b> <Mono>currentColor</Mono> — inherits tokens</div>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <SubHead>Active vs rest — the rail rule</SubHead>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {[['today', false], ['ledger', false], ['wallet', true], ['plan', false], ['look', false]].map(([n, on]) => (
+              <div key={n} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 46, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--coral-dim)' : 'transparent', color: on ? 'var(--coral)' : 'var(--text-3)' }}><Icon name={n} size={21} stroke={on ? 1.9 : 1.6} /></div>
+                <span style={{ fontSize: 9.5, color: on ? 'var(--coral)' : 'var(--text-3)', fontWeight: on ? 600 : 500 }}>{n}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-3)', lineHeight: 1.5, marginTop: 16 }}>Active = heavier stroke (1.9) + coral on a <Mono>--coral-dim</Mono> well. Rest = 1.6 on <Mono>--text-3</Mono>. Meaning is never carried by colour alone — labels persist.</div>
+        </Card>
+      </div>
+
+      <Card style={{ marginBottom: 16 }}>
+        <SubHead>The set · named to match <span style={{ textTransform: 'none', letterSpacing: 0 }}><Mono>UIcon</Mono></span></SubHead>
+        <IconGroup label="Rooms" names={['today', 'ledger', 'wallet', 'plan', 'look']} />
+        <IconGroup label="Chrome" names={['gear', 'search', 'bell', 'sync', 'command']} />
+        <IconGroup label="Settings nav" names={['home', 'card', 'percent', 'link', 'clock']} />
+        <IconGroup label="Actions & activity" names={['flag', 'pause', 'tag', 'swap', 'repeat', 'shield', 'trend', 'filter', 'arrowR', 'scale']} />
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 700, marginBottom: 10 }}>Finance-semantic marks · reinforce sign + colour, never the sole signal</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[['up', 'income', 'var(--income)', '+'], ['down', 'expense', 'var(--expense)', '−'], ['swap', 'transfer', 'var(--transfer)', '~'], ['up', 'saved', 'var(--saved)', '+'], ['down', 'debt', 'var(--debt)', '−']].map(([ic, lbl, c, sign], i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 999, border: `1px solid color-mix(in oklch, ${c} 28%, transparent)`, background: `color-mix(in oklch, ${c} 12%, transparent)`, color: c }}>
+                <Icon name={ic} size={15} stroke={2.3} /><span style={{ fontSize: 12, fontWeight: 700 }}>{sign} {lbl}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <SubHead>Delivery</SubHead>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 28px', fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.5 }}>
+          {[
+            ['Per-icon SVG', 'on a 24px grid, optimised, single path where possible'],
+            ['currentColor', 'no hardcoded colour — icons inherit token colours'],
+            ['Names match UIcon', 'drop straight into packages/ui — same keys as the JSX'],
+            ['Index + sprite', 'tree-shakeable index; an SVG sprite for non-bundled use'],
+            ['Decorative = aria-hidden', 'icon-only controls keep their aria-label (per spec)'],
+            ['Reduced motion', 'the sync spinner honours prefers-reduced-motion'],
+          ].map(([t, d]) => <div key={t}><b style={{ color: 'var(--text)' }}>{t}</b> — {d}</div>)}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function App() {
+  const [dark, setDark] = useMode();
+  return (
+    <div className={dark ? 'pf-dark' : 'pf-light'} style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      <Toggle dark={dark} setDark={setDark} />
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 40px 90px' }}>
+        <header style={{ marginBottom: 44 }}>
+          <Kicker>Upshot · Appendix C · Iconography</Kicker>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, margin: '16px 0 0' }}>
+            <Mark size={64} />
+            <h1 style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.03em', margin: 0 }}>Brand mark &amp; iconography</h1>
+          </div>
+          <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--text-2)', maxWidth: 720, margin: '18px 0 0' }}>
+            The mark for the repo + container (C1) and the formalised UI icon set (C2), in the existing token language —
+            <b style={{ color: 'var(--text)' }}> no new colour tokens</b>. Up Sunset Orange <Mono>#ff705c</Mono> stays the anchor; everything resolves to <Mono>currentColor</Mono> or existing tokens.
+          </p>
+        </header>
+        <C1 />
+        <C2 />
+        <footer style={{ marginTop: 30, paddingTop: 22, borderTop: '1px solid var(--line)', fontSize: 12, color: 'var(--text-3)' }}>Upshot · Brand &amp; iconography · master SVGs + raster exports ship in the handoff bundle's <Mono>brand/</Mono> folder.</footer>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
