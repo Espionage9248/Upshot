@@ -286,3 +286,35 @@ The owner agrees 2Up is a **sub-surface, not a room** (a closed, historical, rea
 - **✓ Resolved:** an Analyze sub-surface — **Overview** (in/spent/distributed · money-in-vs-out per person · who-contributed split + rhythm · who-spent-where) + explorable **Ledger** (search + Person/Category/Date/Amount filters, contributor-attributed rows). Person identity `--viz-2`/`--viz-4`; strictly read-only. See `TwoUpOverview` / `TwoUpLedger` in `round3.jsx`.
 
 **Deliverable — ✓ delivered (`design_handoff_round3_ia/`):** the IA recommendation (Settings = gear surface) + surface designs for **Settings**, **Sync & activity**, and the **2Up** sub-surface, in the existing token/component language. Reconciled into `PLAN-V2.md` §9. Everything else in the system stands.
+
+---
+
+## Appendix C — Iconography (new request)
+
+> **Status: new request for Claude Design.** Same system, same token contract — **no new colour tokens** (icons resolve to `currentColor` / existing tokens). Two deliverables: **C1** the Upshot brand mark (the immediate need — repo + container), and **C2** the formalized UI icon set the app already leans on. Carry forward the warm, calm, editorial identity; Up Sunset Orange `#ff705c` stays the anchor; accessibility rules (§8) still bind.
+
+### C1 — Brand mark / app logo *(the "at minimum" need)*
+We need a mark for the **GitHub repo** (avatar + social preview) and the **Docker / GHCR container image**. These share one mark, so design **one brand mark** that exports cleanly everywhere it lives.
+- **Anchor / starting point:** the nascent mark already in the rail — a coral gradient squircle (`radial-gradient(120% 120% at 30% 20%, #ffb199, var(--coral) 55%, #e8553f)`, soft-rounded). Evolve it into a real, memorable mark (an "Upshot"/upward motif fits the name and the calm-confidence tone), or propose alternatives — but keep Up orange the anchor.
+- **Must survive every size:** legible from **1024px** (app icon / social preview) down to a **16px favicon** — so it likely needs a **simplified standalone glyph** for tiny sizes alongside the full mark. Square master + safe area.
+- **Light, dark, and on-tile:** reads on light, on dark, and as its own app tile (on a gradient or neutral — specify which).
+- **Wordmark:** an "Upshot" wordmark in the system family (Figtree) + lockups (horizontal, stacked, mark-only).
+- **Concrete exports to deliver** (master **SVG** +):
+  - GitHub — **social preview 1280×640** (mark + wordmark) and a **square avatar ≥512×512**.
+  - Docker/GHCR — **square logo** (512×512 PNG + SVG) for the registry.
+  - App/PWA/web — **512 & 192** (standard + **maskable**), **180** apple-touch, **favicon 32/16** (or an SVG favicon), and a **monochrome** variant.
+- **Question:** one mark, or a small family (full logo + small-size glyph)? Recommend.
+
+### C2 — UI icon system *(the broader iconography)*
+The app already references a named line-icon set (`UIcon` in the delivered JSX). Formalize it.
+- **Style:** define stroke weight, grid (e.g. 24px), corner radius, terminals, optical sizing — **rounded and friendly**, matching the warm editorial system (not sharp/technical). Active state = heavier stroke + coral (the rail already does ~`1.9` active / `1.6` rest).
+- **Approach — recommend one:** (a) adopt a quality open set re-skinned to the style (e.g. Lucide / Phosphor — note the license) with a few **custom finance glyphs**, or (b) a fully bespoke set. State the trade-off.
+- **Working set to cover** (pulled from the references — extend as needed):
+  - **Rooms:** `today` · `ledger` (Money) · `wallet` (Budget) · `plan` · `look` (Analyze)
+  - **Chrome:** `gear`/settings · `search` · `bell` · `sync` · ⌘K affordance · avatar
+  - **Settings nav:** `home` · `card` · `percent` · `link` · `clock`
+  - **Actions / activity:** `flag` (deductible) · `pause` · `tag` · `swap` (transfer) · `repeat` (recurring) · `shield` (backup) · `trend` · `filter` · `chevron`/`arrowR`/`down` · `scale` (split/settle)
+  - **Finance-semantic marks:** direction/affordance glyphs for income/expense/transfer/saved/debt — they **reinforce** the sign + colour, never the sole signal.
+- **Delivery:** per-icon **SVG on a 24px grid**, `currentColor`-driven (inherit token colours), named to match the existing `UIcon` names so they drop into `packages/ui`; plus an index/sprite. Decorative icons `aria-hidden`; icon-only controls keep their labels (per the component spec). Any animated icon (e.g. the sync spinner) honours `prefers-reduced-motion`.
+
+**Deliverable summary:** the brand mark + its exports (C1) and the formalized UI icon set + delivery (C2), in the existing token/component language — **no new colour tokens.**
