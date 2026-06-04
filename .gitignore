@@ -51,6 +51,9 @@ reference/
 # `Upshot Component Specs.md` and `DESIGN-BRIEF.md`) ARE tracked.
 /PLAN-V2.md
 
+# Phase sub-plans stay local working docs too (like PLAN-V2.md).
+/docs/superpowers/plans/
+
 # ── Design handoff bundles are tracked deliverables ──
 # Re-include their build/ dir (screen sources) which the generic `build/` rule above would otherwise drop.
 !design_handoff_upshot/build/
