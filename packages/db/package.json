@@ -11,9 +11,18 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@upshot/contracts": "workspace:*",
+    "@upshot/core": "workspace:*",
+    "better-sqlite3-multiple-ciphers": "^12.10",
+    "drizzle-orm": "^0.45"
   },
   "devDependencies": {
-    "@upshot/config": "workspace:*"
+    "@upshot/config": "workspace:*",
+    "@types/better-sqlite3": "^7.6",
+    "drizzle-kit": "^0.31"
   }
 }
