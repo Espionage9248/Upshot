@@ -106,4 +106,6 @@ The encrypted database requires `DB_ENCRYPTION_KEY`; Up sync requires `UP_API_TO
 
 ## License
 
-Private and personal — not intended for distribution.
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only).
+
+This is a personal project shared in the open. You're free to use, study, modify, and self-host it under the AGPL — including running a modified version as a network service, provided you make your source available to its users under the same license.
