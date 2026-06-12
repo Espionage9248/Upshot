@@ -4,3 +4,5 @@ export { schema } from "./schema";
 export * as tables from "./schema";
 export { applyMigrations } from "./migrate";
 export { seed } from "./seed";
+export { DrizzleAccountRepo } from "./repositories/account-repo";
+export { DrizzleTransactionRepo } from "./repositories/transaction-repo";
