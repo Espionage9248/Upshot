@@ -1,2 +1,4 @@
-/** Placeholder barrel for @upshot/db. Drizzle schema + encrypted client arrive in Phase 1. */
-export const packageName = "@upshot/db";
+export { openEncryptedDatabase, type EncryptedDbOptions, type RawDatabase } from "./encryption";
+export { createDbClient, createDbClientFromEnv, type DbClient } from "./client";
+export { schema } from "./schema";
+export * as tables from "./schema";
