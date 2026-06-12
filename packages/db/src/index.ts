@@ -2,3 +2,5 @@ export { openEncryptedDatabase, type EncryptedDbOptions, type RawDatabase } from
 export { createDbClient, createDbClientFromEnv, type DbClient } from "./client";
 export { schema } from "./schema";
 export * as tables from "./schema";
+export { applyMigrations } from "./migrate";
+export { seed } from "./seed";

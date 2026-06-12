@@ -17,6 +17,7 @@
   "dependencies": {
     "@upshot/contracts": "workspace:*",
     "@upshot/core": "workspace:*",
+    "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@^12.10",
     "better-sqlite3-multiple-ciphers": "^12.10",
     "drizzle-orm": "^0.45"
   },

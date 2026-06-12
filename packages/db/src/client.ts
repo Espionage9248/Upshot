@@ -1,3 +1,7 @@
+// drizzle-orm/better-sqlite3 statically imports the "better-sqlite3" module. We don't
+// install plain better-sqlite3 — package.json aliases "better-sqlite3" to
+// "better-sqlite3-multiple-ciphers" so this resolves to the SQLCipher build (one native
+// binary, encryption everywhere). Do NOT remove that alias or drizzle will fail to load.
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { openEncryptedDatabase, type EncryptedDbOptions, type RawDatabase } from "./encryption";
 import { schema } from "./schema";

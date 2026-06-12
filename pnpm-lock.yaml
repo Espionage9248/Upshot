@@ -113,12 +113,15 @@ importers:
       '@upshot/core':
         specifier: workspace:*
         version: link:../core
+      better-sqlite3:
+        specifier: npm:better-sqlite3-multiple-ciphers@^12.10
+        version: better-sqlite3-multiple-ciphers@12.10.0
       better-sqlite3-multiple-ciphers:
         specifier: ^12.10
         version: 12.10.0
       drizzle-orm:
         specifier: ^0.45
-        version: 0.45.2(@types/better-sqlite3@7.6.13)
+        version: 0.45.2(@types/better-sqlite3@7.6.13)(better-sqlite3-multiple-ciphers@12.10.0)
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6
@@ -3574,9 +3577,10 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.22.4
 
-  drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13):
+  drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13)(better-sqlite3-multiple-ciphers@12.10.0):
     optionalDependencies:
       '@types/better-sqlite3': 7.6.13
+      better-sqlite3: better-sqlite3-multiple-ciphers@12.10.0
 
   end-of-stream@1.4.5:
     dependencies:
