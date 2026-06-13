@@ -5,3 +5,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   better-sqlite3-multiple-ciphers: true
+# Force-resolve postcss past GHSA (XSS via unescaped </style>, fixed in 8.5.10).
+# next pins an older 8.4.x transitively; this lifts it.
+overrides:
+  postcss: "^8.5.10"
