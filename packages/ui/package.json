@@ -10,7 +10,7 @@
     "./styles/tokens.css": "./src/styles/tokens.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint .",
     "test": "vitest run"
   },

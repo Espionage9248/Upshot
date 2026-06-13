@@ -29,6 +29,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@upshot/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       next:
         specifier: ^16
         version: 16.2.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
