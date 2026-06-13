@@ -17,3 +17,16 @@ export {
 } from "./primitives/tabs";
 export { UiProgress, type UiProgressProps } from "./primitives/progress";
 export { Skeleton, type SkeletonProps } from "./primitives/skeleton";
+export { Alert, type AlertProps, type AlertTone } from "./primitives/alert";
+export { Card, CardHeader, CardTitle, CardBody } from "./primitives/card";
+export {
+  Table,
+  THead,
+  TBody,
+  TR,
+  TH,
+  TD,
+  type TRProps,
+  type THProps,
+  type TDProps,
+} from "./primitives/table";
