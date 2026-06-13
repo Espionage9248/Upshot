@@ -6,3 +6,6 @@ export { Badge, type BadgeProps, type BadgeTone } from "./primitives/badge";
 export { Input, type InputProps } from "./primitives/input";
 export { Textarea, type TextareaProps } from "./primitives/textarea";
 export { UiSelect, type UiSelectProps, type UiSelectOption } from "./primitives/select";
+export { UiSwitch, type UiSwitchProps } from "./primitives/switch";
+export { UiCheckbox, type UiCheckboxProps } from "./primitives/checkbox";
+export { UiSlider, type UiSliderProps } from "./primitives/slider";
