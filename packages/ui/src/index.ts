@@ -9,3 +9,11 @@ export { UiSelect, type UiSelectProps, type UiSelectOption } from "./primitives/
 export { UiSwitch, type UiSwitchProps } from "./primitives/switch";
 export { UiCheckbox, type UiCheckboxProps } from "./primitives/checkbox";
 export { UiSlider, type UiSliderProps } from "./primitives/slider";
+export {
+  UiTabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "./primitives/tabs";
+export { UiProgress, type UiProgressProps } from "./primitives/progress";
+export { Skeleton, type SkeletonProps } from "./primitives/skeleton";
