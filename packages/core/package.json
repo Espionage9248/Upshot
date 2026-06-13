@@ -17,6 +17,7 @@
     "@upshot/contracts": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^24",
     "@upshot/config": "workspace:*",
     "fast-check": "^4.8"
   }

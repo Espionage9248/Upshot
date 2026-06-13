@@ -101,6 +101,9 @@ importers:
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
+      '@types/node':
+        specifier: ^24
+        version: 24.12.4
       '@upshot/config':
         specifier: workspace:*
         version: link:../config
