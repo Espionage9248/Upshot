@@ -14,3 +14,5 @@ export const accountSchema = z.object({
   lastSyncedAt: z.string().nullable(),
 });
 export type Account = z.infer<typeof accountSchema>;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+export type AccountOwnership = (typeof ACCOUNT_OWNERSHIPS)[number];
