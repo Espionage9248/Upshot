@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { SYNC_CADENCES } from "./enums";
 
+export type SyncCadence = (typeof SYNC_CADENCES)[number];
+
 export const appSettingsSchema = z.object({
   id: z.string().default("default"),
   syncCadence: z.enum(SYNC_CADENCES).default("DAILY"),

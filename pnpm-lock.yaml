@@ -56,6 +56,19 @@ importers:
         version: 4.3.0
 
   apps/worker:
+    dependencies:
+      '@upshot/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@upshot/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@upshot/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      croner:
+        specifier: ^9
+        version: 9.1.0
     devDependencies:
       '@upshot/config':
         specifier: workspace:*
@@ -101,6 +114,9 @@ importers:
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
+      '@types/node':
+        specifier: ^24
+        version: 24.12.4
       '@upshot/config':
         specifier: workspace:*
         version: link:../config
@@ -1636,6 +1652,10 @@ packages:
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
+
+  croner@9.1.0:
+    resolution: {integrity: sha512-p9nwwR4qyT5W996vBZhdvBCnMhicY5ytZkR4D1Xj0wuTDEiMnjwR57Q3RXYY/s0EpX6Ay3vgIcfaR+ewGHsi+g==}
+    engines: {node: '>=18.0'}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -3546,6 +3566,8 @@ snapshots:
   consola@3.4.2: {}
 
   convert-source-map@2.0.0: {}
+
+  croner@9.1.0: {}
 
   cross-spawn@7.0.6:
     dependencies:

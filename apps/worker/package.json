@@ -11,6 +11,12 @@
     "lint": "eslint .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@upshot/contracts": "workspace:*",
+    "@upshot/core": "workspace:*",
+    "@upshot/db": "workspace:*",
+    "croner": "^9"
+  },
   "devDependencies": {
     "@upshot/config": "workspace:*",
     "tsup": "^8",

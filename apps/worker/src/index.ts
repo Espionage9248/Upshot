@@ -1,4 +1,6 @@
-import { run } from "./main";
+import { start } from "./main";
 
-run();
-process.exit(0);
+start().catch((err) => {
+  console.error("worker failed to start:", err instanceof Error ? err.message : err);
+  process.exit(1);
+});

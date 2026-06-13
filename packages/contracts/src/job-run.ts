@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { JOB_NAMES, JOB_STATUSES } from "./enums";
 
+export type JobName = (typeof JOB_NAMES)[number];
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
 export const jobRunSchema = z.object({
   id: z.string(),
   job: z.enum(JOB_NAMES),
