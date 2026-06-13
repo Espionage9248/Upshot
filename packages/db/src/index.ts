@@ -6,3 +6,7 @@ export { applyMigrations } from "./migrate";
 export { seed } from "./seed";
 export { DrizzleAccountRepo } from "./repositories/account-repo";
 export { DrizzleTransactionRepo } from "./repositories/transaction-repo";
+export { DrizzleJobRunRepo } from "./repositories/job-run-repo";
+export { DrizzleCategoryRepo } from "./repositories/category-repo";
+export { DrizzleMatchRuleRepo } from "./repositories/match-rule-repo";
+export { DrizzleSettingsRepo } from "./repositories/settings-repo";
