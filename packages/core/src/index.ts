@@ -1,2 +1,5 @@
-/** Placeholder barrel for @upshot/core. Real domain logic (Money, sync, budget…) arrives in Phase 1+. */
-export const packageName = "@upshot/core";
+export { Money, DEFAULT_CURRENCY } from "./money/money";
+export type { AccountRepo, NewAccount, TransactionRepo, NewTransaction } from "./ports";
+export { InMemoryAccountRepo } from "./testing/in-memory-account-repo";
+export { InMemoryTransactionRepo } from "./testing/in-memory-transaction-repo";
+export { repoContract, type RepoUnderTest } from "./repo-contract";

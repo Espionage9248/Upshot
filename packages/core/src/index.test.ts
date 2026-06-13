@@ -1,6 +1,7 @@
 import { test, expect } from "vitest";
-import { packageName } from "./index";
+import { Money, DEFAULT_CURRENCY } from "./index";
 
-test("@upshot/core barrel exposes its package name", () => {
-  expect(packageName).toBe("@upshot/core");
+test("@upshot/core barrel exposes Money and DEFAULT_CURRENCY", () => {
+  expect(DEFAULT_CURRENCY).toBe("AUD");
+  expect(Money.fromCents(0).currency).toBe("AUD");
 });

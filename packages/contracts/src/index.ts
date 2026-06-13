@@ -1,2 +1,18 @@
-/** Placeholder barrel for @upshot/contracts. Zod schemas + inferred types arrive in Phase 1. */
-export const packageName = "@upshot/contracts";
+export * from "./enums";
+export * from "./account";
+export * from "./transaction";
+export * from "./category";
+export * from "./tag";
+export * from "./budget";
+export * from "./debt";
+export * from "./installment";
+export * from "./recurring";
+export * from "./purchase";
+export * from "./match-rule";
+export * from "./settings";
+export * from "./snapshot";
+export * from "./dashboard";
+export * from "./event-log";
+export * from "./job-run";
+export * from "./two-up";
+export * from "./asset";
