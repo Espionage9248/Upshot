@@ -19,6 +19,10 @@ export const user = sqliteTable("user", {
   image: text(),
   createdAt: integer({ mode: "timestamp" }).notNull(),
   updatedAt: integer({ mode: "timestamp" }).notNull(),
+  // JSON-encoded array of scrypt backup-code hashes (string[]). Nullable: set
+  // once at first-run /register, consumed one-at-a-time on recovery. Managed by
+  // direct drizzle (NOT better-auth), so it stays independent of auth config.
+  backupCodes: text(),
 });
 
 export const session = sqliteTable(

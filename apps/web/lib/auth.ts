@@ -30,6 +30,12 @@ function buildAuth() {
     secret: BETTER_AUTH_SECRET,
     baseURL: BETTER_AUTH_URL,
     database: drizzleAdapter(getDb().db, { provider: "sqlite", schema }),
+    // Required so /register can bootstrap the single user + a session (the
+    // passkey plugin has no passkey-native signup; addPasskey needs a session).
+    // /register generates a high-entropy throwaway password that is never shown
+    // or stored, and the /login UI never surfaces a password field — this
+    // endpoint exists but is intentionally never offered to the user.
+    emailAndPassword: { enabled: true },
     plugins: [
       passkey({
         rpID: UPSHOT_RP_ID,
