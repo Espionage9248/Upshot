@@ -39,6 +39,9 @@ export {
   DialogDescription,
   DialogClose,
 } from "./primitives/dialog";
+// Raw Radix Dialog namespace for callers needing Portal/Content composition
+// (e.g. the top-anchored command palette) without taking a direct radix dep.
+export { Dialog as DialogPrimitive } from "radix-ui";
 export {
   Sheet,
   SheetTrigger,

@@ -55,9 +55,9 @@ export function TopBar({ title, sub, healthy = true }: TopBarProps) {
           type="button"
           aria-label="Open command palette"
           data-command-trigger
-          onClick={() => {
-            // Task 18: open ⌘K palette
-          }}
+          onClick={() =>
+            window.dispatchEvent(new Event("upshot:open-command-palette"))
+          }
           style={{
             display: "inline-flex",
             alignItems: "center",

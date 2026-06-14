@@ -2,19 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UIcon, type UIconKey } from "@upshot/ui";
-
-/**
- * The five rooms. `id` doubles as the UIcon key (per the design handoff); the
- * URL path is distinct from both. Order is the rail order.
- */
-const ROOMS: ReadonlyArray<{ id: UIconKey; label: string; href: string }> = [
-  { id: "today", label: "Today", href: "/today" },
-  { id: "ledger", label: "Money", href: "/money" },
-  { id: "wallet", label: "Budget", href: "/budget" },
-  { id: "plan", label: "Plan", href: "/plan" },
-  { id: "look", label: "Analyze", href: "/analyze" },
-];
+import { UIcon } from "@upshot/ui";
+import { ROOMS } from "@/lib/rooms";
 
 /**
  * Left navigation rail (84px). Reads the pathname itself to derive which room

@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth-guard";
 import { THEME_COOKIE, type ThemePref } from "@/lib/theme";
 import { UpRail } from "@/components/up-rail";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CommandPalette } from "@/components/command-palette";
 
 /**
  * Authenticated app shell. Server Component: re-checks the session (defence in
@@ -40,7 +41,7 @@ export default async function AppLayout({
           {children}
         </main>
       </div>
-      {/* Task 18: mount <CommandPalette/> */}
+      <CommandPalette />
     </div>
   );
 }
