@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { SyncHealth } from "@upshot/core";
 import type { TodayData, UpcomingBill } from "@/app/(app)/today/data";
-import { DashCalm, syncHealthToState, toBillItem } from "./dash-calm";
+import { DashCalm, toBillItem } from "./dash-calm";
+import { syncHealthToState } from "@/lib/sync-health";
 
 const baseHealth: SyncHealth = {
   lastSyncAt: "2026-06-15T07:00:00.000Z",

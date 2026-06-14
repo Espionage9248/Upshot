@@ -14,12 +14,9 @@ export default async function TodayPage(): Promise<ReactNode> {
   const { db } = getDb();
   const data = await loadTodayData(db);
 
-  const healthy =
-    data.syncHealth.tokenHealthy && data.syncHealth.lastStatus !== "FAILED";
-
   return (
     <>
-      <TopBar title="Today" sub="DASHBOARD" healthy={healthy} />
+      <TopBar title="Today" sub="DASHBOARD" health={data.syncHealth} />
       <DashCalm data={data} />
     </>
   );

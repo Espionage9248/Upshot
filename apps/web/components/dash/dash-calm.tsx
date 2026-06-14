@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { SyncHealth } from "@upshot/core";
 import {
   Card,
   CardBody,
@@ -10,23 +9,11 @@ import {
   SyncStatus,
   UpcomingBills,
   type BillItem,
-  type SyncState,
 } from "@upshot/ui";
+import { syncHealthToState } from "@/lib/sync-health";
 import type { TodayData, UpcomingBill } from "@/app/(app)/today/data";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-/**
- * Maps the domain `SyncHealth` to the UI `SyncStatus` state. A bad token wins
- * over everything (the user must reconnect before any sync matters), then the
- * latest job status drives the rest.
- */
-export function syncHealthToState(health: SyncHealth): SyncState {
-  if (!health.tokenHealthy) return "token";
-  if (health.lastStatus === "FAILED") return "failed";
-  if (health.lastStatus === "RUNNING") return "syncing";
-  return "healthy";
-}
 
 /**
  * Maps a domain `UpcomingBill` to the UI `BillItem`. `daysUntil` is whole days

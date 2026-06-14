@@ -27,19 +27,23 @@ describe("TopBar", () => {
     expect(getByRole("button", { name: /notifications/i })).toBeTruthy();
   });
 
-  it("shows 'Synced' and an income-coloured dot when healthy (default)", () => {
-    const { getByText, container } = render(<TopBar title="Today" />);
-    expect(getByText("Synced")).toBeTruthy();
-    const dot = container.querySelector("[data-sync-dot]") as HTMLElement;
-    expect(dot.style.background).toContain("var(--income)");
+  it("shows a neutral 'Up to date' pill when no health is provided", () => {
+    const { getByText } = render(<TopBar title="Today" />);
+    expect(getByText("Up to date")).toBeTruthy();
   });
 
-  it("shows 'Sync issue' and a coral dot when unhealthy", () => {
-    const { getByText, container } = render(
-      <TopBar title="Today" healthy={false} />,
+  it("reflects the mapped sync state from real health (token → Reconnect bank)", () => {
+    const { getByText } = render(
+      <TopBar
+        title="Today"
+        health={{
+          lastSyncAt: "2026-06-15T07:00:00.000Z",
+          lastSyncAgeMs: 60_000,
+          lastStatus: "FAILED",
+          tokenHealthy: false,
+        }}
+      />,
     );
-    expect(getByText("Sync issue")).toBeTruthy();
-    const dot = container.querySelector("[data-sync-dot]") as HTMLElement;
-    expect(dot.style.background).toContain("var(--coral)");
+    expect(getByText("Reconnect bank")).toBeTruthy();
   });
 });

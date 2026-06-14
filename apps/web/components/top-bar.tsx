@@ -1,12 +1,14 @@
 "use client";
 
-import { UIcon } from "@upshot/ui";
+import { SyncStatus, UIcon } from "@upshot/ui";
+import type { SyncHealth } from "@upshot/core";
+import { syncHealthToState } from "@/lib/sync-state";
 
 interface TopBarProps {
   title: string;
   sub?: string;
-  /** Sync health. Task 23 will feed this from real SyncHealth (/health). */
-  healthy?: boolean;
+  /** Real sync health; when omitted the pill shows a neutral "up to date". */
+  health?: SyncHealth;
 }
 
 /**
@@ -14,7 +16,7 @@ interface TopBarProps {
  * a sync-status pill and a notifications bell on the right. Rendered per-page so
  * each page supplies its own title/sub.
  */
-export function TopBar({ title, sub, healthy = true }: TopBarProps) {
+export function TopBar({ title, sub, health }: TopBarProps) {
   return (
     <div
       style={{
@@ -80,33 +82,7 @@ export function TopBar({ title, sub, healthy = true }: TopBarProps) {
         </button>
 
         {/* Sync-status pill */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            height: 38,
-            padding: "0 13px",
-            borderRadius: 999,
-            border: "1px solid var(--line)",
-            color: "var(--text-2)",
-            fontSize: 12.5,
-            fontWeight: 500,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {/* Task 23: feed real SyncHealth */}
-          <span
-            data-sync-dot
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 999,
-              background: healthy ? "var(--income)" : "var(--coral)",
-            }}
-          />
-          {healthy ? "Synced" : "Sync issue"}
-        </div>
+        <SyncStatus state={health ? syncHealthToState(health) : "healthy"} />
 
         {/* Notifications */}
         <button
