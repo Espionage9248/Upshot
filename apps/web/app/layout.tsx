@@ -21,6 +21,15 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Upshot",
   description: "Personal budgeting — V2",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-180.png",
+  },
+  manifest: "/manifest.webmanifest",
 };
 
 // Pre-paint, before React hydrates: resolve "system"/absent prefs against the

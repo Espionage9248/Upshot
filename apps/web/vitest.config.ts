@@ -22,6 +22,7 @@ export default defineConfig({
       "lib/**/*.test.tsx",
       "components/**/*.test.tsx",
       "server-actions/**/*.test.ts",
+      "app/**/*.test.ts",
     ],
     // Component tests render React, so the web suite needs a DOM. jsdom is a
     // superset for the pure (node-fine) lib/server-action tests, so this is safe.
