@@ -10,12 +10,12 @@ describe("schema wiring", () => {
     const names = Object.values(schema).map((t) => getTableConfig(t as never).name).sort();
     expect(names).toEqual(
       [
-        "accounts", "app_settings", "asset_valuations", "assets", "budget_allocations", "categories",
-        "dashboard_widgets", "debt_expenses", "debt_payments", "debts", "event_log",
+        "account", "accounts", "app_settings", "asset_valuations", "assets", "budget_allocations",
+        "categories", "dashboard_widgets", "debt_expenses", "debt_payments", "debts", "event_log",
         "installment_plan_payments", "installment_plans", "job_runs", "match_actions",
         "match_conditions", "match_rules", "monthly_snapshot_categories", "monthly_snapshots",
-        "purchase_images", "purchases", "recurring_items", "tags", "transaction_tags",
-        "transactions", "two_up_transactions",
+        "passkey", "purchase_images", "purchases", "recurring_items", "session", "tags",
+        "transaction_tags", "transactions", "two_up_transactions", "user", "verification",
       ].sort(),
     );
   });
