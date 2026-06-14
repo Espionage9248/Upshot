@@ -1,3 +1,5 @@
+"use client";
+
 import { useId, type TextareaHTMLAttributes, type Ref } from "react";
 import { cn } from "../lib/cn";
 import { controlVariants } from "./input";

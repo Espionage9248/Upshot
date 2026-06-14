@@ -1,3 +1,5 @@
+"use client";
+
 import { Checkbox } from "radix-ui";
 import { cn } from "../lib/cn";
 import { UIcon } from "../icons";

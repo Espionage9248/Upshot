@@ -1,3 +1,5 @@
+"use client";
+
 import { Select } from "radix-ui";
 import { cn } from "../lib/cn";
 import { UIcon } from "../icons";

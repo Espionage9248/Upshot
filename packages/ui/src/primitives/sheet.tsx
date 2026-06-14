@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Sheet — edge-anchored overlay built on Radix Dialog.
  *

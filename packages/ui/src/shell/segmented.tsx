@@ -1,3 +1,5 @@
+"use client";
+
 import { ToggleGroup } from "radix-ui";
 import { cn } from "../lib/cn";
 

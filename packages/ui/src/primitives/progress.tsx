@@ -1,3 +1,5 @@
+"use client";
+
 import { Progress } from "radix-ui";
 import { cn } from "../lib/cn";
 

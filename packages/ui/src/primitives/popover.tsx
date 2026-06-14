@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Popover — Radix Popover wrapped with Upshot design tokens.
  *

@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Tooltip — Radix Tooltip wrapped with Upshot design tokens.
  *

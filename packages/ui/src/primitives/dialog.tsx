@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Dialog — Radix Dialog wrapped with Upshot design tokens.
  *
