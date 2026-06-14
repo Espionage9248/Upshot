@@ -67,3 +67,23 @@ export { ReadinessGauge, type ReadinessGaugeProps } from "./finance/readiness-ga
 export { InsightCard, type InsightCardProps } from "./finance/insight-card";
 export { UpcomingBills, type UpcomingBillsProps, type BillItem } from "./finance/upcoming-bills";
 export { EmptyState, type EmptyStateProps } from "./finance/empty-state";
+export {
+  Segmented,
+  type SegmentedProps,
+  type SegmentedOption,
+} from "./shell/segmented";
+export {
+  ToggleRow,
+  type ToggleRowProps,
+} from "./shell/toggle-row";
+export {
+  FilterChip,
+  type FilterChipProps,
+  type FilterChipOption,
+} from "./shell/filter-chip";
+export {
+  SettingsNav,
+  SETTINGS_SECTIONS,
+  type SettingsNavProps,
+  type SettingsSection,
+} from "./shell/settings-nav";
