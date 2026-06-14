@@ -60,3 +60,10 @@ export {
   TooltipTrigger,
   TooltipContent,
 } from "./primitives/tooltip";
+export { Stat, type StatProps } from "./finance/stat";
+export { SyncStatus, type SyncStatusProps, type SyncState } from "./finance/sync-status";
+export { Confidence, type ConfidenceProps, type ConfidenceLevel } from "./finance/confidence";
+export { ReadinessGauge, type ReadinessGaugeProps } from "./finance/readiness-gauge";
+export { InsightCard, type InsightCardProps } from "./finance/insight-card";
+export { UpcomingBills, type UpcomingBillsProps, type BillItem } from "./finance/upcoming-bills";
+export { EmptyState, type EmptyStateProps } from "./finance/empty-state";
