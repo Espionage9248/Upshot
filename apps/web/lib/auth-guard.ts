@@ -11,11 +11,23 @@ import { getAuth } from "./auth";
  * redirects to /login (redirect() throws, so callers can rely on a non-null
  * return).
  *
- * Task 24 will extend THIS file with an `action()` result-contract wrapper;
- * keep this signature stable so that extension does not break callers.
+ * The non-redirecting `getSession()` below performs the same server-side read but
+ * returns `null` when absent — used by the `action()` result-contract wrapper
+ * (lib/action.ts), where a redirect is the wrong response for a programmatically
+ * invoked Server Action.
  */
-export async function requireSession() {
+
+/**
+ * Read the better-auth session server-side. Returns the session ({ user, session })
+ * when a user is present, otherwise `null`. Does NOT redirect.
+ */
+export async function getSession() {
   const session = await getAuth().api.getSession({ headers: await headers() });
-  if (!session?.user) redirect("/login");
+  return session?.user ? session : null;
+}
+
+export async function requireSession() {
+  const session = await getSession();
+  if (!session) redirect("/login");
   return session;
 }

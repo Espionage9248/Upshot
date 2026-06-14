@@ -14,7 +14,42 @@ vi.mock("next/navigation", () => ({
   redirect: (to: string) => redirect(to),
 }));
 
-import { requireSession } from "./auth-guard";
+import { getSession as readSession, requireSession } from "./auth-guard";
+
+describe("getSession", () => {
+  beforeEach(() => {
+    getSession.mockReset();
+    redirect.mockReset();
+  });
+
+  it("returns the session when a user is present, without redirecting", async () => {
+    const session = { user: { id: "u1" }, session: { id: "s1" } };
+    getSession.mockResolvedValue(session);
+
+    const result = await readSession();
+
+    expect(result).toBe(session);
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("returns null (no redirect) when there is no session", async () => {
+    getSession.mockResolvedValue(null);
+
+    const result = await readSession();
+
+    expect(result).toBeNull();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("returns null (no redirect) when the session has no user", async () => {
+    getSession.mockResolvedValue({ session: { id: "s1" } });
+
+    const result = await readSession();
+
+    expect(result).toBeNull();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});
 
 describe("requireSession", () => {
   beforeEach(() => {

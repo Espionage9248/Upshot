@@ -12,7 +12,7 @@ import {
 // saveLayoutAction is a "use server" action; stub it so the component test never
 // touches the DB/auth (jsdom has no server runtime).
 vi.mock("@/server-actions/dashboard", () => ({
-  saveLayoutAction: vi.fn(async () => {}),
+  saveLayoutAction: vi.fn(async () => ({ ok: true, data: undefined })),
 }));
 
 const layout: DashboardWidget[] = [

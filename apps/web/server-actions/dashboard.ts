@@ -4,16 +4,17 @@
  * Dashboard bento layout Server Actions.
  *
  * Security invariants (single-user app — non-negotiable):
- *   - Every action re-checks the session server-side (requireSession), so an
- *     unauthenticated call redirects to /login before any DB access.
+ *   - Every action re-checks the session server-side via action(), which
+ *     short-circuits an unauthenticated call before any DB access and returns a
+ *     safe ActionResult (no redirect — these are fetch-invoked actions).
  *   - No secret is ever passed to console.* / logged.
  *
  * The actual persistence is the pure, db-injected `saveLayout`/`loadLayout` in
- * `dashboard-core.ts`. These wrappers are intentionally thin so Task 24's
- * `action()` result-contract wrapper can wrap them cleanly.
+ * `dashboard-core.ts`. These wrappers are intentionally thin so the `action()`
+ * result-contract wrapper wraps them cleanly.
  */
 
-import { requireSession } from "@/lib/auth-guard";
+import { action } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { saveLayout, loadLayout, type DashboardWidget } from "./dashboard-core";
 
@@ -22,15 +23,15 @@ import { saveLayout, loadLayout, type DashboardWidget } from "./dashboard-core";
 export type { DashboardWidget } from "./dashboard-core";
 
 /** Action: persist the current layout. Re-checks auth, then delegates. */
-export async function saveLayoutAction(widgets: DashboardWidget[]): Promise<void> {
-  await requireSession();
-  const { db } = getDb();
-  return saveLayout(db, widgets);
-}
+export const saveLayoutAction = action(
+  async (_session, widgets: DashboardWidget[]) => {
+    const { db } = getDb();
+    return saveLayout(db, widgets);
+  },
+);
 
 /** Action: load the persisted layout. Re-checks auth, then delegates. */
-export async function loadLayoutAction(): Promise<DashboardWidget[]> {
-  await requireSession();
+export const loadLayoutAction = action(async () => {
   const { db } = getDb();
   return loadLayout(db);
-}
+});

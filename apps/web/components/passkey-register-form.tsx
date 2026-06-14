@@ -59,7 +59,10 @@ export function PasskeyRegisterForm() {
 
       // 3) Server generates + persists hashed codes and returns plaintext ONCE.
       const issued = await issueBackupCodes();
-      setCodes(issued);
+      if (!issued.ok) {
+        throw new Error("Could not issue recovery codes");
+      }
+      setCodes(issued.data);
       setPhase("codes");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");

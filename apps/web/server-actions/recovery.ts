@@ -12,8 +12,9 @@
  */
 
 import { eq } from "drizzle-orm";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { tables } from "@upshot/db";
+import { action } from "@/lib/action";
 import { generateBackupCodes, hashBackupCode } from "@/lib/backup-codes";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -84,6 +85,10 @@ async function establishSession(userId: string): Promise<void> {
  * the user is authorised to register a new passkey on /login. The redeem core is
  * unit-tested; the end-to-end recovery → new-passkey flow is covered by the
  * Playwright gate (Task 28).
+ *
+ * PRE-AUTH RECOVERY PATH — intentionally NOT wrapped by action(): the caller is an
+ * unauthenticated user on /login, authorised by the backup code itself, not a
+ * session. Gating it on a session would lock recovery out entirely.
  */
 export async function redeemBackupCode(
   code: string,
@@ -98,16 +103,12 @@ export async function redeemBackupCode(
  * First-run: generate + persist the 10 hashed backup codes for the (now
  * authenticated) single user and return the plaintext set ONCE for display.
  *
- *   - Re-checks the session server-side (must be signed in via the register flow).
+ *   - Re-checks the session server-side via action() (must be signed in via the
+ *     register flow) — the wrapper short-circuits unauthenticated calls.
  *   - Idempotent guard: if codes are already provisioned, refuses to regenerate
  *     (they are shown once) and returns an empty array.
  */
-export async function issueBackupCodes(): Promise<string[]> {
-  const session = await getAuth().api.getSession({ headers: await headers() });
-  if (!session?.user) {
-    throw new Error("Not authenticated; cannot issue backup codes");
-  }
-
+export const issueBackupCodes = action(async (session): Promise<string[]> => {
   const db = getDb().db;
   const [u] = await db
     .select()
@@ -125,4 +126,4 @@ export async function issueBackupCodes(): Promise<string[]> {
     .where(eq(tables.user.id, u.id));
 
   return codes;
-}
+});
