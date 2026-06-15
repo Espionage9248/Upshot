@@ -9,13 +9,14 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
+    "@better-auth/passkey": "^1.6.18",
     "@upshot/core": "workspace:*",
     "@upshot/db": "workspace:*",
     "@upshot/ui": "workspace:*",
-    "@better-auth/passkey": "^1.6.18",
     "better-auth": "^1.6.18",
     "drizzle-orm": "^0.45",
     "next": "^16",
@@ -23,6 +24,7 @@
     "react-dom": "^19.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
