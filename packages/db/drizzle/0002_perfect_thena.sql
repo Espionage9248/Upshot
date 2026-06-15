@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `backup_codes` text;

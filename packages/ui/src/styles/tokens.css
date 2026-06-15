@@ -1,0 +1,221 @@
+/* ============================================================================
+   Upshot V2 — Design Tokens
+   Tailwind v4 CSS-first @theme. Light (:root) + Dark (.dark) as true peers.
+   Colour space: OKLCH. Brand anchor: Up Sunset Orange #ff705c.
+   All text/UI pairs meet WCAG AA in both modes; meaning never by colour alone.
+   ============================================================================ */
+
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. MODE-AGNOSTIC SCALES  (exposed to Tailwind utilities via @theme)
+   ───────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* type families */
+  --font-sans: "Figtree", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* type scale — role : size / line-height (weights noted in §type below) */
+  --text-display: 3.5rem;   --text-display--line-height: 1.0;   /* 56 — net worth hero */
+  --text-h1: 2.375rem;      --text-h1--line-height: 1.05;       /* 38 */
+  --text-h2: 1.6875rem;     --text-h2--line-height: 1.1;        /* 27 — screen title */
+  --text-h3: 1.3125rem;     --text-h3--line-height: 1.2;        /* 21 */
+  --text-title: 1rem;       --text-title--line-height: 1.3;     /* 16 — card title */
+  --text-body: 0.875rem;    --text-body--line-height: 1.5;      /* 14 */
+  --text-bodysm: 0.8125rem; --text-bodysm--line-height: 1.45;   /* 13 */
+  --text-label: 0.6875rem;  --text-label--line-height: 1.2;     /* 11 — uppercase eyebrow */
+  --text-caption: 0.625rem; --text-caption--line-height: 1.3;   /* 10 */
+  --text-money-xl: 2.875rem;--text-money-xl--line-height: 0.95; /* 46 — safe-to-spend */
+  --text-money: 0.9375rem;  --text-money--line-height: 1.2;     /* 15 — tabular */
+
+  /* spacing — 4px base */
+  --spacing: 0.25rem;       /* Tailwind multiplies this (space-2 = 8px, etc.) */
+
+  /* radius — soft containers, crisp data */
+  --radius-data: 9px;       /* tables, rows, chips, inputs */
+  --radius-sm: 6px;
+  --radius-card: 18px;      /* cards, sheets, modals */
+  --radius-pill: 999px;
+
+  /* motion */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --duration-fast: 120ms;   /* hovers, toggles, taps */
+  --duration-base: 180ms;   /* most transitions, popovers */
+  --duration-slow: 280ms;   /* sheets, dialogs, number/chart tweens */
+
+  /* let utilities resolve the semantic colours below */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-coral: var(--coral);
+  --color-coral-text: var(--coral-text);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-transfer: var(--transfer);
+  --color-saved: var(--saved);
+  --color-debt: var(--debt);
+  --color-warn: var(--warn);
+  --color-proj: var(--proj);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. LIGHT  (:root) — warm paper, deliberate (not a dark invert)
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  /* warm neutral ramp (hue ~62) — reference scale */
+  --n-0:   oklch(1 0 0);
+  --n-25:  oklch(0.988 0.005 75);
+  --n-50:  oklch(0.972 0.008 70);
+  --n-100: oklch(0.952 0.009 68);
+  --n-200: oklch(0.918 0.010 66);
+  --n-300: oklch(0.865 0.011 64);
+  --n-400: oklch(0.740 0.012 62);
+  --n-500: oklch(0.605 0.013 60);
+  --n-600: oklch(0.500 0.013 58);
+  --n-700: oklch(0.405 0.013 58);
+  --n-800: oklch(0.300 0.013 56);
+  --n-900: oklch(0.235 0.013 56);
+
+  /* semantic surfaces & text */
+  --bg:         var(--n-50);
+  --surface:    var(--n-0);
+  --surface-2:  var(--n-100);
+  --surface-3:  var(--n-200);
+  --line:       oklch(0.45 0.012 60 / 0.16);
+  --line-soft:  oklch(0.45 0.012 60 / 0.09);
+  --text:       var(--n-900);              /* AA: ~13:1 on bg */
+  --text-2:     var(--n-600);              /* AA: ~5.3:1 */
+  --text-3:     var(--n-500);              /* AA large / non-text */
+
+  /* brand */
+  --coral:      #ff705c;                   /* fill — dark text rides on it */
+  --coral-text: oklch(0.535 0.165 28);     /* coral as TEXT on light — AA */
+  --coral-dim:  color-mix(in oklch, #ff705c 13%, transparent);
+  --on-coral:   oklch(0.22 0.03 30);       /* text/icon on coral fill — AA */
+  --yellow:     #ffee52;
+  --focus:      #ff705c;                    /* focus-visible ring */
+
+  /* finance semantics — AA as text on surface, paired w/ sign + icon */
+  --income:    oklch(0.50 0.14 158);
+  --expense:   oklch(0.53 0.17 25);
+  --transfer:  oklch(0.50 0.10 255);
+  --saved:     oklch(0.50 0.10 200);
+  --debt:      oklch(0.52 0.13 58);
+  --warn:      oklch(0.55 0.13 66);
+  --proj:      oklch(0.58 0.012 60);
+
+  /* ordered, colourblind-aware data-viz series (fills; pair w/ labels) */
+  --viz-1: #ff705c;
+  --viz-2: oklch(0.60 0.12 205);
+  --viz-3: oklch(0.68 0.13 78);
+  --viz-4: oklch(0.52 0.13 288);
+  --viz-5: oklch(0.58 0.12 150);
+  --viz-6: oklch(0.58 0.15 342);
+  --viz-7: oklch(0.58 0.05 60);
+
+  /* elevation — real shadows on light */
+  --elev-1: 0 1px 2px rgba(40,30,20,0.06), 0 1px 3px rgba(40,30,20,0.05);
+  --elev-2: 0 2px 4px rgba(40,30,20,0.06), 0 6px 16px rgba(40,30,20,0.08);
+  --elev-3: 0 8px 18px rgba(40,30,20,0.10), 0 18px 40px rgba(40,30,20,0.12);
+  --elev-pop: 0 8px 28px rgba(40,30,20,0.16), 0 0 0 1px rgba(40,30,20,0.04);
+  --hairline-top: inset 0 0 0 transparent;  /* no top highlight needed on light */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. DARK  (.dark) — warm charcoal, designed for night glances
+   Depth in dark is signalled by LIGHTER surfaces + a 1px top highlight,
+   not heavy shadow (shadow reads weakly on dark).
+   ───────────────────────────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+  --n-0:   oklch(0.300 0.016 58);
+  --n-25:  oklch(0.250 0.015 58);
+  --n-50:  oklch(0.213 0.013 58);
+  --n-100: oklch(0.250 0.015 58);
+  --n-200: oklch(0.300 0.016 58);
+  --n-300: oklch(0.355 0.016 58);
+  --n-400: oklch(0.430 0.015 58);
+  --n-500: oklch(0.585 0.013 60);
+  --n-600: oklch(0.660 0.013 62);
+  --n-700: oklch(0.745 0.013 64);
+  --n-800: oklch(0.840 0.012 68);
+  --n-900: oklch(0.948 0.012 75);
+
+  --bg:         oklch(0.172 0.012 58);
+  --surface:    oklch(0.213 0.013 58);
+  --surface-2:  oklch(0.250 0.015 58);
+  --surface-3:  oklch(0.300 0.016 58);
+  --line:       oklch(0.355 0.015 58 / 0.70);
+  --line-soft:  oklch(0.355 0.015 58 / 0.38);
+  --text:       oklch(0.948 0.012 75);     /* AA: ~14:1 on bg */
+  --text-2:     oklch(0.745 0.013 64);     /* AA: ~6:1 */
+  --text-3:     oklch(0.585 0.012 60);
+
+  --coral:      #ff705c;
+  --coral-text: oklch(0.760 0.150 30);     /* lighter coral as TEXT on dark — AA */
+  --coral-dim:  color-mix(in oklch, #ff705c 16%, transparent);
+  --on-coral:   oklch(0.20 0.03 30);
+  --focus:      #ff8473;                    /* slightly lifted for dark contrast */
+
+  --income:    oklch(0.78 0.125 158);
+  --expense:   oklch(0.685 0.135 22);
+  --transfer:  oklch(0.72 0.085 250);
+  --saved:     oklch(0.80 0.110 195);
+  --debt:      oklch(0.785 0.130 70);
+  --warn:      oklch(0.805 0.130 80);
+  --proj:      oklch(0.630 0.014 70);
+
+  --viz-1: #ff705c;
+  --viz-2: oklch(0.80 0.11 200);
+  --viz-3: oklch(0.82 0.13 92);
+  --viz-4: oklch(0.71 0.10 285);
+  --viz-5: oklch(0.80 0.12 150);
+  --viz-6: oklch(0.74 0.13 340);
+  --viz-7: oklch(0.72 0.045 60);
+
+  --elev-1: 0 1px 0 rgba(255,255,255,0.03) inset, 0 2px 8px rgba(0,0,0,0.20);
+  --elev-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 22px rgba(0,0,0,0.28);
+  --elev-3: 0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 50px rgba(0,0,0,0.42);
+  --elev-pop: 0 1px 0 rgba(255,255,255,0.05) inset, 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.4);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. PRIMITIVES every component inherits
+   ───────────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-sans); }
+
+/* tabular figures wherever numbers align — money, tables, stats */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; white-space: nowrap; }
+
+/* focus-visible is always Up orange, in both modes */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ============================================================================
+   USAGE RULES (summary — full rules live in the component spec)
+   • Money meaning = colour + sign (+/−) + icon/label. Never colour alone.
+   • `projected` is always dashed / ~ prefixed and lower-emphasis.
+   • `transfer` is neutral-by-intent: it must never read as spend.
+   • `warning` = concern (amber); reserve `expense` red weight for genuine risk.
+   • Data-viz: assign --viz-1..7 in order; beyond 7 series, group the tail as
+     "Other" rather than recycling hues. Always pair series with a label/legend.
+   • Depth: light uses --elev-*; dark uses lighter --surface-N + the inset top
+     highlight baked into --elev-* (shadow is a faint secondary cue only).
+   ============================================================================ */

@@ -1,0 +1,11 @@
+# Third-Party Notices
+
+This product bundles third-party software.
+
+## Lucide (icon set — re-skinned)
+- License: ISC (portions derived from Feather, MIT)
+- Copyright (c) Lucide Contributors
+- Full license text: packages/ui/src/icons/LICENSE
+- https://lucide.dev
+
+Upshot's custom finance glyphs are first-party, under the repository licence (AGPL-3.0-only).
