@@ -24,7 +24,16 @@ import { buildCsp } from "@/lib/security-headers";
  */
 export function middleware(request: NextRequest): NextResponse {
   const hasSession = !!getSessionCookie(request);
-  const decision = decideRedirect(request.nextUrl.pathname, hasSession, true);
+  // Server Actions POST back to the current route and carry a `Next-Action`
+  // header. They must not be bounced off the auth pages (see decideRedirect):
+  // the first-run issueBackupCodes action runs on /register while authenticated.
+  const isServerAction = request.headers.has("next-action");
+  const decision = decideRedirect(
+    request.nextUrl.pathname,
+    hasSession,
+    true,
+    isServerAction,
+  );
 
   // Redirects carry no HTML body, so no inline scripts to protect → no CSP.
   if (decision.type === "redirect") {

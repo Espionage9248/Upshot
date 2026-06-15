@@ -17,6 +17,7 @@ export function decideRedirect(
   pathname: string,
   hasSession: boolean,
   firstRun: boolean,
+  isServerAction = false,
 ): RedirectDecision {
   // Auth endpoints must always be reachable (sign-in, callbacks, etc.),
   // regardless of session state.
@@ -27,8 +28,14 @@ export function decideRedirect(
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
   if (hasSession) {
-    // Authenticated users shouldn't see the auth pages.
-    if (isAuthPage) return { type: "redirect", to: "/today" };
+    // Authenticated users shouldn't *navigate* to the auth pages. But a Server
+    // Action invoked FROM an auth page POSTs back to that same route — and the
+    // first-run flow does exactly this: sign-up establishes a session, then
+    // issueBackupCodes (a Server Action on /register) runs while authenticated.
+    // Redirecting that POST would swallow the action and surface a client
+    // "unexpected response", so let Server Actions through (they enforce their
+    // own authorization via the action() wrapper).
+    if (isAuthPage && !isServerAction) return { type: "redirect", to: "/today" };
     return { type: "allow" };
   }
 

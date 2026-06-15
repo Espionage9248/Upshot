@@ -44,6 +44,16 @@ describe("decideRedirect", () => {
     it("allows a normal protected route", () => {
       expect(decideRedirect("/today", true, false)).toEqual({ type: "allow" });
     });
+
+    it("lets a Server Action POST through an auth page (does not redirect)", () => {
+      // First-run issueBackupCodes posts to /register after sign-up authed it.
+      expect(decideRedirect("/register", true, true, true)).toEqual({
+        type: "allow",
+      });
+      expect(decideRedirect("/login", true, false, true)).toEqual({
+        type: "allow",
+      });
+    });
   });
 
   describe("/api/auth/*", () => {

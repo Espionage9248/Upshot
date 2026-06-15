@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Keep the native SQLCipher driver OUT of the server bundle. Next would
+  // otherwise trace/bundle it into .next/server chunks, and its `bindings`-based
+  // native-module loader then fails to locate better_sqlite3.node at runtime
+  // under `next start` (the deployed Docker target) → every DB-backed page 500s.
+  // Listing both names covers the package and the package.json alias that points
+  // "better-sqlite3" at the multiple-ciphers build.
+  serverExternalPackages: ["better-sqlite3", "better-sqlite3-multiple-ciphers"],
+
   // Static, always-on security headers (Task 25). The CSP is NOT here — it is
   // built per-request with a nonce in middleware.ts, because Next streams its own
   // inline scripts and a static locked-down script-src would block them.
