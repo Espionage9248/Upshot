@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import { decideRedirect } from "@/lib/route-guard";
+import { buildCsp } from "@/lib/security-headers";
 
 /**
  * Session gate for ALL routes (security boundary, default-deny).
@@ -25,10 +26,25 @@ export function middleware(request: NextRequest): NextResponse {
   const hasSession = !!getSessionCookie(request);
   const decision = decideRedirect(request.nextUrl.pathname, hasSession, true);
 
+  // Redirects carry no HTML body, so no inline scripts to protect → no CSP.
   if (decision.type === "redirect") {
     return NextResponse.redirect(new URL(decision.to, request.url));
   }
-  return NextResponse.next();
+
+  // Per-request CSP (Task 25). Generate an edge-safe nonce (no node APIs), pass
+  // the CSP through on the REQUEST so Next stamps it onto its own inline RSC
+  // scripts, expose `x-nonce` so our inline theme script can read it, and set the
+  // CSP on the RESPONSE so the browser actually enforces it.
+  const nonce = btoa(crypto.randomUUID());
+  const csp = buildCsp(nonce);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
 }
 
 export const config = {
