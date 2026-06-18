@@ -5,3 +5,10 @@ export type {
   SaverBudgetAnalysis,
   SaverMonthHistory,
 } from "./savers";
+
+export { analyseEmergencyFund } from "./emergency-fund";
+export type {
+  EmergencyFundInput,
+  EmergencyFundAccount,
+  EmergencyFundAnalysis,
+} from "./emergency-fund";
