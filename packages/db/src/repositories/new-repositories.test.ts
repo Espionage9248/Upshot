@@ -92,6 +92,90 @@ describe("DrizzleSettingsRepo", () => {
   });
 });
 
+describe("DrizzleMatchRuleRepo CRUD", () => {
+  it("create, getById round-trip", async () => {
+    const db = freshDb();
+    const repo = new DrizzleMatchRuleRepo(db);
+    const input = {
+      rule: { id: "r10", name: "Rent", isActive: true, priority: 10 },
+      conditions: [
+        { id: "c10", ruleId: "r10", field: "description" as const, mode: "exact" as const, value: "Rent", amountCents: 200000, toleranceCents: 0, currency: "AUD" },
+        { id: "c11", ruleId: "r10", field: "rawText" as const, mode: "contains" as const, value: "rent", amountCents: null, toleranceCents: null, currency: null },
+      ],
+      actions: [
+        { id: "a10", ruleId: "r10", type: "RENAME" as const, value: "Monthly Rent", targetId: null },
+      ],
+    };
+    await repo.create(input);
+    const got = await repo.getById("r10");
+    expect(got).not.toBeNull();
+    expect(got?.rule.name).toBe("Rent");
+    expect(got?.conditions).toHaveLength(2);
+    expect(got?.conditions.map((c) => c.id).sort()).toEqual(["c10", "c11"]);
+    expect(got?.actions).toHaveLength(1);
+    expect(got?.actions[0]?.value).toBe("Monthly Rent");
+  });
+
+  it("getById returns null for unknown id", async () => {
+    const repo = new DrizzleMatchRuleRepo(freshDb());
+    expect(await repo.getById("no-such")).toBeNull();
+  });
+
+  it("update replaces children (old rows gone, new present)", async () => {
+    const db = freshDb();
+    const repo = new DrizzleMatchRuleRepo(db);
+    await repo.create({
+      rule: { id: "r20", name: "Old", isActive: true, priority: 1 },
+      conditions: [{ id: "c20", ruleId: "r20", field: "description" as const, mode: "exact" as const, value: "foo", amountCents: null, toleranceCents: null, currency: null }],
+      actions: [{ id: "a20", ruleId: "r20", type: "RENAME" as const, value: "Old Name", targetId: null }],
+    });
+    // Now update: rename, change condition, change action
+    await repo.update({
+      rule: { id: "r20", name: "New", isActive: false, priority: 2 },
+      conditions: [{ id: "c21", ruleId: "r20", field: "categoryName" as const, mode: "startsWith" as const, value: "Food", amountCents: null, toleranceCents: null, currency: null }],
+      actions: [{ id: "a21", ruleId: "r20", type: "MARK_SALARY" as const, value: null, targetId: null }],
+    });
+    const got = await repo.getById("r20");
+    expect(got?.rule.name).toBe("New");
+    expect(got?.rule.isActive).toBe(false);
+    // old condition/action gone
+    expect(got?.conditions.find((c) => c.id === "c20")).toBeUndefined();
+    expect(got?.actions.find((a) => a.id === "a20")).toBeUndefined();
+    // new condition/action present
+    expect(got?.conditions).toHaveLength(1);
+    expect(got?.conditions[0]?.id).toBe("c21");
+    expect(got?.actions[0]?.id).toBe("a21");
+  });
+
+  it("delete removes rule and cascades to children", async () => {
+    const db = freshDb();
+    const repo = new DrizzleMatchRuleRepo(db);
+    const { matchConditions: conds, matchActions: acts } = await import("../schema");
+    await repo.create({
+      rule: { id: "r30", name: "ToDelete", isActive: true, priority: 1 },
+      conditions: [{ id: "c30", ruleId: "r30", field: "description" as const, mode: "exact" as const, value: "x", amountCents: null, toleranceCents: null, currency: null }],
+      actions: [{ id: "a30", ruleId: "r30", type: "RENAME" as const, value: "x", targetId: null }],
+    });
+    await repo.delete("r30");
+    expect(await repo.getById("r30")).toBeNull();
+    // cascade deleted children
+    const { eq } = await import("drizzle-orm");
+    expect(db.select().from(conds).where(eq(conds.ruleId, "r30")).all()).toHaveLength(0);
+    expect(db.select().from(acts).where(eq(acts.ruleId, "r30")).all()).toHaveLength(0);
+  });
+
+  it("loadAll includes inactive rule; loadActive excludes it", async () => {
+    const db = freshDb();
+    const repo = new DrizzleMatchRuleRepo(db);
+    await repo.create({ rule: { id: "r40", name: "Active", isActive: true, priority: 10 }, conditions: [], actions: [] });
+    await repo.create({ rule: { id: "r41", name: "Inactive", isActive: false, priority: 5 }, conditions: [], actions: [] });
+    const all = await repo.loadAll();
+    expect(all.map((r) => r.rule.id)).toEqual(["r41", "r40"]); // sorted by priority asc (5, 10)
+    const active = await repo.loadActive();
+    expect(active.map((r) => r.rule.id)).toEqual(["r40"]);
+  });
+});
+
 describe("DrizzleBudgetAllocationRepo", () => {
   it("upserts, reads back with correct varianceCents, updates in place, and filters by month", async () => {
     const db = freshDb();

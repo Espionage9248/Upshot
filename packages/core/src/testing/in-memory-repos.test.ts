@@ -54,6 +54,32 @@ describe("InMemoryMatchRuleRepo", () => {
     ]);
     expect((await repo.loadActive()).map((r) => r.rule.id)).toEqual(["on"]);
   });
+
+  it("loadAll includes inactive, sorted by priority", async () => {
+    const repo = new InMemoryMatchRuleRepo([
+      { rule: { id: "b", name: "B", isActive: true, priority: 20 }, conditions: [], actions: [] },
+      { rule: { id: "a", name: "A", isActive: false, priority: 10 }, conditions: [], actions: [] },
+    ]);
+    expect((await repo.loadAll()).map((r) => r.rule.id)).toEqual(["a", "b"]);
+  });
+
+  it("getById returns the matching rule or null", async () => {
+    const repo = new InMemoryMatchRuleRepo([
+      { rule: { id: "x", name: "X", isActive: true, priority: 1 }, conditions: [], actions: [] },
+    ]);
+    expect((await repo.getById("x"))?.rule.name).toBe("X");
+    expect(await repo.getById("nope")).toBeNull();
+  });
+
+  it("create, update, delete mutate the collection", async () => {
+    const repo = new InMemoryMatchRuleRepo();
+    await repo.create({ rule: { id: "m1", name: "Init", isActive: true, priority: 1 }, conditions: [], actions: [] });
+    expect(await repo.getById("m1")).not.toBeNull();
+    await repo.update({ rule: { id: "m1", name: "Updated", isActive: false, priority: 2 }, conditions: [], actions: [] });
+    expect((await repo.getById("m1"))?.rule.name).toBe("Updated");
+    await repo.delete("m1");
+    expect(await repo.getById("m1")).toBeNull();
+  });
 });
 
 describe("InMemorySettingsRepo", () => {
