@@ -25,3 +25,7 @@ export { InMemoryJobRunRepo } from "./testing/in-memory-job-run-repo";
 export { InMemoryCategoryRepo } from "./testing/in-memory-category-repo";
 export { InMemoryMatchRuleRepo } from "./testing/in-memory-match-rule-repo";
 export { InMemorySettingsRepo } from "./testing/in-memory-settings-repo";
+
+// Budgeting (Phase 4)
+export { analyseSaver, analyseAllSavers } from "./budget";
+export type { SaverInput, SaverTransaction, SaverBudgetAnalysis, SaverMonthHistory } from "./budget";
