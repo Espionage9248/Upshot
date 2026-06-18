@@ -1,0 +1,39 @@
+name: upshot
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        SERVER_ACTIONS_ALLOWED_ORIGINS: "${SERVER_ACTIONS_ALLOWED_ORIGINS:-upshot.example.com}"
+    image: upshot-web:local
+    container_name: upshot-web
+    env_file: ./upshot.env
+    environment:
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${WEB_HOST_PORT:-3033}:3000"
+    volumes:
+      - "${UPSHOT_DATA_DIR:-/mnt/user/appdata/upshot}:/data"
+    networks:
+      - proxynet
+      - internal
+    restart: unless-stopped
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    image: upshot-worker:local
+    container_name: upshot-worker
+    env_file: ./upshot.env
+    volumes:
+      - "${UPSHOT_DATA_DIR:-/mnt/user/appdata/upshot}:/data"
+    networks:
+      - internal
+    restart: unless-stopped
+networks:
+  proxynet:
+    external: true
+  internal:
+    driver: bridge

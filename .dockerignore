@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/.git
+**/*.db
+**/*.db-*
+**/.env
+**/.env.*
+!**/.env.example
+**/test-results
+**/playwright-report
+docs/superpowers/plans
+docs/superpowers/specs

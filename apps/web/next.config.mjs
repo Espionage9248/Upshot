@@ -1,5 +1,25 @@
+import path from "node:path";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Emit a self-contained server bundle under .next/standalone so the Docker
+  // image only needs to COPY that directory (+ public/ + .next/static/).
+  output: "standalone",
+  // Monorepo: trace workspace deps from the repo root so the standalone bundle
+  // includes @upshot/* and the native better-sqlite3-multiple-ciphers .node file.
+  outputFileTracingRoot: path.join(import.meta.dirname, "../../"),
+  experimental: {
+    // Behind NPM, the browser Origin is https://upshot.example.com while Next
+    // sees the proxied request. NPM is configured to preserve Host; this is
+    // belt-and-suspenders. Not a secret — safe to bake into the image.
+    serverActions: {
+      allowedOrigins: (process.env.SERVER_ACTIONS_ALLOWED_ORIGINS ?? "upshot.example.com")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    },
+  },
+
   // Keep the native SQLCipher driver OUT of the server bundle. Next would
   // otherwise trace/bundle it into .next/server chunks, and its `bindings`-based
   // native-module loader then fails to locate better_sqlite3.node at runtime
