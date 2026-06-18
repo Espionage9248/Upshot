@@ -29,3 +29,7 @@ export { InMemorySettingsRepo } from "./testing/in-memory-settings-repo";
 // Budgeting (Phase 4)
 export { analyseSaver, analyseAllSavers } from "./budget";
 export type { SaverInput, SaverTransaction, SaverBudgetAnalysis, SaverMonthHistory } from "./budget";
+export { analyseEmergencyFund } from "./budget";
+export type { EmergencyFundInput, EmergencyFundAccount, EmergencyFundAnalysis } from "./budget";
+export { goalConfidence } from "./budget";
+export type { GoalConfidenceInput, GoalConfidenceResult } from "./budget";
