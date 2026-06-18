@@ -13,6 +13,7 @@ import { SettingsNav } from "@upshot/ui";
 const SETTINGS_SECTIONS = [
   { label: "Account & profile", href: "/settings/account" },
   { label: "Connections & sync", href: "/settings" },
+  { label: "Rules", href: "/settings/rules" },
   { label: "Budgeting & goals", href: "/settings/budget" },
   { label: "Debts & purchases", href: "/settings/debt" },
   { label: "Tax", href: "/settings/tax" },
