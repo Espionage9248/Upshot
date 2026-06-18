@@ -12,3 +12,9 @@ export type {
   EmergencyFundAccount,
   EmergencyFundAnalysis,
 } from "./emergency-fund";
+
+export { goalConfidence } from "./confidence";
+export type {
+  GoalConfidenceInput,
+  GoalConfidenceResult,
+} from "./confidence";
