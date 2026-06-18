@@ -8,6 +8,7 @@ import { DrizzleJobRunRepo } from "./job-run-repo";
 import { DrizzleCategoryRepo } from "./category-repo";
 import { DrizzleMatchRuleRepo } from "./match-rule-repo";
 import { DrizzleSettingsRepo } from "./settings-repo";
+import { DrizzleBudgetAllocationRepo } from "./budget-allocation-repo";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -88,5 +89,51 @@ describe("DrizzleSettingsRepo", () => {
     const { appSettings } = await import("../schema");
     db.insert(appSettings).values({ id: "default", syncCadence: "HOURLY" }).run();
     expect((await repo.get())?.syncCadence).toBe("HOURLY");
+  });
+});
+
+describe("DrizzleBudgetAllocationRepo", () => {
+  it("upserts, reads back with correct varianceCents, updates in place, and filters by month", async () => {
+    const db = freshDb();
+    // Seed a parent account to satisfy the FK constraint.
+    const { accounts } = await import("../schema");
+    db.insert(accounts).values({
+      id: "acc1",
+      name: "Spending",
+      type: "TRANSACTIONAL",
+      ownership: "INDIVIDUAL",
+      balanceCents: 100000,
+      role: "SPENDING",
+      monthlyAllocationCents: 0,
+      lastSyncedAt: null,
+      updatedAt: new Date().toISOString(),
+    }).run();
+
+    const repo = new DrizzleBudgetAllocationRepo(db);
+
+    // upsert then getByAccountMonth returns the row with varianceCents === allocatedCents - spentCents
+    await repo.upsert({ id: "ba1", accountId: "acc1", month: "2026-06", year: 2026, allocatedCents: 50000, spentCents: 20000, notes: null });
+    const got = await repo.getByAccountMonth("acc1", "2026-06");
+    expect(got).not.toBeNull();
+    expect(got?.allocatedCents).toBe(50000);
+    expect(got?.spentCents).toBe(20000);
+    expect(got?.varianceCents).toBe(30000); // 50000 - 20000
+
+    // second upsert for same (accountId, month) updates in place — no duplicate
+    await repo.upsert({ id: "ba1", accountId: "acc1", month: "2026-06", year: 2026, allocatedCents: 60000, spentCents: 25000, notes: null });
+    const updated = await repo.getByAccountMonth("acc1", "2026-06");
+    expect(updated?.allocatedCents).toBe(60000);
+    expect(updated?.varianceCents).toBe(35000); // 60000 - 25000
+    const all = await repo.listByMonth("2026-06");
+    expect(all).toHaveLength(1); // no duplicate row
+
+    // listByMonth filters by month — different month not returned
+    await repo.upsert({ id: "ba2", accountId: "acc1", month: "2026-07", year: 2026, allocatedCents: 70000, spentCents: 0, notes: null });
+    const juneOnly = await repo.listByMonth("2026-06");
+    expect(juneOnly).toHaveLength(1);
+    expect(juneOnly[0]?.month).toBe("2026-06");
+    const julyOnly = await repo.listByMonth("2026-07");
+    expect(julyOnly).toHaveLength(1);
+    expect(julyOnly[0]?.varianceCents).toBe(70000); // 70000 - 0
   });
 });
