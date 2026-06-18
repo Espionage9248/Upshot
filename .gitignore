@@ -78,3 +78,9 @@ Thumbs.db
 
 # Claude Code personal permissions (do not commit)
 .claude/settings.local.json
+
+# On-server secrets — NEVER commit
+ops/unraid/upshot.env
+
+# Deploy runbook stays a local working doc (contains the owner's real domain).
+ops/deploy.md
