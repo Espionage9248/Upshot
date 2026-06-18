@@ -20,6 +20,7 @@ import { getDb } from "@/lib/db";
 import {
   setCadence,
   setAutomationFlag,
+  updateTaxSettings,
   type SyncCadence,
   type AutomationFlag,
 } from "./settings-core";
@@ -37,5 +38,13 @@ export const setAutomationFlagAction = action(
   async (_session, key: AutomationFlag, on: boolean) => {
     const { db } = getDb();
     return setAutomationFlag(db, key, on);
+  },
+);
+
+/** Action: persist the tax settings (financial-year start month + Medicare levy). */
+export const updateTaxSettingsAction = action(
+  async (_session, input: { financialYearStartMonth: number; medicareLevyApplies: boolean }) => {
+    const { db } = getDb();
+    return updateTaxSettings(db, input);
   },
 );
