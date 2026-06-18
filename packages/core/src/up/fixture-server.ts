@@ -8,7 +8,7 @@ export interface FixtureResponse {
 
 export interface FixtureServer {
   url: string; // e.g. http://127.0.0.1:54123
-  requests: Array<{ method: string; path: string; authorization: string | undefined }>;
+  requests: Array<{ method: string; path: string; authorization: string | undefined; body?: unknown }>;
   close: () => Promise<void>;
 }
 
@@ -27,20 +27,31 @@ export async function startFixtureServer(
 
   const server: Server = createServer((req, res) => {
     const key = `${req.method} ${req.url}`;
-    requests.push({
-      method: req.method ?? "",
-      path: req.url ?? "",
-      authorization: req.headers.authorization,
+    const chunks: Buffer[] = [];
+    req.on("error", (err) => res.destroy(err));
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      let body: unknown;
+      if (raw.length > 0) {
+        try { body = JSON.parse(raw); } catch { body = raw; }
+      }
+      requests.push({
+        method: req.method ?? "",
+        path: req.url ?? "",
+        authorization: req.headers.authorization,
+        body,
+      });
+      const queue = queues.get(key);
+      const next = queue && queue.length > 1 ? queue.shift()! : queue?.[0];
+      if (!next) {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end(JSON.stringify({ errors: [{ status: "404", title: "no fixture", detail: key }] }));
+        return;
+      }
+      res.writeHead(next.status ?? 200, { "content-type": "application/json", ...next.headers });
+      res.end(JSON.stringify(next.body ?? {}));
     });
-    const queue = queues.get(key);
-    const next = queue && queue.length > 1 ? queue.shift()! : queue?.[0];
-    if (!next) {
-      res.writeHead(404, { "content-type": "application/json" });
-      res.end(JSON.stringify({ errors: [{ status: "404", title: "no fixture", detail: key }] }));
-      return;
-    }
-    res.writeHead(next.status ?? 200, { "content-type": "application/json", ...next.headers });
-    res.end(JSON.stringify(next.body ?? {}));
   });
 
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));

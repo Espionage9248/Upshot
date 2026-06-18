@@ -79,6 +79,7 @@ export interface UpClientPort {
   listTransactions(opts?: { since?: string }): Promise<UpTransactionResource[]>;
   listCategories(): Promise<UpCategoryResource[]>;
   addTag(transactionId: string, tagId: string): Promise<void>;
+  setCategory(transactionId: string, categoryId: string | null): Promise<void>;
 }
 
 export class UpHttpError extends Error {
