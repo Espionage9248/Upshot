@@ -1,6 +1,6 @@
 import { Cron } from "croner";
 import {
-  createDbClientFromEnv, applyMigrations,
+  createDbClientFromEnv, applyMigrations, seed,
   DrizzleAccountRepo, DrizzleTransactionRepo, DrizzleCategoryRepo,
   DrizzleMatchRuleRepo, DrizzleJobRunRepo, DrizzleSettingsRepo, type DbClient,
 } from "@upshot/db";
@@ -21,6 +21,7 @@ export async function start(log: (message: string) => void = console.log): Promi
   const token = requireEnv("UP_API_TOKEN");
   const { db } = createDbClientFromEnv();
   applyMigrations(db as DbClient);
+  seed(db as DbClient); // idempotent (onConflictDoNothing) — settings row + saver-interest rule
 
   const settingsRepo = new DrizzleSettingsRepo(db as DbClient);
   const jobRuns = new DrizzleJobRunRepo(db as DbClient);
