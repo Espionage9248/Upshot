@@ -3,6 +3,7 @@ import {
   analyseSaver,
   analyseEmergencyFund,
   goalConfidence,
+  monthsUntil,
   type SaverBudgetAnalysis,
   type SaverTransaction,
   type EmergencyFundAnalysis,
@@ -13,14 +14,22 @@ import { DrizzleAccountRepo, tables, type DbClient } from "@upshot/db";
 /** Account row as returned by the repo (avoids a direct @upshot/contracts dep in apps/web). */
 type Account = Awaited<ReturnType<DrizzleAccountRepo["list"]>>[number];
 
+/** A real user-entered saver goal: target amount and the date to reach it by. */
+export interface SaverGoal {
+  targetCents: number;
+  targetDate: string;
+}
+
 /** A saver envelope: its core analysis plus an optional goal-confidence result. */
 export interface SaverView {
   id: string;
   name: string;
   role: Account["role"];
   analysis: SaverBudgetAnalysis;
-  /** Present only when the saver has a monthly allocation (a target to project toward). */
+  /** Present when the saver has a real goal OR a monthly allocation (a target to project toward). */
   confidence: GoalConfidenceResult | null;
+  /** The real user-entered goal, when set; null when only the allocation heuristic applies. */
+  goal: SaverGoal | null;
 }
 
 export interface BudgetData {
@@ -127,12 +136,28 @@ export async function loadBudgetData(db: DbClient, now: Date = new Date()): Prom
       saverAccountIds,
     });
 
-    // A saver has a "goal/target" only when it has a monthly allocation: project
-    // confidence of reaching a 12-month savings goal (12 × allocation) within a
-    // year, resampling the saver's own historical monthly net inflows. Seeded by
-    // the account id so the result is deterministic across requests.
+    // Project confidence of reaching a target, resampling the saver's own
+    // historical monthly net inflows. Seeded by the account id so the result is
+    // deterministic across requests. Prefer the real user-entered goal (target
+    // amount + derived months-to-target); otherwise fall back to the 12-month
+    // allocation heuristic. A saver with neither has no target to project.
     let confidence: GoalConfidenceResult | null = null;
-    if (account.monthlyAllocationCents > 0) {
+    let goal: SaverGoal | null = null;
+    if (account.goalTargetCents != null && account.goalTargetDate != null) {
+      // Real user-entered goal: target amount + derived months-to-target.
+      const monthsToTarget = Math.max(1, monthsUntil(nowIso.slice(0, 10), account.goalTargetDate));
+      confidence = goalConfidence(
+        {
+          currentBalanceCents: account.balanceCents,
+          targetCents: account.goalTargetCents,
+          monthsToTarget,
+          historicalNetInflowsCents: netInflowsLast6Months(transactions, month),
+        },
+        seedFromId(account.id),
+      );
+      goal = { targetCents: account.goalTargetCents, targetDate: account.goalTargetDate };
+    } else if (account.monthlyAllocationCents > 0) {
+      // Fallback heuristic (unchanged): 12 × monthly allocation over 12 months.
       confidence = goalConfidence(
         {
           currentBalanceCents: account.balanceCents,
@@ -144,7 +169,7 @@ export async function loadBudgetData(db: DbClient, now: Date = new Date()): Prom
       );
     }
 
-    savers.push({ id: account.id, name: account.name, role: account.role, analysis, confidence });
+    savers.push({ id: account.id, name: account.name, role: account.role, analysis, confidence, goal });
   }
 
   const emergencyFund = analyseEmergencyFund({

@@ -99,7 +99,16 @@ export function SaverCard({ saver }: { saver: SaverView }): ReactNode {
 
           {/* goal-confidence ring (only when the saver has a target) */}
           {saver.confidence && (
-            <div style={{ marginTop: 4 }}>
+            <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+              {saver.goal && (
+                <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>
+                  Goal{" "}
+                  <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>
+                    {(saver.goal.targetCents / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 })}
+                  </span>{" "}
+                  by {new Date(saver.goal.targetDate).toLocaleDateString("en-AU", { month: "short", year: "numeric" })}
+                </span>
+              )}
               <Confidence level={bandToLevel(saver.confidence.band)} />
             </div>
           )}

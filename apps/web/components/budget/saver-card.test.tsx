@@ -21,6 +21,7 @@ function makeSaver(overrides: Partial<SaverView> = {}): SaverView {
       last6Months: [],
     },
     confidence: { confidence: 0.92, band: "high" },
+    goal: null,
     ...overrides,
   };
 }
@@ -54,6 +55,16 @@ describe("SaverCard", () => {
   it("omits the Confidence ring when confidence is null", () => {
     render(<SaverCard saver={makeSaver({ confidence: null })} />);
     expect(document.querySelector("[data-segment]")).toBeNull();
+  });
+
+  it("surfaces the real goal target and date when a goal is present", () => {
+    render(<SaverCard saver={makeSaver({ goal: { targetCents: 500000, targetDate: "2027-01-01" } })} />);
+    expect(screen.getByText(/Goal/)).toHaveTextContent("Goal $5,000 by Jan 2027");
+  });
+
+  it("does not render a goal line when no goal is present", () => {
+    render(<SaverCard saver={makeSaver({ goal: null })} />);
+    expect(screen.queryByText(/^Goal/)).toBeNull();
   });
 
   it("renders an over (negative) balance with the warn bar", () => {
