@@ -1,8 +1,8 @@
 # Upshot
 
-A private, self-hosted personal budget tracker built on a secure, type-safe, observable foundation — a ground-up **V2 rebuild** of an [Up Bank](https://up.com.au) budgeting app.
+A private, self-hosted personal budget tracker built on a secure, type-safe, observable foundation — a ground-up rebuild of an [Up Bank](https://up.com.au) budgeting app.
 
-> **Status:** Planning and design are complete; implementation begins at Phase 0. Single-user, private, self-hosted on Unraid.
+> **Status:** Under active development. A single-user, private, self-hosted application.
 
 ---
 
@@ -16,7 +16,7 @@ Upshot syncs a personal Up Bank account and turns it into a calm, glanceable pic
 - A **purchase wishlist**, **net worth** with manual assets, and rich **reports / analytics / scenarios**
 - A read-only, contributor-attributed view of a closed joint (**"2Up"**) account, rebuilt from source statements
 
-V2 is a deliberate rebuild of a V1 that had accreted structural debt and serious security gaps (no authentication, an unencrypted database, a bank token committed to history). V2 fixes those at the foundation — passkey auth, encryption at rest, integer-cents money, a typed contract layer, and observable automation are all load-bearing from the first commit, not retrofitted.
+It is a ground-up rebuild of an earlier version that had accreted structural debt and security gaps. This time the foundations are load-bearing from the first commit, not retrofitted — passkey auth, encryption at rest, integer-cents money, a typed contract layer, and observable automation.
 
 ---
 
@@ -65,7 +65,7 @@ The product is organised as **five rooms + ⌘K** (Today · Money · Budget · P
 - **Encryption at rest** — SQLCipher; the key lives only in env / Docker secret, never in the repo. (Lost key = unrecoverable data, by design.)
 - **Secrets** (`UP_API_TOKEN`, `DB_ENCRYPTION_KEY`) exist only in env / Docker secrets — never written to the database or logs.
 - **TLS-only exposure** via Caddy (auto-HTTPS) or Tailscale — never naked on the LAN, never the public internet.
-- **No financial data, database, secrets — or the local master plan — are ever committed** (see [`.gitignore`](.gitignore)). The detailed master plan is kept as a local working document.
+- **No financial data, database, or secrets are ever committed** (see [`.gitignore`](.gitignore)).
 
 ---
 
