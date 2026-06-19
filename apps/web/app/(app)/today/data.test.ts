@@ -7,6 +7,7 @@ import {
   applyMigrations,
   seed,
   DrizzleAccountRepo,
+  DrizzleAssetRepo,
   DrizzleJobRunRepo,
   tables,
   type DbClient,
@@ -178,5 +179,58 @@ describe("loadTodayData", () => {
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain(KEY);
     expect(serialized).not.toContain("DB_ENCRYPTION_KEY");
+  });
+
+  it("includes assets and subtracts debts in net worth", async () => {
+    const db = freshDb();
+    // Seed two bank accounts (same as the existing net-worth test).
+    const accountRepo = new DrizzleAccountRepo(db);
+    await accountRepo.upsert({
+      id: "acc-a",
+      name: "Spending",
+      type: "TRANSACTIONAL",
+      ownership: "INDIVIDUAL",
+      balanceCents: 123456,
+      role: "SPENDING",
+      monthlyAllocationCents: 0,
+      lastSyncedAt: null,
+    });
+    await accountRepo.upsert({
+      id: "acc-b",
+      name: "Saver",
+      type: "SAVER",
+      ownership: "INDIVIDUAL",
+      balanceCents: 1000000,
+      role: "SAVER",
+      monthlyAllocationCents: 0,
+      lastSyncedAt: null,
+    });
+    const bankSum = 123456 + 1000000; // 1123456
+
+    // Seed an asset that should be included.
+    const assetRepo = new DrizzleAssetRepo(db);
+    await assetRepo.create({
+      name: "Test Property",
+      type: "PROPERTY",
+      valueCents: 50000,
+      includeInNetWorth: true,
+      institution: null,
+      notes: null,
+    });
+
+    // Seed a debt directly (no DebtRepo); required NOT-NULL columns: id, name, type, currentBalanceCents, monthlyPaymentCents.
+    db.insert(tables.debts).values({
+      id: "debt-1",
+      name: "Car Loan",
+      type: "CAR",
+      currentBalanceCents: 20000,
+      monthlyPaymentCents: 500,
+      includeInNetWorth: true,
+    }).run();
+
+    const result = await loadTodayData(db, NOW);
+
+    // bank + asset − debt = 1123456 + 50000 − 20000 = 1153456
+    expect(result.netWorthCents).toBe(bankSum + 50000 - 20000);
   });
 });
