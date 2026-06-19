@@ -20,6 +20,7 @@ function fakeUp(over: Partial<UpClientPort> = {}): UpClientPort & { sinceSeen: s
     listAccounts: async () => [] as UpAccountResource[],
     listTransactions: async (opts) => { if (opts?.since) sinceSeen.push(opts.since); return [] as UpTransactionResource[]; },
     addTag: async () => {},
+    setCategory: async () => {},
     ...over,
   };
 }

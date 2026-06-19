@@ -10,3 +10,5 @@ export { DrizzleJobRunRepo } from "./repositories/job-run-repo";
 export { DrizzleCategoryRepo } from "./repositories/category-repo";
 export { DrizzleMatchRuleRepo } from "./repositories/match-rule-repo";
 export { DrizzleSettingsRepo } from "./repositories/settings-repo";
+export { DrizzleBudgetAllocationRepo } from "./repositories/budget-allocation-repo";
+export { DrizzleAssetRepo } from "./repositories/asset-repo";

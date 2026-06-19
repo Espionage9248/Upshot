@@ -59,3 +59,22 @@ export async function setAutomationFlag(
   }
   return new DrizzleSettingsRepo(db).update({ [key]: on });
 }
+
+/**
+ * Persist the tax settings. The financial-year start month must be an integer
+ * in 1..12 (a UI/programmer guard, so an out-of-range value throws — the
+ * action() wrapper maps it to a safe error rather than a user-facing result).
+ */
+export async function updateTaxSettings(
+  db: DbClient,
+  input: { financialYearStartMonth: number; medicareLevyApplies: boolean },
+): Promise<AppSettings> {
+  const month = input.financialYearStartMonth;
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    throw new Error("Invalid financial year start month");
+  }
+  return new DrizzleSettingsRepo(db).update({
+    financialYearStartMonth: month,
+    medicareLevyApplies: input.medicareLevyApplies,
+  });
+}

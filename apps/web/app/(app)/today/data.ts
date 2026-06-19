@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
-import { computeSyncHealth, type SyncHealth } from "@upshot/core";
-import { DrizzleAccountRepo, DrizzleJobRunRepo, tables, type DbClient } from "@upshot/db";
+import { computeNetWorth, computeSyncHealth, type SyncHealth } from "@upshot/core";
+import { DrizzleAccountRepo, DrizzleAssetRepo, DrizzleJobRunRepo, tables, type DbClient } from "@upshot/db";
 
 /** Account row as returned by the repo (avoids a direct @upshot/contracts dep in apps/web). */
 type Account = Awaited<ReturnType<DrizzleAccountRepo["list"]>>[number];
@@ -41,7 +41,16 @@ export async function loadTodayData(db: DbClient, now: Date = new Date()): Promi
 
   const syncHealth = computeSyncHealth(await jobRunRepo.latest("SYNC"), now);
   const accounts = await accountRepo.list();
-  const netWorthCents = accounts.reduce((sum, a) => sum + a.balanceCents, 0);
+  const assets = await new DrizzleAssetRepo(db).list();
+  const debtRows = db
+    .select({ currentBalanceCents: tables.debts.currentBalanceCents, includeInNetWorth: tables.debts.includeInNetWorth })
+    .from(tables.debts)
+    .all();
+  const netWorthCents = computeNetWorth({
+    accountBalancesCents: accounts.map((a) => a.balanceCents),
+    assets: assets.map((a) => ({ valueCents: a.valueCents, includeInNetWorth: a.includeInNetWorth })),
+    debts: debtRows,
+  });
 
   const billRows = db
     .select({

@@ -91,4 +91,20 @@ describe("UpClient", () => {
     const client = new UpClient({ token: "t", baseUrl: server.url, retry: noSleep }); // no fetchImpl
     await expect(client.ping()).resolves.toBeUndefined(); // exercises the default fetch wrapper
   });
+
+  it("setCategory PATCHes the category relationship", async () => {
+    server = await startFixtureServer({ "PATCH /transactions/t1/relationships/category": { status: 204 } });
+    const client = new UpClient({ token: "t", baseUrl: server.url, retry: noSleep });
+    await expect(client.setCategory("t1", "groceries")).resolves.toBeUndefined();
+    expect(server.requests[0]?.method).toBe("PATCH");
+    expect(server.requests[0]?.path).toBe("/transactions/t1/relationships/category");
+    expect(server.requests[0]?.body).toEqual({ data: { type: "categories", id: "groceries" } });
+  });
+
+  it("setCategory(null) clears the category", async () => {
+    server = await startFixtureServer({ "PATCH /transactions/t1/relationships/category": { status: 204 } });
+    const client = new UpClient({ token: "t", baseUrl: server.url, retry: noSleep });
+    await expect(client.setCategory("t1", null)).resolves.toBeUndefined();
+    expect(server.requests[0]?.body).toEqual({ data: null });
+  });
 });

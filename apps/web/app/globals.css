@@ -1,1 +1,13 @@
 @import "@upshot/ui/styles/tokens.css";
+
+/* Ledger responsive collapse (Component Specs §4 / proof.jsx ~line 440):
+   at a 360px phone width the Ledger collapses to merchant + amount — the
+   category/tags/flags and the edit affordance hide, and the row must not clip. */
+@media (max-width: 420px) {
+  .ledger-row {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+  .ledger-meta {
+    display: none !important;
+  }
+}

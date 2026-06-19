@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   Card,
   CardBody,
@@ -83,14 +84,16 @@ export function DashCalm({ data }: { data: TodayData }) {
 
       {/* Row 1 — net worth (real), cashflow forecast, emergency-fund readiness */}
       <Row>
-        <Card>
-          <CardHeader>
-            <CardTitle>Net worth</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <Money cents={data.netWorthCents} kind="neutral" size={28} weight={700} />
-          </CardBody>
-        </Card>
+        <Link href="/net-worth" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Net worth</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <Money cents={data.netWorthCents} kind="neutral" size={28} weight={700} />
+            </CardBody>
+          </Card>
+        </Link>
 
         <Card>
           <CardHeader>

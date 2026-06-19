@@ -64,6 +64,11 @@ export class UpClient implements UpClientPort {
     });
   }
 
+  async setCategory(transactionId: string, categoryId: string | null): Promise<void> {
+    await this.send("PATCH", `/transactions/${transactionId}/relationships/category`,
+      { data: categoryId ? { type: "categories", id: categoryId } : null });
+  }
+
   /**
    * Resolve a request target. Up's `links.next` is an absolute URL → pass it
    * through. A relative path is appended to baseUrl verbatim so the base's path

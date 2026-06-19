@@ -4,3 +4,5 @@ export type { JobRunRepo, CreateJobRun, FinishJobRun } from "./job-run-repo";
 export type { CategoryRepo } from "./category-repo";
 export type { MatchRuleRepo, LoadedRule } from "./match-rule-repo";
 export type { SettingsRepo, SettingsPatch } from "./settings-repo";
+export type { BudgetAllocationRepo, NewBudgetAllocation } from "./budget-allocation-repo";
+export type { AssetRepo, NewAsset } from "./asset-repo";
