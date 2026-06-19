@@ -9,6 +9,8 @@ export const accountSchema = z.object({
   balanceCents: z.number().int(),
   role: z.enum(ACCOUNT_ROLES),
   monthlyAllocationCents: z.number().int().default(0),
+  goalTargetCents: z.number().int().nullable(),
+  goalTargetDate: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
   lastSyncedAt: z.string().nullable(),

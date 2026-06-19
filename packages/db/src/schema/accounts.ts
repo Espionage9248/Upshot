@@ -11,6 +11,8 @@ export const accounts = sqliteTable(
     balanceCents: integer().notNull(),
     role: text({ enum: ACCOUNT_ROLES }).notNull(),
     monthlyAllocationCents: integer().notNull().default(0),
+    goalTargetCents: integer(),
+    goalTargetDate: text(),
     createdAt: text().notNull().$defaultFn(() => new Date().toISOString()),
     updatedAt: text().notNull().$defaultFn(() => new Date().toISOString()),
     lastSyncedAt: text(),
