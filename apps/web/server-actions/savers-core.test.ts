@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createDbClient, applyMigrations, tables, type DbClient } from "@upshot/db";
-import { setSaverGoal } from "./savers-core";
+import { setSaverGoal, loadSavers } from "./savers-core";
 
 // 32 hex chars — matches the encrypted-DB key contract.
 const KEY = "0123456789abcdef0123456789abcdef";
@@ -87,5 +87,36 @@ describe("setSaverGoal", () => {
     expect(logs[1]!.action).toBe("set_saver_goal");
     expect(logs[1]!.category).toBe("account");
     expect(logs[1]!.entityId).toBe(saverId);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// loadSavers
+// ---------------------------------------------------------------------------
+
+describe("loadSavers", () => {
+  it("returns only SAVER accounts mapped to the serializable goal shape", async () => {
+    // Seed a goal on the seeded saver + a non-SAVER account.
+    await setSaverGoal(db, saverId, 500000, "2026-12-31");
+    db.insert(tables.accounts)
+      .values({
+        id: randomUUID(),
+        name: "Everyday",
+        type: "TRANSACTIONAL",
+        ownership: "INDIVIDUAL",
+        balanceCents: 2500,
+        role: "SPENDING",
+      })
+      .run();
+
+    const savers = await loadSavers(db);
+
+    expect(savers).toHaveLength(1);
+    expect(savers[0]).toEqual({
+      id: saverId,
+      name: "Holiday Fund",
+      goalTargetCents: 500000,
+      goalTargetDate: "2026-12-31",
+    });
   });
 });

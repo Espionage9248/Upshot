@@ -11,6 +11,31 @@ import { randomUUID } from "node:crypto";
 import { DrizzleAccountRepo, tables, type DbClient } from "@upshot/db";
 
 // ---------------------------------------------------------------------------
+// loadSavers
+// ---------------------------------------------------------------------------
+
+/** Serializable saver-goal row for the /settings/budget surface. */
+export type SaverGoalRow = {
+  id: string;
+  name: string;
+  goalTargetCents: number | null;
+  goalTargetDate: string | null;
+};
+
+/** Load every SAVER account, mapped to the serializable goal-entry shape. */
+export async function loadSavers(db: DbClient): Promise<SaverGoalRow[]> {
+  const accounts = await new DrizzleAccountRepo(db).list();
+  return accounts
+    .filter((a) => a.role === "SAVER")
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      goalTargetCents: a.goalTargetCents,
+      goalTargetDate: a.goalTargetDate,
+    }));
+}
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
