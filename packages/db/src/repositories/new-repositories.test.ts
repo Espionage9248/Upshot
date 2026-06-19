@@ -9,6 +9,7 @@ import { DrizzleCategoryRepo } from "./category-repo";
 import { DrizzleMatchRuleRepo } from "./match-rule-repo";
 import { DrizzleSettingsRepo } from "./settings-repo";
 import { DrizzleBudgetAllocationRepo } from "./budget-allocation-repo";
+import { DrizzleAssetRepo } from "./asset-repo";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -219,5 +220,111 @@ describe("DrizzleBudgetAllocationRepo", () => {
     const julyOnly = await repo.listByMonth("2026-07");
     expect(julyOnly).toHaveLength(1);
     expect(julyOnly[0]?.varianceCents).toBe(70000); // 70000 - 0
+  });
+});
+
+describe("DrizzleAssetRepo", () => {
+  it("CRUD round-trip: create, getById, update, delete", async () => {
+    const repo = new DrizzleAssetRepo(freshDb());
+
+    const id = await repo.create({
+      name: "PPOR",
+      type: "PROPERTY",
+      valueCents: 80000000,
+      institution: "ANZ",
+      notes: "Main home",
+      includeInNetWorth: true,
+    });
+    expect(typeof id).toBe("string");
+
+    const got = await repo.getById(id);
+    expect(got).not.toBeNull();
+    expect(got?.name).toBe("PPOR");
+    expect(got?.valueCents).toBe(80000000);
+    expect(got?.institution).toBe("ANZ");
+    expect(got?.notes).toBe("Main home");
+    expect(got?.includeInNetWorth).toBe(true);
+    expect(got?.lastValuedAt).toBeNull();
+    expect(got?.createdAt).toBeTruthy();
+    expect(got?.updatedAt).toBeTruthy();
+
+    // update
+    await repo.update({ ...got!, name: "PPOR Updated", valueCents: 85000000 });
+    const updated = await repo.getById(id);
+    expect(updated?.name).toBe("PPOR Updated");
+    expect(updated?.valueCents).toBe(85000000);
+
+    // delete
+    await repo.delete(id);
+    expect(await repo.getById(id)).toBeNull();
+  });
+
+  it("getById returns null for unknown id", async () => {
+    const repo = new DrizzleAssetRepo(freshDb());
+    expect(await repo.getById("no-such")).toBeNull();
+  });
+
+  it("list returns assets ordered by name ascending", async () => {
+    const repo = new DrizzleAssetRepo(freshDb());
+    await repo.create({ name: "Zara Shares", type: "INVESTMENT", valueCents: 1000, institution: null, notes: null, includeInNetWorth: true });
+    await repo.create({ name: "Apple Shares", type: "INVESTMENT", valueCents: 2000, institution: null, notes: null, includeInNetWorth: true });
+    await repo.create({ name: "My Home", type: "PROPERTY", valueCents: 3000, institution: null, notes: null, includeInNetWorth: true });
+
+    const list = await repo.list();
+    expect(list.map((a) => a.name)).toEqual(["Apple Shares", "My Home", "Zara Shares"]);
+  });
+
+  it("recordValuation appends to history and bumps assets.valueCents + lastValuedAt", async () => {
+    const repo = new DrizzleAssetRepo(freshDb());
+    const id = await repo.create({
+      name: "Shares",
+      type: "INVESTMENT",
+      valueCents: 50000,
+      institution: null,
+      notes: null,
+      includeInNetWorth: true,
+    });
+
+    await repo.recordValuation(id, 55000, "2026-06-01T00:00:00.000Z");
+    const after1 = await repo.getById(id);
+    expect(after1?.valueCents).toBe(55000);
+    expect(after1?.lastValuedAt).toBe("2026-06-01T00:00:00.000Z");
+
+    await repo.recordValuation(id, 60000, "2026-06-15T00:00:00.000Z");
+    const after2 = await repo.getById(id);
+    expect(after2?.valueCents).toBe(60000);
+    expect(after2?.lastValuedAt).toBe("2026-06-15T00:00:00.000Z");
+
+    const history = await repo.listValuations(id);
+    expect(history).toHaveLength(2);
+    // ordered by valuedAt ascending
+    expect(history[0]?.valuedAt).toBe("2026-06-01T00:00:00.000Z");
+    expect(history[0]?.valueCents).toBe(55000);
+    expect(history[1]?.valuedAt).toBe("2026-06-15T00:00:00.000Z");
+    expect(history[1]?.valueCents).toBe(60000);
+    expect(history[0]?.assetId).toBe(id);
+  });
+
+  it("delete cascades to asset_valuations", async () => {
+    const repo = new DrizzleAssetRepo(freshDb());
+    const id = await repo.create({
+      name: "Car",
+      type: "VEHICLE",
+      valueCents: 3000000,
+      institution: null,
+      notes: null,
+      includeInNetWorth: true,
+    });
+    await repo.recordValuation(id, 2900000, "2026-05-01T00:00:00.000Z");
+    await repo.recordValuation(id, 2800000, "2026-06-01T00:00:00.000Z");
+
+    // confirm valuations exist
+    expect(await repo.listValuations(id)).toHaveLength(2);
+
+    // delete asset — valuations should cascade
+    await repo.delete(id);
+    expect(await repo.getById(id)).toBeNull();
+    // listValuations of deleted asset should be empty (cascaded)
+    expect(await repo.listValuations(id)).toHaveLength(0);
   });
 });

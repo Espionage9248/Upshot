@@ -4,6 +4,7 @@ import { InMemoryJobRunRepo } from "./in-memory-job-run-repo";
 import { InMemoryCategoryRepo } from "./in-memory-category-repo";
 import { InMemoryMatchRuleRepo } from "./in-memory-match-rule-repo";
 import { InMemorySettingsRepo } from "./in-memory-settings-repo";
+import { FakeAssetRepo } from "./fake-asset-repo";
 
 describe("InMemoryJobRunRepo", () => {
   it("creates RUNNING, finishes, and reads back", async () => {
@@ -87,5 +88,63 @@ describe("InMemorySettingsRepo", () => {
     expect(await new InMemorySettingsRepo(null).get()).toBeNull();
     const repo = new InMemorySettingsRepo({ syncCadence: "HOURLY" } as never);
     expect((await repo.get())?.syncCadence).toBe("HOURLY");
+  });
+});
+
+describe("FakeAssetRepo", () => {
+  it("create, getById, update, delete round-trip", async () => {
+    const repo = new FakeAssetRepo();
+    const id = await repo.create({
+      name: "PPOR",
+      type: "PROPERTY",
+      valueCents: 80000000,
+      institution: "ANZ",
+      notes: null,
+      includeInNetWorth: true,
+    });
+    expect(typeof id).toBe("string");
+
+    const got = await repo.getById(id);
+    expect(got?.name).toBe("PPOR");
+    expect(got?.valueCents).toBe(80000000);
+    expect(got?.lastValuedAt).toBeNull();
+
+    await repo.update({ ...got!, name: "Updated PPOR", valueCents: 85000000 });
+    expect((await repo.getById(id))?.name).toBe("Updated PPOR");
+
+    await repo.delete(id);
+    expect(await repo.getById(id)).toBeNull();
+  });
+
+  it("list returns assets ordered by name ascending", async () => {
+    const repo = new FakeAssetRepo();
+    await repo.create({ name: "Zara", type: "INVESTMENT", valueCents: 1, institution: null, notes: null, includeInNetWorth: true });
+    await repo.create({ name: "Apple", type: "INVESTMENT", valueCents: 2, institution: null, notes: null, includeInNetWorth: true });
+    const names = (await repo.list()).map((a) => a.name);
+    expect(names).toEqual(["Apple", "Zara"]);
+  });
+
+  it("recordValuation appends history and bumps valueCents + lastValuedAt", async () => {
+    const repo = new FakeAssetRepo();
+    const id = await repo.create({ name: "Shares", type: "INVESTMENT", valueCents: 1000, institution: null, notes: null, includeInNetWorth: true });
+
+    await repo.recordValuation(id, 2000, "2026-06-01T00:00:00.000Z");
+    expect((await repo.getById(id))?.valueCents).toBe(2000);
+    expect((await repo.getById(id))?.lastValuedAt).toBe("2026-06-01T00:00:00.000Z");
+
+    await repo.recordValuation(id, 3000, "2026-06-15T00:00:00.000Z");
+    const history = await repo.listValuations(id);
+    expect(history).toHaveLength(2);
+    expect(history[0]?.valuedAt).toBe("2026-06-01T00:00:00.000Z");
+    expect(history[1]?.valuedAt).toBe("2026-06-15T00:00:00.000Z");
+  });
+
+  it("delete cascades to valuations", async () => {
+    const repo = new FakeAssetRepo();
+    const id = await repo.create({ name: "Car", type: "VEHICLE", valueCents: 3000, institution: null, notes: null, includeInNetWorth: true });
+    await repo.recordValuation(id, 2500, "2026-05-01T00:00:00.000Z");
+
+    await repo.delete(id);
+    expect(await repo.listValuations(id)).toHaveLength(0);
   });
 });
