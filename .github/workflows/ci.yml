@@ -9,6 +9,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least-privilege GITHUB_TOKEN: this workflow only reads the repo (checkout)
+# to run typecheck/lint/test/build — it writes nothing.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
