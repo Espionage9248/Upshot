@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -42,11 +42,17 @@ const TYPE_LABEL: Record<string, string> = {
 export function AssetList({ assets, typeOptions }: AssetListProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function onDelete(id: string) {
+    setError(null);
     startTransition(async () => {
       const res = await deleteAssetAction(id);
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        router.refresh();
+      } else {
+        setError(res.error.message);
+      }
     });
   }
 
@@ -61,55 +67,62 @@ export function AssetList({ assets, typeOptions }: AssetListProps) {
   }
 
   return (
-    <Table>
-      <THead>
-        <TR>
-          <TH>Asset</TH>
-          <TH>Type</TH>
-          <TH numeric>Value</TH>
-          <TH numeric>In net worth</TH>
-          <TH numeric>Actions</TH>
-        </TR>
-      </THead>
-      <TBody>
-        {assets.map((a) => (
-          <TR key={a.id}>
-            <TD>
-              <div style={{ fontWeight: 600 }}>{a.name}</div>
-              {a.institution && (
-                <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
-                  {a.institution}
-                </div>
-              )}
-            </TD>
-            <TD>
-              <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
-            </TD>
-            <TD numeric>
-              <Money cents={a.valueCents} kind="neutral" size={14} weight={600} />
-            </TD>
-            <TD numeric>
-              <span style={{ fontSize: 12, color: a.includeInNetWorth ? "var(--income)" : "var(--text-3)" }}>
-                {a.includeInNetWorth ? "Yes" : "No"}
-              </span>
-            </TD>
-            <TD numeric>
-              <div style={{ display: "inline-flex", gap: 8, justifyContent: "flex-end" }}>
-                <AssetForm mode="update" typeOptions={typeOptions} asset={a} />
-                <Button
-                  variant="danger"
-                  size="sm"
-                  aria-label={`Delete ${a.name}`}
-                  disabled={pending}
-                  onClick={() => onDelete(a.id)}
-                >
-                  Delete
-                </Button>
-              </div>
-            </TD>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {error && (
+        <p role="alert" style={{ fontSize: 11.5, color: "var(--expense)", margin: 0, lineHeight: 1.4 }}>
+          {error}
+        </p>
+      )}
+      <Table>
+        <THead>
+          <TR>
+            <TH>Asset</TH>
+            <TH>Type</TH>
+            <TH numeric>Value</TH>
+            <TH numeric>In net worth</TH>
+            <TH numeric>Actions</TH>
           </TR>
-        ))}
-      </TBody>
-    </Table>
+        </THead>
+        <TBody>
+          {assets.map((a) => (
+            <TR key={a.id}>
+              <TD>
+                <div style={{ fontWeight: 600 }}>{a.name}</div>
+                {a.institution && (
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
+                    {a.institution}
+                  </div>
+                )}
+              </TD>
+              <TD>
+                <Badge tone="neutral">{TYPE_LABEL[a.type] ?? a.type}</Badge>
+              </TD>
+              <TD numeric>
+                <Money cents={a.valueCents} kind="neutral" size={14} weight={600} />
+              </TD>
+              <TD numeric>
+                <span style={{ fontSize: 12, color: a.includeInNetWorth ? "var(--income)" : "var(--text-3)" }}>
+                  {a.includeInNetWorth ? "Yes" : "No"}
+                </span>
+              </TD>
+              <TD numeric>
+                <div style={{ display: "inline-flex", gap: 8, justifyContent: "flex-end" }}>
+                  <AssetForm mode="update" typeOptions={typeOptions} asset={a} />
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    aria-label={`Delete ${a.name}`}
+                    disabled={pending}
+                    onClick={() => onDelete(a.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </TD>
+            </TR>
+          ))}
+        </TBody>
+      </Table>
+    </div>
   );
 }

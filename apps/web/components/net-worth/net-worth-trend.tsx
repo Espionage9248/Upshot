@@ -37,10 +37,11 @@ export function NetWorthTrend({ series, w = 540, h = 220 }: NetWorthTrendProps) 
   const padX = 4;
   const X = (i: number) => padX + (n === 1 ? 0.5 : i / (n - 1)) * (w - padX * 2);
   const mid = h * 0.62; // baseline for the assets/debts split
+  // Both assets and debts scale on the assets max (mirrors charts.jsx) so the
+  // debt band reads proportionally against assets rather than always filling.
   const maxA = Math.max(...assets, 1) * 1.05;
-  const maxD = Math.max(...debts, 1) * 1.05;
   const aY = (v: number) => mid - (v / maxA) * (mid - 10);
-  const dY = (v: number) => mid + (v / maxD) * (h - mid - 24);
+  const dY = (v: number) => mid + (v / maxA) * (h - mid - 24);
   const nMax = Math.max(...net);
   const nMin = Math.min(...net);
   const nY = (v: number) => mid - ((v - nMin) / (nMax - nMin || 1)) * (mid - 14) - 2;
