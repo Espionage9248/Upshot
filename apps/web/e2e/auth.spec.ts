@@ -10,7 +10,7 @@ import { test, expect } from "./fixtures";
  * `authenticatorId` is requested so the virtual-authenticator fixture attaches
  * before any WebAuthn call runs.
  */
-test("register passkey → login → Today → theme → Settings → 401 Reconnect → Plan → debts smoke → auth redirect", async ({
+test("register passkey → login → Today → theme → Settings → 401 Reconnect → Plan → debts smoke → installments smoke → auth redirect", async ({
   page,
   context,
   authenticatorId,
@@ -99,7 +99,15 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // The "Add debt" button is present.
   await expect(page.getByRole("button", { name: "Add debt" }).first()).toBeVisible();
 
-  // 9) Unauthenticated access to a protected route → redirected to /login.
+  // 9) /plan/installments route smoke: navigates, renders empty state (no plans seeded).
+  await page.goto("/plan/installments");
+  await expect(page.getByRole("heading", { name: "BNPL" })).toBeVisible();
+  // No installment plans are seeded in fixtures.ts, so the empty state renders.
+  await expect(page.getByText("No BNPL plans tracked")).toBeVisible();
+  // The "Mark as BNPL" button is present.
+  await expect(page.getByRole("button", { name: "Mark as BNPL" }).first()).toBeVisible();
+
+  // 10) Unauthenticated access to a protected route → redirected to /login.
   await context.clearCookies();
   await page.goto("/today");
   await page.waitForURL("**/login");
