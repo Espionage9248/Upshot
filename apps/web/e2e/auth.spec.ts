@@ -10,7 +10,7 @@ import { test, expect } from "./fixtures";
  * `authenticatorId` is requested so the virtual-authenticator fixture attaches
  * before any WebAuthn call runs.
  */
-test("register passkey → login → Today → theme → Settings → 401 Reconnect → Plan → debts smoke → installments smoke → auth redirect", async ({
+test("register passkey → login → Today → theme → Settings → 401 Reconnect → Plan → debts smoke → installments smoke → recurring smoke → auth redirect", async ({
   page,
   context,
   authenticatorId,
@@ -107,7 +107,16 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // The "Mark as BNPL" button is present.
   await expect(page.getByRole("button", { name: "Mark as BNPL" }).first()).toBeVisible();
 
-  // 10) Unauthenticated access to a protected route → redirected to /login.
+  // 10) /plan/recurring route smoke: navigates, renders the recurring list.
+  // fixtures.ts seeds one ACTIVE recurring item (e2e-bill-phone "Phone", $45/mo BILL).
+  await page.goto("/plan/recurring");
+  await expect(page.getByRole("heading", { name: "Recurring" })).toBeVisible();
+  // The seeded Phone bill (ACTIVE, $45/mo) renders in the Active section.
+  await expect(page.getByText("Phone")).toBeVisible();
+  // Monthly total summary is present.
+  await expect(page.getByText("Monthly total")).toBeVisible();
+
+  // 11) Unauthenticated access to a protected route → redirected to /login.
   await context.clearCookies();
   await page.goto("/today");
   await page.waitForURL("**/login");
