@@ -121,6 +121,7 @@ describe("runDetectOnce", () => {
         accountId: "acc-1",
         isAutoDetected: false,
         notes: null,
+        matchRuleId: null,
       });
 
       // Latest Spotify charge: -$1099 (drifted from $999).
