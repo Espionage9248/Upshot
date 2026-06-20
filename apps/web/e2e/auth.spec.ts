@@ -10,7 +10,7 @@ import { test, expect } from "./fixtures";
  * `authenticatorId` is requested so the virtual-authenticator fixture attaches
  * before any WebAuthn call runs.
  */
-test("register passkey → login → Today → theme → Settings → 401 Reconnect → auth redirect", async ({
+test("register passkey → login → Today → theme → Settings → 401 Reconnect → Plan → auth redirect", async ({
   page,
   context,
   authenticatorId,
@@ -79,7 +79,19 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await allocPanel.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText(/\$500/).first()).toBeVisible(); // refreshed without a reload
 
-  // 7) Unauthenticated access to a protected route → redirected to /login.
+  // 7) Plan room: sub-nav links are visible.
+  await page.goto("/plan");
+  await expect(
+    page.getByLabel("Plan navigation").getByRole("link", { name: "Debts" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Plan navigation").getByRole("link", { name: "BNPL" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Plan navigation").getByRole("link", { name: "Recurring" }),
+  ).toBeVisible();
+
+  // 8) Unauthenticated access to a protected route → redirected to /login.
   await context.clearCookies();
   await page.goto("/today");
   await page.waitForURL("**/login");
