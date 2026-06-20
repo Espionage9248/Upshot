@@ -53,3 +53,5 @@ export { addMonths, monthsBetween, computeSnowball, computeWhatIf, utilisation, 
 export type { DebtStrategy, DebtInput, MonthlyPayment, PayoffSchedule, SnowballAnalysis, FeeAccrualInput } from "./debt";
 export type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "./ports";
 export { InMemoryDebtRepo } from "./testing/in-memory-debt-repo";
+export type { InstallmentRepo, NewInstallmentPlan } from "./ports";
+export { InMemoryInstallmentRepo } from "./testing/in-memory-installment-repo";

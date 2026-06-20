@@ -13,3 +13,4 @@ export { DrizzleSettingsRepo } from "./repositories/settings-repo";
 export { DrizzleBudgetAllocationRepo } from "./repositories/budget-allocation-repo";
 export { DrizzleAssetRepo } from "./repositories/asset-repo";
 export { DrizzleDebtRepo } from "./repositories/debt-repo";
+export { DrizzleInstallmentRepo } from "./repositories/installment-repo";
