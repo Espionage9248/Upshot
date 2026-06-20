@@ -61,3 +61,5 @@ export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring"
 export { toMonthlyCostCents, costPerUseCents } from "./recurring";
 export { priceDrift, findOverlaps } from "./recurring";
 export type { Frequency, DetectableTransaction, DetectedRecurring, DriftResult, OverlapGroup } from "./recurring";
+export type { RecurringRepo, NewRecurring } from "./ports";
+export { InMemoryRecurringRepo } from "./testing/in-memory-recurring-repo";

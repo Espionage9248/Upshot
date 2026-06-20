@@ -14,3 +14,4 @@ export { DrizzleBudgetAllocationRepo } from "./repositories/budget-allocation-re
 export { DrizzleAssetRepo } from "./repositories/asset-repo";
 export { DrizzleDebtRepo } from "./repositories/debt-repo";
 export { DrizzleInstallmentRepo } from "./repositories/installment-repo";
+export { DrizzleRecurringRepo } from "./repositories/recurring-repo";

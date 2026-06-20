@@ -8,3 +8,4 @@ export type { BudgetAllocationRepo, NewBudgetAllocation } from "./budget-allocat
 export type { AssetRepo, NewAsset } from "./asset-repo";
 export type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "./debt-repo";
 export type { InstallmentRepo, NewInstallmentPlan } from "./installment-repo";
+export type { RecurringRepo, NewRecurring } from "./recurring-repo";
