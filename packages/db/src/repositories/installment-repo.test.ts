@@ -114,6 +114,33 @@ describe("DrizzleInstallmentRepo", () => {
     expect(linked.has("txn-1")).toBe(true);
   });
 
+  it("applyMatches persists status COMPLETE when update carries status COMPLETE", async () => {
+    const db = freshDb();
+    seedTransactions(db, ["txn-final"]);
+    const repo = new DrizzleInstallmentRepo(db);
+
+    const id = await repo.create({
+      id: "plan-complete",
+      merchant: "Afterpay",
+      totalCents: 40000,
+      installmentCents: 10000,
+      totalInstallments: 4,
+      frequencyDays: 14,
+      firstDueDate: "2026-01-01",
+      matchRuleId: null,
+      notes: null,
+    });
+
+    await repo.applyMatches(
+      [{ planId: id, installmentsPaid: 4, nextDueDate: "2026-03-15", status: "COMPLETE" }],
+      [{ planId: id, transactionId: "txn-final", dueIndex: 3, paidAt: "2026-03-01T00:00:00.000Z" }],
+    );
+
+    const got = await repo.getById(id);
+    expect(got?.status).toBe("COMPLETE");
+    expect(got?.installmentsPaid).toBe(4);
+  });
+
   it("applyMatches only updates plans in updates (zero-match plans untouched)", async () => {
     const db = freshDb();
     seedTransactions(db, ["txn-a"]);

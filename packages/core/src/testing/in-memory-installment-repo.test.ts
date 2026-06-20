@@ -115,6 +115,20 @@ describe("InMemoryInstallmentRepo", () => {
     expect(linked.size).toBe(0);
   });
 
+  it("applyMatches persists status COMPLETE when update carries status COMPLETE", async () => {
+    const repo = new InMemoryInstallmentRepo();
+    const id = await repo.create(makePlan());
+
+    await repo.applyMatches(
+      [{ planId: id, installmentsPaid: 4, nextDueDate: "2026-03-15", status: "COMPLETE" }],
+      [{ planId: id, transactionId: "txn-final", dueIndex: 3, paidAt: "2026-03-01T00:00:00.000Z" }],
+    );
+
+    const got = await repo.getById(id);
+    expect(got?.status).toBe("COMPLETE");
+    expect(got?.installmentsPaid).toBe(4);
+  });
+
   it("delete also removes associated payments", async () => {
     const repo = new InMemoryInstallmentRepo();
     const id = await repo.create(makePlan());
