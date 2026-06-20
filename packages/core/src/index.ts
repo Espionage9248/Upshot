@@ -55,3 +55,9 @@ export type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "./por
 export { InMemoryDebtRepo } from "./testing/in-memory-debt-repo";
 export type { InstallmentRepo, NewInstallmentPlan } from "./ports";
 export { InMemoryInstallmentRepo } from "./testing/in-memory-installment-repo";
+
+// Recurring (Phase 5)
+export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring";
+export { toMonthlyCostCents, costPerUseCents } from "./recurring";
+export { priceDrift, findOverlaps } from "./recurring";
+export type { Frequency, DetectableTransaction, DetectedRecurring, DriftResult, OverlapGroup } from "./recurring";
