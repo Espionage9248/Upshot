@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   createDbClient, applyMigrations,
   DrizzleJobRunRepo, DrizzleDebtRepo, tables, type DbClient,
-} from "@upshot/db";
+} from "../index";
 import { runFeesOnce } from "./fees";
 
 const KEY = "0123456789abcdef0123456789abcdef";

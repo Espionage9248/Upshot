@@ -6,7 +6,7 @@ import {
   createDbClient, applyMigrations,
   DrizzleJobRunRepo, DrizzleInstallmentRepo, DrizzleRecurringRepo,
   tables, type DbClient,
-} from "@upshot/db";
+} from "../index";
 import { runDetectOnce } from "./detect";
 
 const KEY = "0123456789abcdef0123456789abcdef";

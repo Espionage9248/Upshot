@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { JobRunRepo } from "@upshot/core";
 import { accrueFee } from "@upshot/core";
-import { DrizzleDebtRepo, type DbClient } from "@upshot/db";
+import { DrizzleDebtRepo } from "../repositories/debt-repo";
+import type { DbClient } from "../client";
 
 /**
  * Apply monthly fees to all debts that have a fee due and have not yet had a

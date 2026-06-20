@@ -3,14 +3,12 @@ import {
   createDbClientFromEnv, applyMigrations, seed,
   DrizzleAccountRepo, DrizzleTransactionRepo, DrizzleCategoryRepo,
   DrizzleMatchRuleRepo, DrizzleJobRunRepo, DrizzleSettingsRepo, type DbClient,
+  runSnapshotOnce, runFeesOnce, runDetectOnce,
 } from "@upshot/db";
 import { SyncService, UpClient } from "@upshot/core";
 import { NtfyNotifier, NullNotifier, type Notifier } from "./notifier";
 import { CircuitBreaker } from "./circuit-breaker";
 import { cadenceToCron, runSyncOnce } from "./scheduler";
-import { runSnapshotOnce } from "./snapshot";
-import { runFeesOnce } from "./fees";
-import { runDetectOnce } from "./detect";
 
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 

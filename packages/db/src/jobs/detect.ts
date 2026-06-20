@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { JobRunRepo } from "@upshot/core";
 import { detectRecurring, matchInstallments, priceDrift } from "@upshot/core";
-import {
-  DrizzleInstallmentRepo, DrizzleRecurringRepo,
-  tables, type DbClient,
-} from "@upshot/db";
+import { DrizzleInstallmentRepo } from "../repositories/installment-repo";
+import { DrizzleRecurringRepo } from "../repositories/recurring-repo";
+import type { DbClient } from "../client";
+import * as tables from "../schema";
 import { gte } from "drizzle-orm";
 
 /**
