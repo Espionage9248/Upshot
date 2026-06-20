@@ -9,6 +9,7 @@ import { NtfyNotifier, NullNotifier, type Notifier } from "./notifier";
 import { CircuitBreaker } from "./circuit-breaker";
 import { cadenceToCron, runSyncOnce } from "./scheduler";
 import { runSnapshotOnce } from "./snapshot";
+import { runFeesOnce } from "./fees";
 
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 
@@ -57,10 +58,16 @@ export async function start(log: (message: string) => void = console.log): Promi
     catch (err) { log(`snapshot tick error: ${err instanceof Error ? err.message : String(err)}`); }
   };
 
+  const feesTick = async (): Promise<void> => {
+    try { const runId = await runFeesOnce({ db: db as DbClient, jobRuns }); log(`fees tick: ${runId}`); }
+    catch (err) { log(`fees tick error: ${err instanceof Error ? err.message : String(err)}`); }
+  };
+
   const job = new Cron(cron, () => { void tick(); });
   const snapshotJob = new Cron("0 4 1 * *", () => { void snapshotTick(); });
+  const feesJob = new Cron("0 2 * * *", () => { void feesTick(); });
   log(`worker started (cadence ${settings?.syncCadence ?? "DAILY"} -> "${cron}")`);
-  return { stop: () => { job.stop(); snapshotJob.stop(); }, runNow: tick };
+  return { stop: () => { job.stop(); snapshotJob.stop(); feesJob.stop(); }, runNow: tick };
 }
 
 function requireEnv(name: string): string {
