@@ -8,6 +8,7 @@ import { SyncService, UpClient } from "@upshot/core";
 import { NtfyNotifier, NullNotifier, type Notifier } from "./notifier";
 import { CircuitBreaker } from "./circuit-breaker";
 import { cadenceToCron, runSyncOnce } from "./scheduler";
+import { runSnapshotOnce } from "./snapshot";
 
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 
@@ -51,9 +52,15 @@ export async function start(log: (message: string) => void = console.log): Promi
     }
   };
 
+  const snapshotTick = async (): Promise<void> => {
+    try { const runId = await runSnapshotOnce({ db: db as DbClient, jobRuns }); log(`snapshot tick: ${runId}`); }
+    catch (err) { log(`snapshot tick error: ${err instanceof Error ? err.message : String(err)}`); }
+  };
+
   const job = new Cron(cron, () => { void tick(); });
+  const snapshotJob = new Cron("0 4 1 * *", () => { void snapshotTick(); });
   log(`worker started (cadence ${settings?.syncCadence ?? "DAILY"} -> "${cron}")`);
-  return { stop: () => job.stop(), runNow: tick };
+  return { stop: () => { job.stop(); snapshotJob.stop(); }, runNow: tick };
 }
 
 function requireEnv(name: string): string {

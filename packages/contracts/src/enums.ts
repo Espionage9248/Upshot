@@ -22,7 +22,7 @@ export const MATCH_ACTION_TYPES = [
 
 export const SYNC_CADENCES = ["REALTIME", "HOURLY", "DAILY"] as const;
 
-export const JOB_NAMES = ["SYNC", "FEES", "DETECT", "BACKUP"] as const;
+export const JOB_NAMES = ["SYNC", "FEES", "DETECT", "BACKUP", "SNAPSHOT"] as const;
 export const JOB_STATUSES = ["RUNNING", "SUCCESS", "FAILED"] as const;
 
 export const ASSET_TYPES = ["INVESTMENT", "SUPER", "PROPERTY", "VEHICLE", "CASH", "OTHER"] as const;

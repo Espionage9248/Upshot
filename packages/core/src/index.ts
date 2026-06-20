@@ -41,3 +41,5 @@ export { monthsUntil } from "./budget";
 // Net worth (Phase 4)
 export { computeNetWorth } from "./networth";
 export type { NetWorthInput } from "./networth";
+export { computeMonthlySnapshot } from "./networth/snapshot";
+export type { MonthlySnapshotInput, MonthlySnapshot } from "./networth/snapshot";
