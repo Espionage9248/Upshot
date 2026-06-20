@@ -9,6 +9,7 @@ vi.mock("@/server-actions/assets", () => ({
   deleteAssetAction: (...args: unknown[]) => deleteAssetAction(...args),
   createAssetAction: vi.fn(),
   updateAssetAction: vi.fn(),
+  recordValuationAction: vi.fn(),
 }));
 
 // next/navigation router.refresh is called after a successful delete.
