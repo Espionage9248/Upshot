@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Card, CardBody, CardHeader, CardTitle, Badge, Confidence, Money } from "@upshot/ui";
 import type { ConfidenceLevel } from "@upshot/ui";
 import type { SaverView } from "@/app/(app)/budget/data";
+import type { SaverMonthHistory } from "@upshot/core";
 
 /** Maps a goal-confidence band to the Confidence atom's level. */
 function bandToLevel(band: "low" | "medium" | "high"): ConfidenceLevel {
@@ -23,6 +24,42 @@ const STATUS_LABEL: Record<SaverView["analysis"]["status"], { label: string; ton
 
 const aud0 = (cents: number) =>
   (cents / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
+
+/** Short month label from a `yyyy-MM` string, e.g. "2026-04" → "Apr". */
+function shortMonth(ym: string): string {
+  const year = Number(ym.slice(0, 4));
+  const mon = Number(ym.slice(5, 7));
+  return new Date(year, mon - 1, 1).toLocaleDateString("en-AU", { month: "short" });
+}
+
+/** One column in the 6-month breakdown grid. */
+function MonthCell({ entry }: { entry: SaverMonthHistory }): ReactNode {
+  const saved = entry.variance >= 0;
+  return (
+    <div
+      data-testid="saver-month-row"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 3,
+      }}
+    >
+      <span style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: "0.02em" }}>
+        {shortMonth(entry.month)}
+      </span>
+      <span data-testid="saver-month-variance">
+        <Money
+          cents={Math.abs(entry.variance)}
+          kind={saved ? "saved" : "expense"}
+          size={11}
+          weight={600}
+          showCents={false}
+        />
+      </span>
+    </div>
+  );
+}
 
 /**
  * A saver envelope card. A saver WITH a goal shows balance-vs-target (progress
@@ -106,6 +143,25 @@ export function SaverCard({ saver }: { saver: SaverView }): ReactNode {
               <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>{aud0(Math.abs(a.variance))}</span>
             </span>
           </div>
+
+          {/* 6-month per-month breakdown — only when history is present */}
+          {a.last6Months.length > 0 && (
+            <div
+              data-testid="saver-month-history"
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${a.last6Months.length}, 1fr)`,
+                gap: 4,
+                marginTop: 2,
+                paddingTop: 8,
+                borderTop: "1px solid var(--surface-2)",
+              }}
+            >
+              {[...a.last6Months].reverse().map((h) => (
+                <MonthCell key={h.month} entry={h} />
+              ))}
+            </div>
+          )}
 
           {/* goal-confidence ring (only when the saver has a target) */}
           {saver.confidence && (
