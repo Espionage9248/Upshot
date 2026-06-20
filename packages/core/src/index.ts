@@ -44,6 +44,10 @@ export type { NetWorthInput } from "./networth";
 export { computeMonthlySnapshot } from "./networth/snapshot";
 export type { MonthlySnapshotInput, MonthlySnapshot } from "./networth/snapshot";
 
+// Installments (Phase 5)
+export { matchInstallments, planProgress } from "./installments";
+export type { InstallmentPlanInput, MatchableTransaction, InstallmentMatch, PlanUpdate } from "./installments";
+
 // Debts (Phase 5)
 export { addMonths, monthsBetween, computeSnowball, computeWhatIf, utilisation, accrueFee } from "./debt";
 export type { DebtStrategy, DebtInput, MonthlyPayment, PayoffSchedule, SnowballAnalysis, FeeAccrualInput } from "./debt";
