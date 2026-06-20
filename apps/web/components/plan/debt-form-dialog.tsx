@@ -130,7 +130,7 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
       <DialogTrigger asChild>
         {trigger ?? <Button size="sm">Add debt</Button>}
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent>
         <DialogTitle>Add a debt</DialogTitle>
         <DialogDescription>
           Track a new debt — credit card, loan, or other liability.

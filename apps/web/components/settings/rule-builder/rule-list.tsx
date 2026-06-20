@@ -12,6 +12,7 @@ import {
   DialogTrigger,
   DialogContent,
   DialogTitle,
+  DialogDescription,
   type UiSelectOption,
 } from "@upshot/ui";
 import { saveRuleAction, deleteRuleAction } from "@/server-actions/rules";
@@ -131,6 +132,9 @@ export function RuleList({
 
       <DialogContent>
         <DialogTitle>{open === "new" ? "New rule" : "Edit rule"}</DialogTitle>
+        <DialogDescription>
+          Define how matching transactions are renamed, tagged, or categorised.
+        </DialogDescription>
         {open !== null && (
           <RuleEditor
             rule={open === "new" ? null : open}

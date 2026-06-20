@@ -110,7 +110,7 @@ export function InstallmentFormDialog({ trigger }: InstallmentFormDialogProps) {
       <DialogTrigger asChild>
         {trigger ?? <Button size="sm">Mark as BNPL</Button>}
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent>
         <DialogTitle>Mark as BNPL</DialogTitle>
         <DialogDescription>
           Record a buy-now-pay-later purchase to track your installment schedule.

@@ -103,7 +103,7 @@ export function AssetForm(props: AssetFormProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent>
         <DialogTitle>{mode === "update" ? "Edit asset" : "Add asset"}</DialogTitle>
         <DialogDescription>
           Assets are tracked locally and counted toward your net worth.

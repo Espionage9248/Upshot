@@ -78,7 +78,7 @@ export function ValuationForm({ asset }: { asset: AssetRow }) {
           Record valuation
         </Button>
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent>
         <DialogTitle>Record valuation</DialogTitle>
         <DialogDescription>
           Log a new value for {asset.name} as at a date.

@@ -79,6 +79,25 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await allocPanel.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText(/\$500/).first()).toBeVisible(); // refreshed without a reload
 
+  // 6b) aria-describedby guard. The budget allocate dialog must have a
+  // non-empty aria-describedby attribute (auto-wired by Radix when
+  // aria-describedby={undefined} override is absent) that resolves to a
+  // visible description node. Before the fix the override blanks the link.
+  await page.goto("/budget");
+  await page.getByRole("button", { name: /^Allocate$/ }).first().click();
+  const allocDialog2 = page.getByRole("dialog");
+  await expect(allocDialog2).toBeVisible();
+  const describedBy = await allocDialog2.getAttribute("aria-describedby");
+  expect(describedBy, "allocate dialog must have a non-empty aria-describedby").toBeTruthy();
+  if (describedBy) {
+    // Verify the id resolves to a visible description node in the DOM.
+    // Use attribute selector to avoid CSS.escape (which is browser-only).
+    const descNode = page.locator(`[id="${describedBy}"]`);
+    await expect(descNode).toBeVisible();
+  }
+  // Close the dialog before continuing.
+  await page.keyboard.press("Escape");
+
   // 7) Plan room: sub-nav links are visible.
   await page.goto("/plan");
   await expect(
