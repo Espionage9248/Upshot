@@ -9,6 +9,10 @@ vi.mock("@/server-actions/budget", () => ({
   setAllocationAction: (...args: unknown[]) => setAllocationAction(...args),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
 function open() {
   render(
     <AllocateDialog accountId="acc-groceries" accountName="Groceries" month="2026-06" currentCents={60000} />,

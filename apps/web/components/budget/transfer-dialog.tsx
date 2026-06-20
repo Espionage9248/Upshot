@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogTrigger,
@@ -46,6 +47,7 @@ export function TransferDialog({ month, fromAccountId, fromAccountName, destinat
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function submit() {
     setError(null);
@@ -69,6 +71,7 @@ export function TransferDialog({ month, fromAccountId, fromAccountName, destinat
         return;
       }
       setOpen(false);
+      router.refresh();
     });
   }
 

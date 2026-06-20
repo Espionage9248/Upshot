@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogTrigger,
@@ -37,6 +38,7 @@ export function AllocateDialog({ accountId, accountName, month, currentCents }: 
   const [amount, setAmount] = useState((currentCents / 100).toFixed(2));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function submit() {
     setError(null);
@@ -52,6 +54,7 @@ export function AllocateDialog({ accountId, accountName, month, currentCents }: 
         return;
       }
       setOpen(false);
+      router.refresh();
     });
   }
 
