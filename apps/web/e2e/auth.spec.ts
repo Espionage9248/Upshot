@@ -118,6 +118,23 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // The "Add debt" button is present.
   await expect(page.getByRole("button", { name: "Add debt" }).first()).toBeVisible();
 
+  // Regression guard: actually INVOKING each Plan write action against the
+  // production build. A "use server" module with a bare `export type { X };`
+  // re-export compiles to a runtime `registerServerReference(X)` → the action
+  // crashes with "ReferenceError: X is not defined" the moment it is invoked
+  // (the route smokes above only render the read path, which never loaded it).
+  const pageErrors: string[] = [];
+  page.on("pageerror", (e) => pageErrors.push(e.message));
+
+  // Debts: createDebtAction.
+  await page.getByRole("button", { name: "Add debt" }).first().click();
+  const debtDialog = page.getByRole("dialog");
+  await debtDialog.getByLabel("Name").fill("Visa card");
+  await debtDialog.getByLabel("Current balance").fill("2500");
+  await debtDialog.getByLabel("Monthly payment").fill("200");
+  await debtDialog.getByRole("button", { name: "Add debt" }).click();
+  await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
+
   // 9) /plan/installments route smoke: navigates, renders empty state (no plans seeded).
   await page.goto("/plan/installments");
   await expect(page.getByRole("heading", { name: "BNPL" })).toBeVisible();
@@ -125,6 +142,17 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await expect(page.getByText("No BNPL plans tracked")).toBeVisible();
   // The "Mark as BNPL" button is present.
   await expect(page.getByRole("button", { name: "Mark as BNPL" }).first()).toBeVisible();
+
+  // Installments: createInstallmentPlanAction (exercises installments.ts).
+  await page.getByRole("button", { name: "Mark as BNPL" }).first().click();
+  const bnplDialog = page.getByRole("dialog");
+  await bnplDialog.getByLabel("Merchant").fill("ACME Store");
+  await bnplDialog.getByLabel("Total amount").fill("200");
+  await bnplDialog.getByLabel("Number of installments").fill("4");
+  await bnplDialog.getByLabel("First due date (YYYY-MM-DD)").fill("2026-07-01");
+  await bnplDialog.getByLabel("Frequency (days)").fill("14");
+  await bnplDialog.getByRole("button", { name: "Add plan" }).click();
+  await expect(page.getByText("ACME Store")).toBeVisible({ timeout: 15000 });
 
   // 10) /plan/recurring route smoke: navigates, renders the recurring list.
   // fixtures.ts seeds one ACTIVE recurring item (e2e-bill-phone "Phone", $45/mo BILL).
@@ -134,6 +162,17 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await expect(page.getByText("Phone")).toBeVisible();
   // Monthly total summary is present.
   await expect(page.getByText("Monthly total")).toBeVisible();
+
+  // Recurring: setUsageAction on the seeded Phone bill (exercises recurring.ts).
+  await page.getByRole("button", { name: "Set usage count" }).first().click();
+  await page.getByLabel("Usage count").fill("3");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("button", { name: "Set usage count" }).first()).toBeVisible({
+    timeout: 15000,
+  });
+
+  // No Plan write action threw a Server Components / ReferenceError in the prod build.
+  expect(pageErrors, `unexpected page errors: ${pageErrors.join(" | ")}`).toEqual([]);
 
   // 11) Unauthenticated access to a protected route → redirected to /login.
   await context.clearCookies();

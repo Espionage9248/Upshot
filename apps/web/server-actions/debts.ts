@@ -21,8 +21,6 @@ import type { DebtRow, CreateDebtInput } from "./debts-core";
 import type { RecordDebtPayment } from "@upshot/core";
 import type { SnowballAnalysis, DebtStrategy } from "@upshot/core";
 
-export type { DebtRow };
-
 /** Action: create a new debt entry. Returns the new debt id. */
 export const createDebtAction = action(
   async (_session, input: CreateDebtInput): Promise<string> => {

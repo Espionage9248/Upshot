@@ -20,9 +20,6 @@ import {
   pauseRecurring,
   setUsage,
 } from "./recurring-core";
-import type { RecurringRow } from "./recurring-core";
-
-export type { RecurringRow };
 
 /** Action: accept a suggested recurring item → sets status ACTIVE. */
 export const acceptSuggestionAction = action(

@@ -15,9 +15,7 @@ import { revalidatePath } from "next/cache";
 import { action } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { createInstallmentPlan, deleteInstallmentPlan } from "./installments-core";
-import type { CreateInstallmentInput, InstallmentRow } from "./installments-core";
-
-export type { InstallmentRow };
+import type { CreateInstallmentInput } from "./installments-core";
 
 /** Action: mark a purchase as a BNPL installment plan. Returns the new plan id. */
 export const createInstallmentPlanAction = action(
