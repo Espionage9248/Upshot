@@ -65,11 +65,7 @@ export function TransferDialog({ month, fromAccountId, fromAccountName, destinat
         return;
       }
       if (!res.data.ok) {
-        setError(
-          res.data.code === "overdraw"
-            ? "Not enough allocation to move that much."
-            : "That account could not be found.",
-        );
+        setError("Not enough allocation to move that much.");
         return;
       }
       setOpen(false);

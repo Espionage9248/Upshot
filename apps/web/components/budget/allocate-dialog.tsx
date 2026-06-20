@@ -51,10 +51,6 @@ export function AllocateDialog({ accountId, accountName, month, currentCents }: 
         setError(res.error.message);
         return;
       }
-      if (!res.data.ok) {
-        setError("That account could not be found.");
-        return;
-      }
       setOpen(false);
     });
   }
