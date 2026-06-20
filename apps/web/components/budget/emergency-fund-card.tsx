@@ -1,19 +1,33 @@
 import type { ReactNode } from "react";
-import { Card, CardBody, CardHeader, CardTitle, Money, ReadinessGauge } from "@upshot/ui";
+import { Card, CardBody, CardHeader, CardTitle, Badge, Money, ReadinessGauge } from "@upshot/ui";
 import type { EmergencyFundAnalysis } from "@upshot/core";
 
 /**
- * Emergency-fund readiness card: the readiness gauge (progress % of the 6-month
- * target), balance / target, and the top-up still needed to reach the goal.
+ * Emergency-fund status → badge, sharing the goal vocabulary with SaverCard:
+ * GOAL_MET → "Goal met", BUILDING → "Building", DEPLETED → "Drawing down"
+ * (a 3-month net withdrawal not yet replaced — the EF flavour of depletion).
+ */
+const EF_STATUS: Record<EmergencyFundAnalysis["status"], { label: string; tone: "saved" | "warn" | "neutral" }> = {
+  GOAL_MET: { label: "Goal met", tone: "saved" },
+  BUILDING: { label: "Building", tone: "neutral" },
+  DEPLETED: { label: "Drawing down", tone: "warn" },
+};
+
+/**
+ * Emergency-fund readiness card: a status badge (shared goal vocabulary), the
+ * readiness gauge (progress % of the 6-month target), balance / target, and the
+ * top-up still needed to reach the goal.
  *
  * Presentational — data arrives via props; no DB/auth/hooks. Token-exact to the
  * BeaconDashboard readiness ref (gauge + balance/target line + tips).
  */
 export function EmergencyFundCard({ fund }: { fund: EmergencyFundAnalysis }): ReactNode {
+  const status = EF_STATUS[fund.status];
   return (
     <Card>
       <CardHeader>
         <CardTitle>Emergency-fund readiness</CardTitle>
+        <Badge tone={status.tone}>{status.label}</Badge>
       </CardHeader>
       <CardBody>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>

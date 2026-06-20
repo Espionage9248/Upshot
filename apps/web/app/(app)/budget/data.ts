@@ -124,16 +124,32 @@ export async function loadBudgetData(db: DbClient, now: Date = new Date()): Prom
       isTransfer: r.isTransfer,
     }));
 
+    // Option A: a user-set allocation for THIS month (the budget_allocations row)
+    // is authoritative over inferred incoming transfers.
+    const storedAllocation = db
+      .select({ allocatedCents: tables.budgetAllocations.allocatedCents })
+      .from(tables.budgetAllocations)
+      .where(
+        and(
+          eq(tables.budgetAllocations.accountId, account.id),
+          eq(tables.budgetAllocations.month, month),
+        ),
+      )
+      .get();
+
     const analysis = analyseSaver({
       account: {
         id: account.id,
         name: account.name,
         balanceCents: account.balanceCents,
         monthlyAllocationCents: account.monthlyAllocationCents,
+        goalTargetCents: account.goalTargetCents,
+        goalTargetDate: account.goalTargetDate,
       },
       month,
       transactions,
       saverAccountIds,
+      storedAllocationCents: storedAllocation?.allocatedCents ?? null,
     });
 
     // Project confidence of reaching a target, resampling the saver's own

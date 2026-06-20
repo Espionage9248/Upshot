@@ -8,38 +8,51 @@ function bandToLevel(band: "low" | "medium" | "high"): ConfidenceLevel {
   return band === "high" ? "on" : band === "medium" ? "at" : "off";
 }
 
-/** Trend → a short human label + badge tone (token-exact semantics). */
-const TREND_LABEL: Record<SaverView["analysis"]["trend"], { label: string; tone: "saved" | "warn" | "neutral" }> = {
-  OVERFUNDED: { label: "Overfunded", tone: "saved" },
-  OPTIMAL: { label: "On track", tone: "neutral" },
-  UNDERFUNDED: { label: "Underfunded", tone: "warn" },
+/**
+ * Status → label + badge tone.
+ * - Goal savers: GOAL_MET / BUILDING (balance vs target).
+ * - Envelope savers: BUILDING / STEADY / DRAWING_DOWN (6-month accumulation trend).
+ * Only DRAWING_DOWN warns; accruing is the healthy default for a saver.
+ */
+const STATUS_LABEL: Record<SaverView["analysis"]["status"], { label: string; tone: "saved" | "warn" | "neutral" }> = {
+  GOAL_MET: { label: "Goal met", tone: "saved" },
+  BUILDING: { label: "Building", tone: "neutral" },
+  STEADY: { label: "Steady", tone: "neutral" },
+  DRAWING_DOWN: { label: "Drawing down", tone: "warn" },
 };
 
+const aud0 = (cents: number) =>
+  (cents / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 });
+
 /**
- * A saver envelope card: balance vs allocation, role badge, trend badge, the
- * balance/allocation progress bar (coral gradient when funded, warn when
- * over-allocated), and a Confidence ring when the saver has a goal target.
+ * A saver envelope card. A saver WITH a goal shows balance-vs-target (progress
+ * bar + Goal met/Building) and a goal-confidence ring; a saver WITHOUT a goal
+ * shows its monthly allocation and a 6-month accumulation trend badge (no
+ * progress bar — there is no target to progress toward).
  *
  * Presentational — data arrives via props; no DB/auth/hooks. Token-exact to the
  * VEnvelope + Confidence design refs (5px bar, --coral gradient / --warn, .tnum).
  */
 export function SaverCard({ saver }: { saver: SaverView }): ReactNode {
   const a = saver.analysis;
-  const allocation = a.monthlyAllocation;
+  const status = STATUS_LABEL[a.status];
+  const isGoal = a.mode === "goal";
   const balance = a.currentBalance;
   const over = balance < 0;
-  const pct = allocation > 0 ? Math.max(0, Math.min(1, balance / allocation)) : 0;
-  const trend = TREND_LABEL[a.trend];
+  // Goal saver: secondary figure is the target + a balance/target bar.
+  // Envelope saver: secondary figure is this month's allocation, no bar.
+  const secondaryCents = isGoal ? (saver.goal?.targetCents ?? 0) : a.monthlyAllocation;
+  const goalPct = Math.max(0, Math.min(1, a.goalProgress ?? 0));
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>{saver.name}</CardTitle>
-        <Badge tone={trend.tone}>{trend.label}</Badge>
+        <Badge tone={status.tone}>{status.label}</Badge>
       </CardHeader>
       <CardBody>
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {/* balance / allocation row */}
+          {/* balance / (target | allocation) row */}
           <div
             style={{
               display: "flex",
@@ -61,39 +74,36 @@ export function SaverCard({ saver }: { saver: SaverView }): ReactNode {
                 flexShrink: 0,
               }}
             >
-              / {(allocation / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 })}
+              / {aud0(secondaryCents)}
             </span>
           </div>
 
-          {/* 5px balance/allocation bar — coral gradient when funded, warn when over */}
-          <div
-            data-testid="saver-bar"
-            style={{ height: 5, borderRadius: 999, background: "var(--surface-2)", overflow: "hidden" }}
-          >
+          {/* 5px balance/target bar — goal savers only (coral gradient, full when met) */}
+          {isGoal && (
             <div
-              style={{
-                width: `${(over ? 1 : pct) * 100}%`,
-                height: "100%",
-                borderRadius: 999,
-                background: over
-                  ? "var(--warn)"
-                  : "linear-gradient(90deg, color-mix(in oklch, var(--coral) 80%, #fff), var(--coral))",
-              }}
-            />
-          </div>
+              data-testid="saver-bar"
+              style={{ height: 5, borderRadius: 999, background: "var(--surface-2)", overflow: "hidden" }}
+            >
+              <div
+                style={{
+                  width: `${goalPct * 100}%`,
+                  height: "100%",
+                  borderRadius: 999,
+                  background:
+                    "linear-gradient(90deg, color-mix(in oklch, var(--coral) 80%, #fff), var(--coral))",
+                }}
+              />
+            </div>
+          )}
 
           {/* spend / variance trend line */}
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--text-3)" }}>
             <span>
-              Spent <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>
-                {(a.monthlySpending / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 })}
-              </span>
+              Spent <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>{aud0(a.monthlySpending)}</span>
             </span>
             <span style={{ color: a.variance < 0 ? "var(--warn)" : "var(--text-3)" }}>
               {a.variance >= 0 ? "left " : "over "}
-              <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>
-                {(Math.abs(a.variance) / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 })}
-              </span>
+              <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>{aud0(Math.abs(a.variance))}</span>
             </span>
           </div>
 
@@ -103,9 +113,7 @@ export function SaverCard({ saver }: { saver: SaverView }): ReactNode {
               {saver.goal && (
                 <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>
                   Goal{" "}
-                  <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>
-                    {(saver.goal.targetCents / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 })}
-                  </span>{" "}
+                  <span className="tnum" style={{ fontFamily: "var(--font-mono)" }}>{aud0(saver.goal.targetCents)}</span>{" "}
                   by {new Date(saver.goal.targetDate).toLocaleDateString("en-AU", { month: "short", year: "numeric" })}
                 </span>
               )}

@@ -1,10 +1,19 @@
 /**
- * Saver budget analysis (envelope budgeting).
+ * Saver budget analysis.
  *
- * Ported from V1 `BudgetAnalysisService.analyseSaver` / `analyseAllSavers`
- * (reference/v1/backend-src/services/budgetAnalysis.ts) and re-shaped to pure
- * plain-array inputs: the web loader assembles `SaverInput` from repos, this
- * stays fake-free at the unit boundary.
+ * Two models, branched on whether the saver has a goal:
+ *  - GOAL saver (goalTargetCents + goalTargetDate set): progress + status are
+ *    measured against the target balance (GOAL_MET / BUILDING) — generalising
+ *    V1's emergency-fund target model to any saver.
+ *  - ENVELOPE saver (no goal): status is an accumulation TREND over the trailing
+ *    6 months (BUILDING / STEADY / DRAWING_DOWN), so a sinking fund that
+ *    correctly accrues for a future spend is never mislabelled "overfunded"
+ *    (the V1 single-month variance trend did exactly that).
+ *
+ * The monthly allocation is authoritative when the user set one for the month
+ * (storedAllocationCents); else inferred from incoming transfers; else the
+ * static monthlyAllocationCents. Spending / variance / history (ported from V1
+ * `analyseSaver`) are retained as supporting figures.
  *
  * Integer cents throughout. Never parseFloat a money value.
  */
@@ -23,12 +32,21 @@ export interface SaverInput {
     name: string;
     balanceCents: number;
     monthlyAllocationCents: number;
+    /** Real per-saver goal (target amount + ISO date), or null when unset. */
+    goalTargetCents: number | null;
+    goalTargetDate: string | null;
   };
   /** Target month in `yyyy-MM` form. */
   month: string;
   transactions: SaverTransaction[];
   /** All SAVER account IDs — used to exclude saver-to-saver reallocations. */
   saverAccountIds: Set<string>;
+  /**
+   * The user's explicit allocation for `month` (the stored budget_allocation
+   * row), authoritative when present. Absent/null → fall back to inferred
+   * incoming transfers, then the static monthlyAllocationCents.
+   */
+  storedAllocationCents?: number | null;
 }
 
 export interface SaverMonthHistory {
@@ -37,6 +55,13 @@ export interface SaverMonthHistory {
   spent: number;
   variance: number;
 }
+
+/**
+ * GOAL_MET / BUILDING come from a goal saver (balance vs target); BUILDING /
+ * STEADY / DRAWING_DOWN come from an envelope saver's 6-month accumulation
+ * trend. "BUILDING" is shared: in both it means "accruing toward something".
+ */
+export type SaverStatus = "GOAL_MET" | "BUILDING" | "STEADY" | "DRAWING_DOWN";
 
 export interface SaverBudgetAnalysis {
   saverId: string;
@@ -49,8 +74,14 @@ export interface SaverBudgetAnalysis {
   variance: number;
   variancePercentage: number;
 
-  // Trend
-  trend: "OVERFUNDED" | "UNDERFUNDED" | "OPTIMAL";
+  // Status model
+  mode: "goal" | "envelope";
+  status: SaverStatus;
+  /** balance ÷ target, clamped 0..1 — present only for a goal saver. */
+  goalProgress: number | null;
+  /** Net flow (in − out) over the trailing 6 months — the envelope trend basis. */
+  net6MonthsCents: number;
+
   averageMonthlySpending: number; // Last 6 months
 
   // Historical (most recent complete month first)
@@ -96,10 +127,11 @@ function spendingInMonth(input: SaverInput, month: string): number {
 }
 
 /**
- * Allocation for the target month from actual incoming transfers, falling back
- * to the static `monthlyAllocationCents`. Mirrors V1 `calculateMonthlyAllocation`.
+ * Allocation for the target month. The user's explicit allocation wins; else
+ * actual incoming transfers; else the static `monthlyAllocationCents`.
  */
 function allocationForMonth(input: SaverInput): number {
+  if (input.storedAllocationCents != null) return input.storedAllocationCents;
   let incoming = 0;
   for (const t of input.transactions) {
     if (t.accountId !== input.account.id) continue;
@@ -107,6 +139,22 @@ function allocationForMonth(input: SaverInput): number {
     if (t.isTransfer && t.amountCents > 0) incoming += t.amountCents;
   }
   return incoming > 0 ? incoming : input.account.monthlyAllocationCents;
+}
+
+/**
+ * Net flow (in − out) over the trailing 6 months INCLUDING the current month,
+ * from the saver's own transactions. Positive → accruing, negative → depleting.
+ */
+function netFlowLast6Months(input: SaverInput): number {
+  const window = new Set<string>([input.month]);
+  for (let i = 1; i <= 5; i++) window.add(monthBefore(input.month, i));
+  let net = 0;
+  for (const t of input.transactions) {
+    if (t.accountId !== input.account.id) continue;
+    if (!window.has(monthOf(t.createdAt))) continue;
+    net += t.amountCents;
+  }
+  return net;
 }
 
 /**
@@ -125,6 +173,9 @@ function historyLast6Months(input: SaverInput): SaverMonthHistory[] {
   return months;
 }
 
+/** Envelope-trend dead-band: |net 6-month flow| within this reads as STEADY. */
+const STEADY_BAND_CENTS = 5_000;
+
 export function analyseSaver(input: SaverInput): SaverBudgetAnalysis {
   const { account } = input;
 
@@ -134,13 +185,26 @@ export function analyseSaver(input: SaverInput): SaverBudgetAnalysis {
   const variance = monthlyAllocation - monthlySpending;
   const variancePercentage = monthlyAllocation > 0 ? (variance / monthlyAllocation) * 100 : 0;
 
-  let trend: SaverBudgetAnalysis["trend"];
-  if (variancePercentage > 20) {
-    trend = "OVERFUNDED";
-  } else if (variancePercentage < -10) {
-    trend = "UNDERFUNDED";
+  const net6MonthsCents = netFlowLast6Months(input);
+
+  const hasGoal = account.goalTargetCents != null && account.goalTargetDate != null;
+  let mode: "goal" | "envelope";
+  let status: SaverStatus;
+  let goalProgress: number | null;
+  if (hasGoal) {
+    mode = "goal";
+    const target = account.goalTargetCents as number;
+    goalProgress = target > 0 ? Math.min(1, Math.max(0, account.balanceCents / target)) : 0;
+    status = account.balanceCents >= target ? "GOAL_MET" : "BUILDING";
   } else {
-    trend = "OPTIMAL";
+    mode = "envelope";
+    goalProgress = null;
+    status =
+      net6MonthsCents > STEADY_BAND_CENTS
+        ? "BUILDING"
+        : net6MonthsCents < -STEADY_BAND_CENTS
+          ? "DRAWING_DOWN"
+          : "STEADY";
   }
 
   const last6Months = historyLast6Months(input);
@@ -155,7 +219,10 @@ export function analyseSaver(input: SaverInput): SaverBudgetAnalysis {
     monthlySpending,
     variance,
     variancePercentage,
-    trend,
+    mode,
+    status,
+    goalProgress,
+    net6MonthsCents,
     averageMonthlySpending,
     last6Months,
   };
