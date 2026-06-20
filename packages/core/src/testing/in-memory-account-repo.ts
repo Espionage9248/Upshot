@@ -11,6 +11,9 @@ export class InMemoryAccountRepo implements AccountRepo {
       ...account,
       // Full-replace upsert: the write wins (matches DrizzleAccountRepo). createdAt is preserved.
       lastSyncedAt: account.lastSyncedAt ?? null,
+      // Goal fields are preserved if absent from the upsert payload (sync-clobber guard).
+      goalTargetCents: account.goalTargetCents !== undefined ? account.goalTargetCents : (existing?.goalTargetCents ?? null),
+      goalTargetDate: account.goalTargetDate !== undefined ? account.goalTargetDate : (existing?.goalTargetDate ?? null),
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     });
@@ -22,5 +25,16 @@ export class InMemoryAccountRepo implements AccountRepo {
 
   async list(): Promise<Account[]> {
     return [...this.store.values()];
+  }
+
+  async setGoal(accountId: string, goalTargetCents: number | null, goalTargetDate: string | null): Promise<void> {
+    const existing = this.store.get(accountId);
+    if (!existing) return;
+    this.store.set(accountId, {
+      ...existing,
+      goalTargetCents,
+      goalTargetDate,
+      updatedAt: new Date().toISOString(),
+    });
   }
 }

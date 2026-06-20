@@ -63,7 +63,23 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await expect(page.getByText("Token expired")).toBeVisible();
   await expect(page.getByText("Reconnect")).toBeVisible();
 
-  // 6) Unauthenticated access to a protected route → redirected to /login.
+  // 6) Dialog regression guard. Two prod-only bugs hid from jsdom unit tests
+  // (no CSS) and text-only e2e: (a) the @upshot/ui Tailwind classes weren't
+  // scanned, so dialogs mounted with a layout box but TRANSPARENT/unstyled —
+  // `toBeVisible()` alone passes that, so assert a real background; (b) the
+  // budget dialogs lacked router.refresh(), so a saved allocation didn't show
+  // until reload — assert the figure updates in place.
+  await page.goto("/budget");
+  await page.getByRole("button", { name: /^Allocate$/ }).first().click();
+  const allocPanel = page.getByRole("dialog");
+  await expect(allocPanel).toBeVisible();
+  const panelBg = await allocPanel.evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(panelBg).not.toBe("rgba(0, 0, 0, 0)"); // styled, not a transparent purged shell
+  await allocPanel.getByRole("textbox").first().fill("500");
+  await allocPanel.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText(/\$500/).first()).toBeVisible(); // refreshed without a reload
+
+  // 7) Unauthenticated access to a protected route → redirected to /login.
   await context.clearCookies();
   await page.goto("/today");
   await page.waitForURL("**/login");

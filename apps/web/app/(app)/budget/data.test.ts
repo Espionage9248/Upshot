@@ -192,6 +192,40 @@ describe("loadBudgetData", () => {
 
     const result = await loadBudgetData(db, NOW);
     expect(result.savers[0]!.confidence).toBeNull();
+    expect(result.savers[0]!.goal).toBeNull();
+  });
+
+  it("uses the real goal (independent of the allocation gate) and surfaces it on the saver", async () => {
+    const db = freshDb();
+    const repo = new DrizzleAccountRepo(db);
+    await repo.upsert({
+      id: "acc-holiday",
+      name: "Holiday",
+      type: "SAVER",
+      ownership: "INDIVIDUAL",
+      balanceCents: 100000,
+      role: "SAVER",
+      monthlyAllocationCents: 0, // no allocation → heuristic gate would skip this saver
+      lastSyncedAt: null,
+    });
+    // A real user-entered goal: $5,000 by 2027-01-01.
+    await repo.setGoal("acc-holiday", 500000, "2027-01-01");
+
+    const result = await loadBudgetData(db, NOW);
+
+    // Without A4 this would be null — the heuristic requires monthlyAllocationCents > 0.
+    expect(result.savers[0]!.confidence).not.toBeNull();
+    expect(result.savers[0]!.goal).toEqual({ targetCents: 500000, targetDate: "2027-01-01" });
+  });
+
+  it("keeps the heuristic (and a null goal) for a saver with an allocation but no goal", async () => {
+    const db = freshDb();
+    await seedAccounts(db); // acc-groceries has monthlyAllocationCents 60000 and no goal
+
+    const result = await loadBudgetData(db, NOW);
+
+    expect(result.savers[0]!.confidence).not.toBeNull();
+    expect(result.savers[0]!.goal).toBeNull();
   });
 
   it("never leaks the encryption key in the returned data", async () => {

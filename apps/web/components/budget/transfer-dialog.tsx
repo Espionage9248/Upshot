@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogTrigger,
@@ -46,6 +47,7 @@ export function TransferDialog({ month, fromAccountId, fromAccountName, destinat
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function submit() {
     setError(null);
@@ -65,14 +67,11 @@ export function TransferDialog({ month, fromAccountId, fromAccountName, destinat
         return;
       }
       if (!res.data.ok) {
-        setError(
-          res.data.code === "overdraw"
-            ? "Not enough allocation to move that much."
-            : "That account could not be found.",
-        );
+        setError("Not enough allocation to move that much.");
         return;
       }
       setOpen(false);
+      router.refresh();
     });
   }
 

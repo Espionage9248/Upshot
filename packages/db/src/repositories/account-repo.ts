@@ -23,6 +23,9 @@ export class DrizzleAccountRepo implements AccountRepo {
           monthlyAllocationCents: account.monthlyAllocationCents,
           lastSyncedAt: account.lastSyncedAt ?? null,
           updatedAt: now,
+          // goalTargetCents and goalTargetDate are intentionally omitted here.
+          // Sync writes (via Up API) carry no goal data; omitting them from the
+          // conflict-update set ensures user-entered goals are never clobbered.
         },
       })
       .run();
@@ -34,5 +37,13 @@ export class DrizzleAccountRepo implements AccountRepo {
 
   async list(): Promise<Account[]> {
     return this.db.select().from(accounts).all();
+  }
+
+  async setGoal(accountId: string, goalTargetCents: number | null, goalTargetDate: string | null): Promise<void> {
+    this.db
+      .update(accounts)
+      .set({ goalTargetCents, goalTargetDate, updatedAt: new Date().toISOString() })
+      .where(eq(accounts.id, accountId))
+      .run();
   }
 }

@@ -8,6 +8,10 @@ vi.mock("@/server-actions/budget", () => ({
   transferAllocationAction: (...args: unknown[]) => transferAllocationAction(...args),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
 function open() {
   render(
     <TransferDialog

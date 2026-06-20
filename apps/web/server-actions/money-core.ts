@@ -38,7 +38,7 @@ export type SetTagsResult = { warning?: ServerActionWarning };
 // ---------------------------------------------------------------------------
 
 /** Append an event_log entry. createdAt defaults in-schema. */
-function logEvent(
+export function logEvent(
   db: DbClient,
   action: string,
   entityType: string,

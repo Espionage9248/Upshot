@@ -16,36 +16,44 @@ function makeSaver(overrides: Partial<SaverView> = {}): SaverView {
       monthlySpending: 41400,
       variance: 18600,
       variancePercentage: 31,
-      trend: "OVERFUNDED",
+      mode: "envelope",
+      status: "BUILDING",
+      goalProgress: null,
+      net6MonthsCents: 30000,
       averageMonthlySpending: 40000,
       last6Months: [],
     },
     confidence: { confidence: 0.92, band: "high" },
+    goal: null,
     ...overrides,
   };
 }
 
+/** A goal-mode analysis (balance vs target). */
+function goalAnalysis(extra: Partial<SaverView["analysis"]> = {}): SaverView["analysis"] {
+  return { ...makeSaver().analysis, mode: "goal", status: "BUILDING", goalProgress: 0.5, ...extra };
+}
+
 describe("SaverCard", () => {
-  it("renders the saver name and balance vs allocation", () => {
+  it("renders the saver name and (for an envelope saver) balance vs allocation", () => {
     render(<SaverCard saver={makeSaver()} />);
     expect(screen.getByText("Groceries")).toBeInTheDocument();
     expect(screen.getAllByText(/\$186/).length).toBeGreaterThan(0);
     expect(screen.getByText(/\/ \$600/)).toBeInTheDocument();
   });
 
-  it("renders the trend badge", () => {
+  it("renders the accumulation-trend badge for an envelope saver", () => {
     render(<SaverCard saver={makeSaver()} />);
-    expect(screen.getByText("Overfunded")).toBeInTheDocument();
+    expect(screen.getByText("Building")).toBeInTheDocument();
   });
 
-  it("renders the underfunded trend label", () => {
-    render(<SaverCard saver={makeSaver({ analysis: { ...makeSaver().analysis, trend: "UNDERFUNDED" } })} />);
-    expect(screen.getByText("Underfunded")).toBeInTheDocument();
+  it("renders the drawing-down status", () => {
+    render(<SaverCard saver={makeSaver({ analysis: { ...makeSaver().analysis, status: "DRAWING_DOWN" } })} />);
+    expect(screen.getByText("Drawing down")).toBeInTheDocument();
   });
 
   it("renders the Confidence ring when a confidence result is present", () => {
     render(<SaverCard saver={makeSaver()} />);
-    // band "high" → "on" segment active
     const active = document.querySelector('[data-segment][data-active="true"]');
     expect(active).not.toBeNull();
     expect(active?.textContent).toContain("On track");
@@ -56,16 +64,35 @@ describe("SaverCard", () => {
     expect(document.querySelector("[data-segment]")).toBeNull();
   });
 
-  it("renders an over (negative) balance with the warn bar", () => {
+  it("surfaces the real goal target and date when a goal is present", () => {
     render(
       <SaverCard
-        saver={makeSaver({
-          analysis: { ...makeSaver().analysis, currentBalance: -2200, variance: -2200, trend: "UNDERFUNDED" },
-        })}
+        saver={makeSaver({ analysis: goalAnalysis(), goal: { targetCents: 500000, targetDate: "2027-01-01" } })}
       />,
     );
+    expect(screen.getByText(/Goal/)).toHaveTextContent("Goal $5,000 by Jan 2027");
+  });
+
+  it("does not render a goal line when no goal is present", () => {
+    render(<SaverCard saver={makeSaver({ goal: null })} />);
+    expect(screen.queryByText(/^Goal/)).toBeNull();
+  });
+
+  it("renders a balance/target progress bar for a goal saver (width = goalProgress)", () => {
+    render(<SaverCard saver={makeSaver({ analysis: goalAnalysis({ goalProgress: 0.5 }) })} />);
+    const bar = screen.getByTestId("saver-bar").firstElementChild as HTMLElement;
+    expect(bar.style.width).toBe("50%");
+  });
+
+  it("shows 'Goal met' and a full bar when the target is reached", () => {
+    render(<SaverCard saver={makeSaver({ analysis: goalAnalysis({ status: "GOAL_MET", goalProgress: 1 }) })} />);
+    expect(screen.getByText("Goal met")).toBeInTheDocument();
     const bar = screen.getByTestId("saver-bar").firstElementChild as HTMLElement;
     expect(bar.style.width).toBe("100%");
-    expect(bar.style.background).toContain("var(--warn)");
+  });
+
+  it("renders NO progress bar for an envelope saver (no target to progress toward)", () => {
+    render(<SaverCard saver={makeSaver()} />);
+    expect(screen.queryByTestId("saver-bar")).toBeNull();
   });
 });

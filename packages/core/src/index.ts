@@ -36,7 +36,10 @@ export { analyseEmergencyFund } from "./budget";
 export type { EmergencyFundInput, EmergencyFundAccount, EmergencyFundAnalysis } from "./budget";
 export { goalConfidence } from "./budget";
 export type { GoalConfidenceInput, GoalConfidenceResult } from "./budget";
+export { monthsUntil } from "./budget";
 
 // Net worth (Phase 4)
 export { computeNetWorth } from "./networth";
 export type { NetWorthInput } from "./networth";
+export { computeMonthlySnapshot } from "./networth/snapshot";
+export type { MonthlySnapshotInput, MonthlySnapshot } from "./networth/snapshot";

@@ -17,6 +17,7 @@ import {
 } from "@upshot/ui";
 import { deleteAssetAction } from "@/server-actions/assets";
 import { AssetForm } from "./asset-form";
+import { ValuationForm } from "./valuation-form";
 import type { AssetRow } from "@/app/(app)/net-worth/data";
 
 export interface AssetListProps {
@@ -99,6 +100,11 @@ export function AssetList({ assets, typeOptions }: AssetListProps) {
               </TD>
               <TD numeric>
                 <Money cents={a.valueCents} kind="neutral" size={14} weight={600} />
+                {a.lastValuedAt && (
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
+                    Valued {a.lastValuedAt}
+                  </div>
+                )}
               </TD>
               <TD numeric>
                 <span style={{ fontSize: 12, color: a.includeInNetWorth ? "var(--income)" : "var(--text-3)" }}>
@@ -108,6 +114,7 @@ export function AssetList({ assets, typeOptions }: AssetListProps) {
               <TD numeric>
                 <div style={{ display: "inline-flex", gap: 8, justifyContent: "flex-end" }}>
                   <AssetForm mode="update" typeOptions={typeOptions} asset={a} />
+                  <ValuationForm asset={a} />
                   <Button
                     variant="danger"
                     size="sm"

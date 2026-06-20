@@ -21,10 +21,8 @@ import {
 import type { NewBudgetAllocation } from "@upshot/core";
 
 /** Typed domain results — no thrown secrets reach the action wrapper. */
-export type SetAllocationResult = { ok: true } | { ok: false; code: "not-found" };
-export type TransferResult =
-  | { ok: true }
-  | { ok: false; code: "overdraw" | "not-found" };
+export type SetAllocationResult = { ok: true };
+export type TransferResult = { ok: true } | { ok: false; code: "overdraw" };
 
 /** The existing (accountId, month) allocation row, or undefined when none. */
 function existingRow(db: DbClient, accountId: string, month: string) {

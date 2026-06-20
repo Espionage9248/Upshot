@@ -10,6 +10,7 @@ import { DrizzleMatchRuleRepo } from "./match-rule-repo";
 import { DrizzleSettingsRepo } from "./settings-repo";
 import { DrizzleBudgetAllocationRepo } from "./budget-allocation-repo";
 import { DrizzleAssetRepo } from "./asset-repo";
+import { DrizzleAccountRepo } from "./account-repo";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -326,5 +327,60 @@ describe("DrizzleAssetRepo", () => {
     expect(await repo.getById(id)).toBeNull();
     // listValuations of deleted asset should be empty (cascaded)
     expect(await repo.listValuations(id)).toHaveLength(0);
+  });
+});
+
+describe("DrizzleAccountRepo.setGoal", () => {
+  it("setGoal round-trips: sets goal fields, getById returns them", async () => {
+    const db = freshDb();
+    const repo = new DrizzleAccountRepo(db);
+    await repo.upsert({
+      id: "saver-1", name: "Holiday", type: "SAVER", ownership: "INDIVIDUAL",
+      balanceCents: 100000, role: "SAVER", monthlyAllocationCents: 5000,
+    });
+
+    await repo.setGoal("saver-1", 500000, "2027-01-01");
+
+    const got = await repo.getById("saver-1");
+    expect(got?.goalTargetCents).toBe(500000);
+    expect(got?.goalTargetDate).toBe("2027-01-01");
+  });
+
+  it("setGoal can clear goal fields back to null", async () => {
+    const db = freshDb();
+    const repo = new DrizzleAccountRepo(db);
+    await repo.upsert({
+      id: "saver-1", name: "Holiday", type: "SAVER", ownership: "INDIVIDUAL",
+      balanceCents: 100000, role: "SAVER", monthlyAllocationCents: 5000,
+    });
+    await repo.setGoal("saver-1", 500000, "2027-01-01");
+    await repo.setGoal("saver-1", null, null);
+
+    const got = await repo.getById("saver-1");
+    expect(got?.goalTargetCents).toBeNull();
+    expect(got?.goalTargetDate).toBeNull();
+  });
+
+  it("sync upsert (no goal fields) preserves a previously-set goal — sync-clobber guard", async () => {
+    const db = freshDb();
+    const repo = new DrizzleAccountRepo(db);
+    // Initial upsert, then set a goal
+    await repo.upsert({
+      id: "saver-1", name: "Holiday", type: "SAVER", ownership: "INDIVIDUAL",
+      balanceCents: 100000, role: "SAVER", monthlyAllocationCents: 5000,
+    });
+    await repo.setGoal("saver-1", 500000, "2027-01-01");
+
+    // Simulate a sync upsert: no goal fields provided (absent, not explicitly null)
+    await repo.upsert({
+      id: "saver-1", name: "Holiday Fund", type: "SAVER", ownership: "INDIVIDUAL",
+      balanceCents: 120000, role: "SAVER", monthlyAllocationCents: 5000,
+    });
+
+    // Goal must be preserved; sync must not clobber it
+    const after = await repo.getById("saver-1");
+    expect(after?.goalTargetCents).toBe(500000);
+    expect(after?.goalTargetDate).toBe("2027-01-01");
+    expect(after?.balanceCents).toBe(120000); // sync update applied
   });
 });

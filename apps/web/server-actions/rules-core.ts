@@ -24,7 +24,7 @@ import {
   type LoadedRule,
   type UpClientPort,
 } from "@upshot/core";
-import { setCategory, setTags, type ServerActionWarning } from "./money-core";
+import { setCategory, setTags, logEvent, type ServerActionWarning } from "./money-core";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,7 +102,7 @@ export async function applyRule(
 
   for (const patch of patches) {
     // Local-only columns — one combined update of just the present fields.
-    const localSet: Record<string, unknown> = {};
+    const localSet: Partial<typeof tables.transactions.$inferInsert> = {};
     if (patch.description !== undefined) localSet.description = patch.description;
     if (patch.isSalary !== undefined) localSet.isSalary = patch.isSalary;
     if (patch.isTransfer !== undefined) localSet.isTransfer = patch.isTransfer;
@@ -116,6 +116,10 @@ export async function applyRule(
         .set(localSet)
         .where(eq(tables.transactions.id, patch.transactionId))
         .run();
+      logEvent(db, "apply_rule", "transaction", patch.transactionId, "Applied rule local fields", {
+        ruleId: id,
+        fields: Object.keys(localSet),
+      });
     }
 
     // categoryId — local write + best-effort Up push (B3 contract).

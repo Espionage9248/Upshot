@@ -310,6 +310,19 @@ describe("applyRule", () => {
     const result = await applyRule(db, null, "does-not-exist");
     expect(result.applied).toBe(0);
   });
+
+  it("a local-only rule apply writes an apply_rule event_log row", async () => {
+    await seedTransaction("t13", "payroll direct credit");
+    const rule = makeRule("r9", "payroll", [{ id: "a11", type: "MARK_TRANSFER" }]);
+    await saveRule(db, rule);
+
+    const result = await applyRule(db, null, "r9");
+    expect(result.applied).toBe(1);
+    expect(txRow("t13")!.isTransfer).toBe(true);
+    expect(
+      eventLogRows().some((e) => e.action === "apply_rule" && e.entityId === "t13"),
+    ).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

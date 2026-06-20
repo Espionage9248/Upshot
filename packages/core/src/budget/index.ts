@@ -18,3 +18,5 @@ export type {
   GoalConfidenceInput,
   GoalConfidenceResult,
 } from "./confidence";
+
+export { monthsUntil } from "./months";

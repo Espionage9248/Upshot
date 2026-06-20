@@ -1,5 +1,13 @@
 @import "@upshot/ui/styles/tokens.css";
 
+/* Tailwind v4 auto-detects sources from this app only; the @upshot/ui package
+   (a sibling workspace, resolved via a node_modules symlink Tailwind ignores)
+   is NOT scanned by default. Without this, classes used ONLY inside ui
+   components — the Dialog/Sheet overlay + panel layout (centering translate,
+   z-index, scrim, shadow, width) — are purged from production CSS, so every
+   Radix dialog mounts unstyled/invisible. Scan the ui source explicitly. */
+@source "../../../packages/ui/src";
+
 /* Ledger responsive collapse (Component Specs §4 / proof.jsx ~line 440):
    at a 360px phone width the Ledger collapses to merchant + amount — the
    category/tags/flags and the edit affordance hide, and the row must not clip. */

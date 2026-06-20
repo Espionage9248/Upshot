@@ -63,7 +63,7 @@ export interface UpListResponse<T> {
   links: { prev: string | null; next: string | null };
 }
 
-/** Maps an Up accountType to our enum (HOME_LOAN is V2-only; Up sends SAVER | TRANSACTIONAL). */
+/** Maps an Up accountType (SAVER | TRANSACTIONAL | HOME_LOAN) to our enum. */
 export type MappedAccount = {
   id: string;
   name: string;
