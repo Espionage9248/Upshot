@@ -57,12 +57,20 @@ export async function runDetectOnce(deps: {
       .where(gte(tables.transactions.createdAt, cutoffISO))
       .all();
 
+    // Resolve category IDs to human-readable names so detected suggestions
+    // store the category name (not the raw Up category ID).
+    const categoryRows = deps.db
+      .select({ id: tables.categories.id, name: tables.categories.name })
+      .from(tables.categories)
+      .all();
+    const categoryNameById = new Map(categoryRows.map((c) => [c.id, c.name]));
+
     // Shape for detectRecurring: needs amountCents < 0 expenses, date as YYYY-MM-DD.
     const detectableTxs = txRows.map((tx) => ({
       description: tx.description,
       amountCents: tx.amountCents,
       date: tx.createdAt.slice(0, 10),
-      categoryName: tx.categoryId ?? null,
+      categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
       accountId: tx.accountId,
       isTransfer: tx.isTransfer,
       isSalary: tx.isSalary,

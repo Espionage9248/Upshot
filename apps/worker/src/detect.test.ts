@@ -58,6 +58,9 @@ describe("runDetectOnce", () => {
         { id: "tx-nf-2", createdAt: "2026-02-10T00:00:00.000Z", date: "2026-02-10" },
         { id: "tx-nf-3", createdAt: "2026-03-10T00:00:00.000Z", date: "2026-03-10" },
       ];
+      // Category the Netflix charges are tagged with — a detected suggestion
+      // must store the category NAME, not this raw id.
+      db.insert(tables.categories).values({ id: "cat-ent", name: "Entertainment" }).run();
       for (const tx of netflixTxs) {
         db.insert(tables.transactions).values({
           id: tx.id,
@@ -65,6 +68,7 @@ describe("runDetectOnce", () => {
           status: "SETTLED",
           description: "Netflix",
           amountCents: -1500,
+          categoryId: "cat-ent",
           isTransfer: false,
           isSalary: false,
           createdAt: tx.createdAt,
@@ -154,6 +158,8 @@ describe("runDetectOnce", () => {
       const netflixSuggestion = allRecurring.find((r) => r.name.toLowerCase() === "netflix");
       expect(netflixSuggestion).toBeDefined();
       expect(netflixSuggestion!.status).toBe("SUGGESTED");
+      // Category is the resolved NAME, not the raw category id ("cat-ent").
+      expect(netflixSuggestion!.category).toBe("Entertainment");
 
       // Installment plan advanced: installmentsPaid should be 3
       const installmentRepo = new DrizzleInstallmentRepo(db);
