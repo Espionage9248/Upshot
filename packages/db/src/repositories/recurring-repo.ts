@@ -218,6 +218,16 @@ export class DrizzleRecurringRepo implements RecurringRepo {
     }
   }
 
+  /** Point this entity at a matching rule (or clear it with null). */
+  async setMatchRule(id: string, ruleId: string | null): Promise<void> {
+    this.db.update(recurringItems).set({ matchRuleId: ruleId }).where(eq(recurringItems.id, id)).run();
+  }
+
+  /** Clear the FK on every entity that points at this rule (used when the rule is deleted). */
+  async clearMatchRuleByRule(ruleId: string): Promise<void> {
+    this.db.update(recurringItems).set({ matchRuleId: null }).where(eq(recurringItems.matchRuleId, ruleId)).run();
+  }
+
   async delete(id: string): Promise<void> {
     this.db.delete(recurringItems).where(eq(recurringItems.id, id)).run();
   }

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { createDbClient, type DbClient } from "../client";
 import { applyMigrations } from "../migrate";
 import { DrizzleRecurringRepo } from "./recurring-repo";
-import { accounts } from "../schema";
+import { accounts, matchRules } from "../schema";
 import type { DetectedRecurring } from "@upshot/core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
@@ -375,5 +375,44 @@ describe("DrizzleRecurringRepo", () => {
     await repo.upsertSuggestion(baseDetected);
     const patterns = await repo.knownPatterns();
     expect(patterns.size).toBe(0);
+  });
+
+  it("setMatchRule sets and clears matchRuleId; clearMatchRuleByRule nulls all entities pointing at a rule", async () => {
+    const db = freshDb();
+    // Seed a matchRules row to satisfy the FK constraint.
+    db.insert(matchRules).values({ id: "rule-x", name: "Test Rule", isActive: true, priority: 0 }).run();
+    const repo = new DrizzleRecurringRepo(db);
+
+    const id = await repo.create({
+      id: "rec-link",
+      name: "Patreon",
+      kind: "SUBSCRIPTION",
+      amountCents: 500,
+      frequency: "MONTHLY",
+      status: "ACTIVE",
+      category: null,
+      merchant: null,
+      accountId: null,
+      isAutoDetected: false,
+      matchRuleId: null,
+      notes: null,
+      nextExpectedDate: null,
+      lastDetectedDate: null,
+      firstDetectedDate: null,
+    });
+
+    // setMatchRule links to "rule-x"
+    await repo.setMatchRule(id, "rule-x");
+    expect((await repo.getById(id))?.matchRuleId).toBe("rule-x");
+
+    // setMatchRule with null clears it
+    await repo.setMatchRule(id, null);
+    expect((await repo.getById(id))?.matchRuleId).toBeNull();
+
+    // clearMatchRuleByRule: re-link then bulk-clear
+    await repo.setMatchRule(id, "rule-x");
+    expect((await repo.getById(id))?.matchRuleId).toBe("rule-x");
+    await repo.clearMatchRuleByRule("rule-x");
+    expect((await repo.getById(id))?.matchRuleId).toBeNull();
   });
 });

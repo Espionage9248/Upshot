@@ -8,6 +8,9 @@ import {
   applyMigrations,
   tables,
   DrizzleMatchRuleRepo,
+  DrizzleRecurringRepo,
+  DrizzleDebtRepo,
+  DrizzleInstallmentRepo,
   type DbClient,
 } from "@upshot/db";
 import type { UpClientPort, LoadedRule } from "@upshot/core";
@@ -208,6 +211,199 @@ describe("deleteRule", () => {
     expect(await listRules(db)).toHaveLength(1);
 
     await deleteRule(db, "r4");
+    expect(await listRules(db)).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// saveRule — LINK_* entity FK reconciliation (Step 2)
+// ---------------------------------------------------------------------------
+
+async function seedRecurring(id: string): Promise<void> {
+  await new DrizzleRecurringRepo(db).create({
+    id,
+    name: "Patreon",
+    kind: "SUBSCRIPTION",
+    amountCents: 500,
+    frequency: "MONTHLY",
+    status: "ACTIVE",
+    category: null,
+    merchant: null,
+    accountId: null,
+    isAutoDetected: false,
+    matchRuleId: null,
+    notes: null,
+    nextExpectedDate: null,
+    lastDetectedDate: null,
+    firstDetectedDate: null,
+  });
+}
+
+async function seedDebt(id: string): Promise<void> {
+  await new DrizzleDebtRepo(db).create({
+    id,
+    name: "Zip Pay",
+    type: "BNPL",
+    currentBalanceCents: 10000,
+    originalBalanceCents: null,
+    creditLimitCents: null,
+    monthlyPaymentCents: 0,
+    minimumPaymentCents: null,
+    interestRate: null,
+    monthlyFeeCents: null,
+    feeDueDay: null,
+    payoffPriority: 1,
+    includeInSnowball: false,
+    includeInNetWorth: true,
+    matchRuleId: null,
+    accountNumber: null,
+    institutionName: null,
+    notes: null,
+  });
+}
+
+async function seedInstallment(id: string): Promise<void> {
+  await new DrizzleInstallmentRepo(db).create({
+    id,
+    merchant: "Afterpay",
+    totalCents: 40000,
+    installmentCents: 10000,
+    totalInstallments: 4,
+    frequencyDays: 14,
+    firstDueDate: "2026-01-01",
+    matchRuleId: null,
+    notes: null,
+  });
+}
+
+describe("saveRule LINK_* FK reconciliation", () => {
+  it("2.1: LINK_RECURRING sets the recurring item's matchRuleId", async () => {
+    await seedRecurring("rec-1");
+    const rule = makeRule("r-link-rec", "patreon", [
+      { id: "a-lr1", type: "LINK_RECURRING", targetId: "rec-1" },
+    ]);
+
+    await saveRule(db, rule);
+
+    const item = await new DrizzleRecurringRepo(db).getById("rec-1");
+    expect(item?.matchRuleId).toBe("r-link-rec");
+  });
+
+  it("2.2: re-save with LINK_RECURRING removed clears the item's matchRuleId", async () => {
+    await seedRecurring("rec-2");
+    const rule = makeRule("r-link-rec2", "patreon", [
+      { id: "a-lr2", type: "LINK_RECURRING", targetId: "rec-2" },
+    ]);
+    await saveRule(db, rule);
+    expect((await new DrizzleRecurringRepo(db).getById("rec-2"))?.matchRuleId).toBe("r-link-rec2");
+
+    // Save again without the LINK_RECURRING action
+    const updated: LoadedRule = { ...rule, actions: [] };
+    await saveRule(db, updated);
+
+    expect((await new DrizzleRecurringRepo(db).getById("rec-2"))?.matchRuleId).toBeNull();
+  });
+
+  it("2.3: re-target — linking recA then recB unlinks recA and links recB", async () => {
+    await seedRecurring("rec-a");
+    await seedRecurring("rec-b");
+    const ruleWithA = makeRule("r-retarget", "patreon", [
+      { id: "a-rta", type: "LINK_RECURRING", targetId: "rec-a" },
+    ]);
+    await saveRule(db, ruleWithA);
+    expect((await new DrizzleRecurringRepo(db).getById("rec-a"))?.matchRuleId).toBe("r-retarget");
+
+    const ruleWithB: LoadedRule = {
+      ...ruleWithA,
+      actions: [{ id: "a-rtb", ruleId: "r-retarget", type: "LINK_RECURRING" as never, value: null, targetId: "rec-b" }],
+    };
+    await saveRule(db, ruleWithB);
+
+    expect((await new DrizzleRecurringRepo(db).getById("rec-a"))?.matchRuleId).toBeNull();
+    expect((await new DrizzleRecurringRepo(db).getById("rec-b"))?.matchRuleId).toBe("r-retarget");
+  });
+
+  it("2.4a: LINK_DEBT sets the debt's matchRuleId", async () => {
+    await seedDebt("debt-link-1");
+    const rule = makeRule("r-link-debt", "zip", [
+      { id: "a-ld1", type: "LINK_DEBT", targetId: "debt-link-1" },
+    ]);
+    await saveRule(db, rule);
+
+    const debt = await new DrizzleDebtRepo(db).getById("debt-link-1");
+    expect(debt?.matchRuleId).toBe("r-link-debt");
+  });
+
+  it("2.4b: LINK_INSTALLMENT sets the installment plan's matchRuleId", async () => {
+    await seedInstallment("plan-link-1");
+    const rule = makeRule("r-link-inst", "afterpay", [
+      { id: "a-li1", type: "LINK_INSTALLMENT", targetId: "plan-link-1" },
+    ]);
+    await saveRule(db, rule);
+
+    const plan = await new DrizzleInstallmentRepo(db).getById("plan-link-1");
+    expect(plan?.matchRuleId).toBe("r-link-inst");
+  });
+
+  it("2.5: end-to-end — after saveRule with LINK_RECURRING, listActiveWithRule returns the item with conditions", async () => {
+    await seedRecurring("rec-e2e");
+    const rule = makeRule("r-e2e", "patreon", [
+      { id: "a-e2e", type: "LINK_RECURRING", targetId: "rec-e2e" },
+    ]);
+    await saveRule(db, rule);
+
+    const results = await new DrizzleRecurringRepo(db).listActiveWithRule();
+    const found = results.find((r) => r.item.id === "rec-e2e");
+    expect(found).toBeDefined();
+    expect(found?.item.matchRuleId).toBe("r-e2e");
+    expect(found?.conditions).toHaveLength(1);
+    expect(found?.conditions[0]?.field).toBe("description");
+  });
+
+  it("2.6: regression — debt-form rule FK not cleared when rule is updated without LINK_DEBT action", async () => {
+    // Simulate what the debt form does: create a rule row + set debt.matchRuleId directly,
+    // with NO LINK_DEBT action in the rule.
+    await db.insert(tables.matchRules).values({
+      id: "rule-debtform",
+      name: "Debt form rule",
+      isActive: true,
+      priority: 0,
+    });
+    await seedDebt("debt-form-1");
+    // Set the FK directly (no LINK_DEBT action), simulating upsertDebtPaymentRule.
+    await new DrizzleDebtRepo(db).setMatchRule("debt-form-1", "rule-debtform");
+    expect((await new DrizzleDebtRepo(db).getById("debt-form-1"))?.matchRuleId).toBe("rule-debtform");
+
+    // Now UPDATE the same rule (e.g. rename it) via saveRule — still no LINK_DEBT action.
+    const updatedRule: LoadedRule = {
+      rule: { id: "rule-debtform", name: "Debt form rule renamed", isActive: true, priority: 0 },
+      conditions: [],
+      actions: [],
+    };
+    await saveRule(db, updatedRule);
+
+    // The debt's matchRuleId MUST NOT be cleared.
+    const debt = await new DrizzleDebtRepo(db).getById("debt-form-1");
+    expect(debt?.matchRuleId).toBe("rule-debtform");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteRule — clears entity FKs (Step 3)
+// ---------------------------------------------------------------------------
+
+describe("deleteRule entity FK clearing", () => {
+  it("3.1: deleteRule clears the recurring item's matchRuleId and removes the rule", async () => {
+    await seedRecurring("rec-del");
+    const rule = makeRule("r-del", "patreon", [
+      { id: "a-del", type: "LINK_RECURRING", targetId: "rec-del" },
+    ]);
+    await saveRule(db, rule);
+    expect((await new DrizzleRecurringRepo(db).getById("rec-del"))?.matchRuleId).toBe("r-del");
+
+    await deleteRule(db, "r-del");
+
+    expect((await new DrizzleRecurringRepo(db).getById("rec-del"))?.matchRuleId).toBeNull();
     expect(await listRules(db)).toHaveLength(0);
   });
 });

@@ -64,6 +64,16 @@ export class DrizzleInstallmentRepo implements InstallmentRepo {
     return new Set(rows.map((r) => r.transactionId));
   }
 
+  /** Point this entity at a matching rule (or clear it with null). */
+  async setMatchRule(id: string, ruleId: string | null): Promise<void> {
+    this.db.update(installmentPlans).set({ matchRuleId: ruleId }).where(eq(installmentPlans.id, id)).run();
+  }
+
+  /** Clear the FK on every entity that points at this rule (used when the rule is deleted). */
+  async clearMatchRuleByRule(ruleId: string): Promise<void> {
+    this.db.update(installmentPlans).set({ matchRuleId: null }).where(eq(installmentPlans.matchRuleId, ruleId)).run();
+  }
+
   async delete(id: string): Promise<void> {
     // installment_plan_payments cascade via schema onDelete: "cascade"
     this.db.delete(installmentPlans).where(eq(installmentPlans.id, id)).run();

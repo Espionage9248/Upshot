@@ -121,6 +121,16 @@ export class DrizzleDebtRepo implements DebtRepo {
     });
   }
 
+  /** Point this entity at a matching rule (or clear it with null). */
+  async setMatchRule(id: string, ruleId: string | null): Promise<void> {
+    this.db.update(debts).set({ matchRuleId: ruleId }).where(eq(debts.id, id)).run();
+  }
+
+  /** Clear the FK on every entity that points at this rule (used when the rule is deleted). */
+  async clearMatchRuleByRule(ruleId: string): Promise<void> {
+    this.db.update(debts).set({ matchRuleId: null }).where(eq(debts.matchRuleId, ruleId)).run();
+  }
+
   async listLinkedPaymentTxIds(): Promise<Set<string>> {
     const rows = this.db.select({ transactionId: debtPayments.transactionId })
       .from(debtPayments)

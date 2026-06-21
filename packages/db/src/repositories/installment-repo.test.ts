@@ -218,6 +218,40 @@ describe("DrizzleInstallmentRepo", () => {
     expect(linked.size).toBe(0);
   });
 
+  it("setMatchRule sets and clears matchRuleId; clearMatchRuleByRule nulls all entities pointing at a rule", async () => {
+    const db = freshDb();
+    // Seed a matchRules row to satisfy the FK constraint.
+    const { matchRules } = await import("../schema");
+    db.insert(matchRules).values({ id: "rule-x", name: "Test Rule", isActive: true, priority: 0 }).run();
+    const repo = new DrizzleInstallmentRepo(db);
+
+    const id = await repo.create({
+      id: "plan-link",
+      merchant: "Afterpay",
+      totalCents: 40000,
+      installmentCents: 10000,
+      totalInstallments: 4,
+      frequencyDays: 14,
+      firstDueDate: "2026-01-01",
+      matchRuleId: null,
+      notes: null,
+    });
+
+    // setMatchRule links to "rule-x"
+    await repo.setMatchRule(id, "rule-x");
+    expect((await repo.getById(id))?.matchRuleId).toBe("rule-x");
+
+    // setMatchRule with null clears it
+    await repo.setMatchRule(id, null);
+    expect((await repo.getById(id))?.matchRuleId).toBeNull();
+
+    // clearMatchRuleByRule: re-link then bulk-clear
+    await repo.setMatchRule(id, "rule-x");
+    expect((await repo.getById(id))?.matchRuleId).toBe("rule-x");
+    await repo.clearMatchRuleByRule("rule-x");
+    expect((await repo.getById(id))?.matchRuleId).toBeNull();
+  });
+
   it("delete cascades to installment_plan_payments", async () => {
     const db = freshDb();
     seedTransactions(db, ["txn-x"]);
