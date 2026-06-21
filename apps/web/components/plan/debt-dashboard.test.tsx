@@ -13,8 +13,19 @@ const data = {
   analysis: { strategy: "SNOWBALL", payoffOrder: ["d1"], schedules: [{ debtId: "d1", payoffMonth: "2027-01" }], debtFreeMonth: "2027-01", totalInterestPaidCents: 12345, monthsToPayoff: 7 } as never,
 };
 
+const planning = {
+  startMonth: "2026-06",
+  incomeBaseSeedCents: 0,
+  discretionarySeedCents: 0,
+  recurring: [],
+  debts: [],
+  strategy: "SNOWBALL" as const,
+  scenarios: [],
+  lockedPlan: null,
+};
+
 test("renders the strategy toggle and the BNPL rollup line", () => {
-  render(<DebtDashboard data={data} />);
+  render(<DebtDashboard data={data} planning={planning} />);
   expect(screen.getByLabelText("Debt payoff strategy")).toBeInTheDocument();
   expect(screen.getByText(/BNPL \(managed\)/)).toBeInTheDocument();
 });
