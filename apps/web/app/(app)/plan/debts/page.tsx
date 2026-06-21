@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { TopBar } from "@/components/top-bar";
-import { DebtList } from "@/components/plan/debt-list";
+import { DebtDashboard } from "@/components/plan/debt-dashboard";
 import { getDb } from "@/lib/db";
 import { loadDebtsData } from "./data";
 
@@ -14,7 +14,7 @@ export default async function DebtsPage(): Promise<ReactNode> {
   return (
     <>
       <TopBar title="Debts" sub="PAYOFF TRACKER" />
-      <DebtList data={data} />
+      <DebtDashboard data={data} />
     </>
   );
 }
