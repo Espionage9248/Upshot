@@ -9,7 +9,7 @@
 function dollarsToCents(s: string): number | undefined {
   const trimmed = s.trim();
   if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return undefined;
-  return Math.round(parseFloat(trimmed) * 100);
+  return Math.round(Number(trimmed) * 100);
 }
 
 /**
