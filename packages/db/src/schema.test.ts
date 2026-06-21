@@ -14,7 +14,8 @@ describe("schema wiring", () => {
         "categories", "dashboard_widgets", "debt_expenses", "debt_payments", "debts", "event_log",
         "installment_plan_payments", "installment_plans", "job_runs", "match_actions",
         "match_conditions", "match_rules", "monthly_snapshot_categories", "monthly_snapshots",
-        "passkey", "purchase_images", "purchases", "recurring_items", "session", "tags",
+        "passkey", "payoff_plan", "planning_scenarios", "purchase_images", "purchases",
+        "recurring_items", "session", "tags",
         "transaction_tags", "transactions", "two_up_transactions", "user", "verification",
       ].sort(),
     );

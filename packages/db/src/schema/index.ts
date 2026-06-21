@@ -16,6 +16,7 @@ export * from "./job-runs";
 export * from "./two-up";
 export * from "./assets";
 export * from "./auth";
+export * from "./payoff";
 
 import * as accounts from "./accounts";
 import * as categories from "./categories";
@@ -35,10 +36,11 @@ import * as jobRuns from "./job-runs";
 import * as twoUp from "./two-up";
 import * as assets from "./assets";
 import * as auth from "./auth";
+import * as payoff from "./payoff";
 
 /** Aggregate schema object passed to drizzle({ schema }). */
 export const schema = {
   ...accounts, ...categories, ...transactions, ...tags, ...matchRules, ...budget,
   ...debts, ...installments, ...recurring, ...purchases, ...settings, ...snapshots,
-  ...dashboard, ...eventLog, ...jobRuns, ...twoUp, ...assets, ...auth,
+  ...dashboard, ...eventLog, ...jobRuns, ...twoUp, ...assets, ...auth, ...payoff,
 };
