@@ -91,6 +91,24 @@ export async function removeRecurring(db: DbClient, id: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// setRecurringKind
+// ---------------------------------------------------------------------------
+
+/**
+ * Override a recurring item's bill-vs-subscription classification and write an
+ * event_log row. `kind` is "BILL" | "SUBSCRIPTION".
+ */
+export async function setRecurringKind(
+  db: DbClient,
+  id: string,
+  kind: RecurringRow["kind"],
+): Promise<void> {
+  const repo = new DrizzleRecurringRepo(db);
+  await repo.setKind(id, kind);
+  logEvent(db, "set_kind", id, `Set kind to ${kind} for recurring item ${id}`, { kind });
+}
+
+// ---------------------------------------------------------------------------
 // setUsage
 // ---------------------------------------------------------------------------
 

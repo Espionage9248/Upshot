@@ -19,6 +19,7 @@ import {
   dismissSuggestion,
   pauseRecurring,
   removeRecurring,
+  setRecurringKind,
   setUsage,
 } from "./recurring-core";
 
@@ -57,6 +58,16 @@ export const deleteRecurringAction = action(
   async (_session, id: string): Promise<void> => {
     const { db } = getDb();
     await removeRecurring(db, id);
+    revalidatePath("/plan/recurring");
+    revalidatePath("/plan");
+  },
+);
+
+/** Action: override a recurring item's bill-vs-subscription classification. */
+export const setRecurringKindAction = action(
+  async (_session, id: string, kind: "BILL" | "SUBSCRIPTION"): Promise<void> => {
+    const { db } = getDb();
+    await setRecurringKind(db, id, kind);
     revalidatePath("/plan/recurring");
     revalidatePath("/plan");
   },

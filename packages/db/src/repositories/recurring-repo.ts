@@ -2,6 +2,7 @@ import { eq, ne } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { RecurringRepo, NewRecurring } from "@upshot/core";
 import type { DetectedRecurring } from "@upshot/core";
+import { inferRecurringKind } from "@upshot/core";
 import type { RecurringItem } from "@upshot/contracts";
 import type { MatchCondition } from "@upshot/contracts";
 import type { DbClient } from "../client";
@@ -87,7 +88,7 @@ export class DrizzleRecurringRepo implements RecurringRepo {
         .values({
           id: randomUUID(),
           name: d.displayName,
-          kind: "SUBSCRIPTION",
+          kind: inferRecurringKind(d.category, d.merchant),
           amountCents: d.amountCents,
           frequency: d.frequency,
           lastAmountCents: null,
@@ -113,6 +114,14 @@ export class DrizzleRecurringRepo implements RecurringRepo {
     this.db
       .update(recurringItems)
       .set({ status })
+      .where(eq(recurringItems.id, id))
+      .run();
+  }
+
+  async setKind(id: string, kind: RecurringItem["kind"]): Promise<void> {
+    this.db
+      .update(recurringItems)
+      .set({ kind })
       .where(eq(recurringItems.id, id))
       .run();
   }

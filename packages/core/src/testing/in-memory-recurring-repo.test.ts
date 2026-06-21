@@ -53,6 +53,33 @@ describe("InMemoryRecurringRepo", () => {
     expect(list[0]?.nextExpectedDate).toBe("2026-07-01");
   });
 
+  it("upsertSuggestion INSERT path: streaming category infers SUBSCRIPTION kind", async () => {
+    const repo = new InMemoryRecurringRepo();
+    await repo.upsertSuggestion(baseDetected); // category "Entertainment"
+    const [row] = await repo.listByStatus("SUGGESTED");
+    expect(row?.kind).toBe("SUBSCRIPTION");
+  });
+
+  it("upsertSuggestion INSERT path: utility category infers BILL kind", async () => {
+    const repo = new InMemoryRecurringRepo();
+    await repo.upsertSuggestion({
+      ...baseDetected,
+      descriptionPattern: "origin energy",
+      displayName: "Origin Energy",
+      category: "Utilities",
+      merchant: "Origin Energy",
+    });
+    const [row] = await repo.listByStatus("SUGGESTED");
+    expect(row?.kind).toBe("BILL");
+  });
+
+  it("setKind overrides the classification", async () => {
+    const repo = new InMemoryRecurringRepo();
+    const id = await repo.create(makeNew({ kind: "SUBSCRIPTION" }));
+    await repo.setKind(id, "BILL");
+    expect((await repo.getById(id))?.kind).toBe("BILL");
+  });
+
   it("upsertSuggestion INSERT path: getById also returns the new row", async () => {
     const repo = new InMemoryRecurringRepo();
 

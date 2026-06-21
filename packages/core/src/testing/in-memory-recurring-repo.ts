@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { RecurringItem } from "@upshot/contracts";
 import type { DetectedRecurring } from "../recurring/types";
 import type { RecurringRepo, NewRecurring } from "../ports/recurring-repo";
+import { inferRecurringKind } from "../recurring/kind";
 
 export class InMemoryRecurringRepo implements RecurringRepo {
   private readonly store = new Map<string, RecurringItem>();
@@ -52,7 +53,7 @@ export class InMemoryRecurringRepo implements RecurringRepo {
       this.store.set(id, {
         id,
         name: d.displayName,
-        kind: "SUBSCRIPTION",
+        kind: inferRecurringKind(d.category, d.merchant),
         amountCents: d.amountCents,
         frequency: d.frequency,
         lastAmountCents: null,
@@ -77,6 +78,12 @@ export class InMemoryRecurringRepo implements RecurringRepo {
     const existing = this.store.get(id);
     if (!existing) return;
     this.store.set(id, { ...existing, status });
+  }
+
+  async setKind(id: string, kind: RecurringItem["kind"]): Promise<void> {
+    const existing = this.store.get(id);
+    if (!existing) return;
+    this.store.set(id, { ...existing, kind });
   }
 
   async applyDrift(

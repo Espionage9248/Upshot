@@ -36,6 +36,9 @@ export interface RecurringRepo {
   /** Accept (-> ACTIVE) or dismiss (-> CANCELLED). */
   setStatus(id: string, status: RecurringItem["status"]): Promise<void>;
 
+  /** Override the bill-vs-subscription classification (user toggle). */
+  setKind(id: string, kind: RecurringItem["kind"]): Promise<void>;
+
   /**
    * Persist drift computed upstream (by priceDrift in C1):
    * set amountCents = newAmountCents, lastAmountCents = previousAmountCents,

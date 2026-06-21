@@ -2,7 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { vi, describe, it, expect } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-vi.mock("@/server-actions/recurring", () => ({ deleteRecurringAction: vi.fn() }));
+vi.mock("@/server-actions/recurring", () => ({
+  deleteRecurringAction: vi.fn(),
+  setRecurringKindAction: vi.fn(),
+}));
 
 import { RecurringList } from "./recurring-list";
 import type { RecurringData } from "@/app/(app)/plan/recurring/data";

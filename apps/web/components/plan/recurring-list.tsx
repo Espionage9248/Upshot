@@ -4,7 +4,6 @@ import {
   CardHeader,
   CardTitle,
   CardBody,
-  Badge,
   Money,
   Alert,
   EmptyState,
@@ -13,6 +12,7 @@ import { toMonthlyCostCents } from "@upshot/core";
 import type { RecurringData, RecurringRow } from "@/app/(app)/plan/recurring/data";
 import { RecurringSuggestionCard } from "./recurring-suggestion-card";
 import { UsageControl } from "./usage-control";
+import { RecurringKindToggle } from "./recurring-kind-toggle";
 import { RecurringDeleteButton } from "./recurring-delete-button";
 
 // ---------------------------------------------------------------------------
@@ -51,9 +51,7 @@ function RecurringItemCard({
     <Card>
       <CardHeader>
         <CardTitle>{row.name}</CardTitle>
-        <Badge tone={row.kind === "BILL" ? "expense" : "neutral"}>
-          {row.kind === "BILL" ? "Bill" : "Subscription"}
-        </Badge>
+        <RecurringKindToggle id={row.id} kind={row.kind} />
         <RecurringDeleteButton id={row.id} />
       </CardHeader>
       <CardBody>
