@@ -126,6 +126,9 @@ export function LedgerTable({
                   isSalary={tx.isSalary}
                   isTransfer={tx.isTransfer}
                   isTaxDeductible={tx.isTaxDeductible}
+                  amountCents={tx.amountCents}
+                  description={tx.description}
+                  txDate={(tx.settledAt ?? tx.createdAt).slice(0, 10)}
                 />
               </span>
             </div>

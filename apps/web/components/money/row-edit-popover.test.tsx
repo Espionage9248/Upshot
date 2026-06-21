@@ -6,6 +6,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
+vi.mock("@/server-actions/installments", () => ({
+  createInstallmentFromTransactionAction: vi.fn(),
+}));
+
 const setCategoryAction = vi.fn();
 const setTagsAction = vi.fn();
 const markSalaryAction = vi.fn();
@@ -34,6 +38,9 @@ function open(props?: Partial<Parameters<typeof RowEditPopover>[0]>) {
       isSalary={false}
       isTransfer={false}
       isTaxDeductible={false}
+      amountCents={-1000}
+      description="Test Merchant"
+      txDate="2026-06-15"
       {...props}
     />,
   );

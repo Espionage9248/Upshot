@@ -16,6 +16,7 @@ import {
   markTransferAction,
   markTaxDeductibleAction,
 } from "@/server-actions/money";
+import { MarkAsBnplDialog } from "./mark-as-bnpl-dialog";
 
 export interface RowEditOption {
   value: string;
@@ -31,6 +32,9 @@ export interface RowEditPopoverProps {
   isSalary: boolean;
   isTransfer: boolean;
   isTaxDeductible: boolean;
+  amountCents: number;
+  description: string;
+  txDate: string;
 }
 
 /**
@@ -48,6 +52,9 @@ export function RowEditPopover({
   isSalary,
   isTransfer,
   isTaxDeductible,
+  amountCents,
+  description,
+  txDate,
 }: RowEditPopoverProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +164,20 @@ export function RowEditPopover({
             />
           </div>
         </Section>
+
+        {amountCents < 0 && !isTransfer && (
+          <Section title="Convert">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <MarkAsBnplDialog
+                txId={txId}
+                txDate={txDate}
+                amountCents={amountCents}
+                description={description}
+              />
+              {/* TASK 17: Mark as purchase trigger here */}
+            </div>
+          </Section>
+        )}
 
         {warning && (
           <p role="status" style={{ fontSize: 11.5, color: "var(--warn)", margin: 0, lineHeight: 1.4 }}>
