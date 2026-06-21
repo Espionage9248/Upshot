@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "@upshot/core";
 import type { Debt, DebtPayment } from "@upshot/contracts";
 import type { DbClient } from "../client";
-import { debts, debtPayments } from "../schema";
+import { debts, debtPayments, matchConditions } from "../schema";
 
 export class DrizzleDebtRepo implements DebtRepo {
   constructor(private readonly db: DbClient) {}
@@ -108,5 +108,49 @@ export class DrizzleDebtRepo implements DebtRepo {
       currentBalanceCents: newBalanceCents,
       lastFeeAppliedAt,
     }).where(eq(debts.id, debtId)).run();
+  }
+
+  async listWithRule(): Promise<{ debt: Debt; rulePatterns: string[] }[]> {
+    const allDebts = this.db.select().from(debts).all() as Debt[];
+    return allDebts.map((debt) => {
+      if (!debt.matchRuleId) return { debt, rulePatterns: [] };
+      const conditions = this.db.select().from(matchConditions)
+        .where(eq(matchConditions.ruleId, debt.matchRuleId))
+        .all();
+      const rulePatterns = conditions
+        .filter((c) => c.field === "description")
+        .map((c) => c.value);
+      return { debt, rulePatterns };
+    });
+  }
+
+  async listLinkedPaymentTxIds(): Promise<Set<string>> {
+    const rows = this.db.select({ transactionId: debtPayments.transactionId })
+      .from(debtPayments)
+      .where(isNotNull(debtPayments.transactionId))
+      .all();
+    return new Set(rows.map((r) => r.transactionId as string));
+  }
+
+  async applyPaymentMatches(
+    payments: { debtId: string; transactionId: string; amountCents: number; paidAt: string }[],
+    balanceUpdates: { debtId: string; newBalanceCents: number }[],
+  ): Promise<void> {
+    this.db.transaction((tx) => {
+      for (const p of payments) {
+        if (p.transactionId == null) continue;
+        tx.insert(debtPayments).values({
+          id: randomUUID(),
+          debtId: p.debtId,
+          transactionId: p.transactionId,
+          amountCents: p.amountCents,
+          paymentDate: p.paidAt,
+        }).run();
+      }
+      for (const b of balanceUpdates) {
+        tx.update(debts).set({ currentBalanceCents: b.newBalanceCents })
+          .where(eq(debts.id, b.debtId)).run();
+      }
+    });
   }
 }

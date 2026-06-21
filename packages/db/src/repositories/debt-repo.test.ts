@@ -206,6 +206,145 @@ describe("DrizzleDebtRepo", () => {
     expect(got?.totalInterestProjectedCents).toBe(20000000);
   });
 
+  // ── New methods: listWithRule, listLinkedPaymentTxIds, applyPaymentMatches ──
+
+  it("listWithRule: returns rulePatterns from description conditions, [] when no rule", async () => {
+    const db = freshDb();
+    const repo = new DrizzleDebtRepo(db);
+    const { matchRules, matchConditions } = await import("../schema");
+
+    // Seed a match rule with one description condition
+    db.insert(matchRules).values({ id: "r1", name: "Zip rule", isActive: true, priority: 1 }).run();
+    db.insert(matchConditions).values({
+      id: "c1",
+      ruleId: "r1",
+      field: "description",
+      mode: "contains",
+      value: "zip",
+    }).run();
+
+    // Debt with a rule
+    const idWithRule = await repo.create({
+      id: "debt-rule",
+      name: "Zip Pay",
+      type: "BNPL",
+      currentBalanceCents: 20000,
+      originalBalanceCents: null,
+      creditLimitCents: null,
+      monthlyPaymentCents: 0,
+      minimumPaymentCents: null,
+      interestRate: null,
+      monthlyFeeCents: null,
+      feeDueDay: null,
+      payoffPriority: 1,
+      includeInSnowball: false,
+      includeInNetWorth: true,
+      matchRuleId: "r1",
+      accountNumber: null,
+      institutionName: null,
+      notes: null,
+    });
+
+    // Debt without a rule
+    const idNoRule = await repo.create({
+      id: "debt-norule",
+      name: "Car Loan",
+      type: "PERSONAL_LOAN",
+      currentBalanceCents: 300000,
+      originalBalanceCents: null,
+      creditLimitCents: null,
+      monthlyPaymentCents: 10000,
+      minimumPaymentCents: null,
+      interestRate: null,
+      monthlyFeeCents: null,
+      feeDueDay: null,
+      payoffPriority: 2,
+      includeInSnowball: true,
+      includeInNetWorth: true,
+      matchRuleId: null,
+      accountNumber: null,
+      institutionName: null,
+      notes: null,
+    });
+
+    const results = await repo.listWithRule();
+    const withRule = results.find((r) => r.debt.id === idWithRule);
+    const noRule = results.find((r) => r.debt.id === idNoRule);
+
+    expect(withRule).not.toBeUndefined();
+    expect(withRule?.rulePatterns).toEqual(["zip"]);
+    expect(noRule).not.toBeUndefined();
+    expect(noRule?.rulePatterns).toEqual([]);
+  });
+
+  it("applyPaymentMatches inserts debt_payments and updates balance; listLinkedPaymentTxIds contains the tx", async () => {
+    const db = freshDb();
+    const repo = new DrizzleDebtRepo(db);
+
+    // Seed account + transaction to satisfy FK on debtPayments.transactionId
+    const { accounts, transactions } = await import("../schema");
+    db.insert(accounts).values({
+      id: "acc-1",
+      name: "Spending",
+      type: "TRANSACTIONAL",
+      ownership: "INDIVIDUAL",
+      balanceCents: 100000,
+      role: "SPENDING",
+    }).run();
+    db.insert(transactions).values({
+      id: "t1",
+      accountId: "acc-1",
+      status: "SETTLED",
+      description: "Zip Pay",
+      amountCents: -3000,
+      createdAt: "2026-06-15T00:00:00.000Z",
+    }).run();
+    const debtId = await repo.create({
+      id: "debt-match",
+      name: "Afterpay",
+      type: "BNPL",
+      currentBalanceCents: 20000,
+      originalBalanceCents: null,
+      creditLimitCents: null,
+      monthlyPaymentCents: 0,
+      minimumPaymentCents: null,
+      interestRate: null,
+      monthlyFeeCents: null,
+      feeDueDay: null,
+      payoffPriority: 1,
+      includeInSnowball: false,
+      includeInNetWorth: true,
+      matchRuleId: null,
+      accountNumber: null,
+      institutionName: null,
+      notes: null,
+    });
+
+    // Before: no linked tx ids
+    const before = await repo.listLinkedPaymentTxIds();
+    expect(before.has("t1")).toBe(false);
+
+    await repo.applyPaymentMatches(
+      [{ debtId, transactionId: "t1", amountCents: 3000, paidAt: "2026-06-15" }],
+      [{ debtId, newBalanceCents: 17000 }],
+    );
+
+    // Payment row inserted
+    const payments = await repo.listPayments(debtId);
+    expect(payments).toHaveLength(1);
+    expect(payments[0]?.amountCents).toBe(3000);
+    expect(payments[0]?.paymentDate).toBe("2026-06-15");
+    expect(payments[0]?.transactionId).toBe("t1");
+
+    // Balance updated
+    const debt = await repo.getById(debtId);
+    expect(debt?.currentBalanceCents).toBe(17000);
+
+    // listLinkedPaymentTxIds includes "t1"
+    const after = await repo.listLinkedPaymentTxIds();
+    expect(after.has("t1")).toBe(true);
+  });
+
   it("delete cascades to debt_payments", async () => {
     const repo = new DrizzleDebtRepo(freshDb());
     const id = await repo.create({
