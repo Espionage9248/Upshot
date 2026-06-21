@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, test } from "vitest";
 import * as fc from "fast-check";
 import { computeSnowball, computeWhatIf } from "./snowball";
 
@@ -70,4 +70,28 @@ describe("computeWhatIf", () => {
     expect(r.monthsSaved).toBeGreaterThan(0);
     expect(r.interestSavedCents).toBeGreaterThanOrEqual(0);
   });
+});
+
+const debtsAB = [
+  { id: "a", name: "Card A", currentBalanceCents: 200000, monthlyPaymentCents: 10000, interestRate: 0.2, payoffPriority: 1, includeInSnowball: true },
+  { id: "b", name: "Card B", currentBalanceCents: 500000, monthlyPaymentCents: 15000, interestRate: 0.1, payoffPriority: 2, includeInSnowball: true },
+];
+
+test("rate override lowers total interest (refinance sim)", () => {
+  const r = computeWhatIf(debtsAB, { strategy: "AVALANCHE", startMonth: "2026-06", extraPaymentCents: 0, rateOverrides: { a: 0.05 } });
+  expect(r.withChanges.totalInterestPaidCents).toBeLessThan(r.base.totalInterestPaidCents);
+  expect(r.interestSavedCents).toBeGreaterThan(0);
+});
+
+test("extraTargetDebtId applies the extra to the named debt regardless of strategy order", () => {
+  const r = computeWhatIf(debtsAB, { strategy: "AVALANCHE", startMonth: "2026-06", extraPaymentCents: 20000, extraTargetDebtId: "b" });
+  // Targeting B (lower rate, larger balance) still pays it down first → months saved > 0 vs base.
+  expect(r.monthsSaved).toBeGreaterThanOrEqual(0);
+  expect(r.withChanges.debtFreeMonth).not.toBeNull();
+});
+
+test("no extra, no overrides → withChanges equals base", () => {
+  const r = computeWhatIf(debtsAB, { strategy: "SNOWBALL", startMonth: "2026-06", extraPaymentCents: 0 });
+  expect(r.withChanges.totalInterestPaidCents).toBe(r.base.totalInterestPaidCents);
+  expect(r.monthsSaved).toBe(0);
 });

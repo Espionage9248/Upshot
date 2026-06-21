@@ -176,22 +176,50 @@ export function computeWhatIf(
     strategy: DebtStrategy;
     extraPaymentCents: number;
     startMonth: string;
+    extraTargetDebtId?: string;
+    rateOverrides?: Record<string, number>;
   },
 ): {
+  withChanges: SnowballAnalysis;
   withExtra: SnowballAnalysis;
   base: SnowballAnalysis;
   monthsSaved: number;
   interestSavedCents: number;
 } {
-  const base = computeSnowball(debts, { ...opts, extraPaymentCents: 0 });
-  const withExtra = computeSnowball(debts, opts);
+  const { strategy, extraPaymentCents, startMonth, extraTargetDebtId, rateOverrides } = opts;
+
+  // Base: real rates, real strategy, zero extra.
+  const base = computeSnowball(debts, { strategy, extraPaymentCents: 0, startMonth });
+
+  // Apply rate overrides for the "with changes" pass.
+  const mappedDebts = rateOverrides
+    ? debts.map((d) => ({ ...d, interestRate: rateOverrides[d.id] ?? d.interestRate }))
+    : debts;
+
+  // If a specific debt is targeted, put it first via CUSTOM order.
+  let changesStrategy: DebtStrategy = strategy;
+  let customOrder: string[] | undefined;
+  if (extraTargetDebtId) {
+    changesStrategy = "CUSTOM";
+    const otherIds = debts.map((d) => d.id).filter((id) => id !== extraTargetDebtId);
+    customOrder = [extraTargetDebtId, ...otherIds];
+  }
+
+  const withChanges = computeSnowball(mappedDebts, {
+    strategy: changesStrategy,
+    extraPaymentCents,
+    startMonth,
+    customOrder,
+  });
+
   return {
-    withExtra,
+    withChanges,
+    withExtra: withChanges,
     base,
-    monthsSaved: Math.max(0, base.monthsToPayoff - withExtra.monthsToPayoff),
+    monthsSaved: Math.max(0, base.monthsToPayoff - withChanges.monthsToPayoff),
     interestSavedCents: Math.max(
       0,
-      base.totalInterestPaidCents - withExtra.totalInterestPaidCents,
+      base.totalInterestPaidCents - withChanges.totalInterestPaidCents,
     ),
   };
 }
