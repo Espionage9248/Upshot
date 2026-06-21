@@ -19,6 +19,8 @@ export { DrizzlePurchaseRepo } from "./repositories/purchase-repo";
 export type { Purchase, NewPurchase } from "./repositories/purchase-repo";
 export { DrizzlePayoffPlanRepo } from "./repositories/payoff-plan-repo";
 export type { PayoffPlanRow } from "./repositories/payoff-plan-repo";
+export { DrizzlePlanningScenarioRepo } from "./repositories/planning-scenario-repo";
+export type { PlanningScenarioRow, ScenarioInputs } from "./repositories/planning-scenario-repo";
 export { runFeesOnce } from "./jobs/fees";
 export { runDetectOnce } from "./jobs/detect";
 export { runSnapshotOnce } from "./jobs/snapshot";
