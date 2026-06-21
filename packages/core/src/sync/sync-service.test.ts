@@ -154,6 +154,77 @@ describe("SyncService.sync — incremental", () => {
   });
 });
 
+describe("SyncService.sync — APPLY_TAG pushing", () => {
+  it("calls up.addTag for each tagId returned by applyRules", async () => {
+    const addTagCalls: { txId: string; tagId: string }[] = [];
+    const up = fakeUp({
+      listAccounts: async () => [acc],
+      listTransactions: async () => [upTxn("t1")],
+      addTag: async (txId, tagId) => { addTagCalls.push({ txId, tagId }); },
+    });
+    const d = makeDeps(up, {
+      matchRules: new InMemoryMatchRuleRepo([
+        {
+          rule: { id: "r1", name: "Tag Coffee", isActive: true, priority: 10 },
+          conditions: [{ id: "c1", ruleId: "r1", field: "description", mode: "contains", value: "coffee", amountCents: null, toleranceCents: null, currency: null }],
+          actions: [{ id: "a1", ruleId: "r1", type: "APPLY_TAG", value: null, targetId: "tag-food" }],
+        },
+      ]),
+    });
+    const result = await new SyncService(d).sync({ mode: "full" });
+    expect(result.status).toBe("SUCCESS");
+    expect(addTagCalls).toEqual([{ txId: "t1", tagId: "tag-food" }]);
+  });
+
+  it("calls up.addTag for multiple tags from multiple matching rules", async () => {
+    const addTagCalls: { txId: string; tagId: string }[] = [];
+    const up = fakeUp({
+      listAccounts: async () => [acc],
+      listTransactions: async () => [upTxn("t1")],
+      addTag: async (txId, tagId) => { addTagCalls.push({ txId, tagId }); },
+    });
+    const d = makeDeps(up, {
+      matchRules: new InMemoryMatchRuleRepo([
+        {
+          rule: { id: "r1", name: "Tag Coffee", isActive: true, priority: 10 },
+          conditions: [{ id: "c1", ruleId: "r1", field: "description", mode: "contains", value: "coffee", amountCents: null, toleranceCents: null, currency: null }],
+          actions: [
+            { id: "a1", ruleId: "r1", type: "APPLY_TAG", value: null, targetId: "tag-food" },
+            { id: "a2", ruleId: "r1", type: "APPLY_TAG", value: null, targetId: "tag-daily" },
+          ],
+        },
+      ]),
+    });
+    const result = await new SyncService(d).sync({ mode: "full" });
+    expect(result.status).toBe("SUCCESS");
+    expect(addTagCalls).toHaveLength(2);
+    expect(addTagCalls.map((c) => c.tagId).sort()).toEqual(["tag-daily", "tag-food"]);
+    expect(addTagCalls.every((c) => c.txId === "t1")).toBe(true);
+  });
+
+  it("resilience: up.addTag rejection does NOT abort sync or skip the upsert", async () => {
+    const up = fakeUp({
+      listAccounts: async () => [acc],
+      listTransactions: async () => [upTxn("t1")],
+      addTag: async () => { throw new Error("Up tag API down"); },
+    });
+    const d = makeDeps(up, {
+      matchRules: new InMemoryMatchRuleRepo([
+        {
+          rule: { id: "r1", name: "Tag Coffee", isActive: true, priority: 10 },
+          conditions: [{ id: "c1", ruleId: "r1", field: "description", mode: "contains", value: "coffee", amountCents: null, toleranceCents: null, currency: null }],
+          actions: [{ id: "a1", ruleId: "r1", type: "APPLY_TAG", value: null, targetId: "tag-food" }],
+        },
+      ]),
+    });
+    const result = await new SyncService(d).sync({ mode: "full" });
+    // sync must succeed despite the tag push failing
+    expect(result.status).toBe("SUCCESS");
+    // the transaction must still have been upserted
+    expect(await d.transactions.getById("t1")).not.toBeNull();
+  });
+});
+
 describe("SyncService.sync — failure", () => {
   it("records a FAILED job_run and flags authFailed on UpAuthError", async () => {
     const up = fakeUp({ listCategories: async () => { throw new UpAuthError(401, "/categories"); } });

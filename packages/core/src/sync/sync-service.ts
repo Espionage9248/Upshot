@@ -74,9 +74,16 @@ export class SyncService {
           foreignAmountCents: mapped.foreignAmountCents,
           foreignCurrency: mapped.foreignCurrency,
         };
-        const { transaction, applied } = applyRules(mapped, target, rules); // linkIntents + tagIds wired in a later task
+        const { transaction, applied, tagIds } = applyRules(mapped, target, rules); // linkIntents wired in a later task
         rulesApplied += applied.length;
         await this.deps.transactions.upsert(transaction);
+        for (const tagId of tagIds) {
+          try {
+            await this.deps.up.addTag(transaction.id, tagId);
+          } catch {
+            // best-effort: a tag push failure must not abort the sync run
+          }
+        }
       }
 
       const counts = { categories: cats.length, accounts: upAccounts.length, transactions: upTxns.length, rulesApplied };
