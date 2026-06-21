@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createDbClient, applyMigrations,
-  DrizzleJobRunRepo, DrizzleInstallmentRepo, DrizzleRecurringRepo,
+  DrizzleJobRunRepo, DrizzleInstallmentRepo, DrizzleRecurringRepo, DrizzleDebtRepo,
   tables, type DbClient,
 } from "../index";
 import { runDetectOnce } from "./detect";
@@ -237,5 +237,85 @@ describe("runDetectOnce", () => {
     const recurringRepo = new DrizzleRecurringRepo(db);
     const all = await recurringRepo.list();
     expect(all).toHaveLength(0);
+  });
+
+  it("matches debt payments, updates balance, records debtPayments count, and is idempotent", async () => {
+    const db = freshDb();
+    // Fix 'now' to 2026-06-15; last-12-months window covers 2025-06-15 onwards.
+    const now = () => new Date("2026-06-15T00:00:00.000Z");
+
+    seedAccount(db);
+
+    // Seed a match rule + condition (field: description, mode: contains, value: "zip")
+    const ruleId = "rule-zip-1";
+    db.insert(tables.matchRules).values({
+      id: ruleId,
+      name: "Zip payment rule",
+      isActive: true,
+      priority: 1,
+    }).run();
+    db.insert(tables.matchConditions).values({
+      id: "cond-zip-1",
+      ruleId,
+      field: "description",
+      mode: "contains",
+      value: "zip",
+    }).run();
+
+    // Seed a debt with balance 20000, linked to the match rule
+    const debtId = "debt-zip-1";
+    db.insert(tables.debts).values({
+      id: debtId,
+      name: "Zip Pay",
+      type: "BNPL",
+      currentBalanceCents: 20_000,
+      monthlyPaymentCents: 3_000,
+      payoffPriority: 1,
+      includeInSnowball: true,
+      includeInNetWorth: true,
+      matchRuleId: ruleId,
+    }).run();
+
+    // Seed a -3000 "ZipPay payment" transaction within the last 12 months
+    db.insert(tables.transactions).values({
+      id: "tx-zip-1",
+      accountId: "acc-1",
+      status: "SETTLED",
+      description: "ZipPay payment",
+      amountCents: -3_000,
+      isTransfer: false,
+      isSalary: false,
+      createdAt: "2026-05-01T00:00:00.000Z",
+    }).run();
+
+    const jobRuns = new DrizzleJobRunRepo(db);
+    const settings = { autoDetectRecurring: false };
+
+    // === First run ===
+    const runId = await runDetectOnce({ db, jobRuns, now, settings });
+    const run = await jobRuns.getById(runId);
+    expect(run!.status).toBe("SUCCESS");
+    expect(run!.counts).toMatchObject({ debtPayments: 1 });
+
+    // debt_payments row created
+    const debtRepo = new DrizzleDebtRepo(db);
+    const payments = await debtRepo.listPayments(debtId);
+    expect(payments).toHaveLength(1);
+    expect(payments[0]!.amountCents).toBe(3_000);
+
+    // debt balance reduced from 20000 to 17000
+    const debt = await debtRepo.getById(debtId);
+    expect(debt!.currentBalanceCents).toBe(17_000);
+
+    // === Second run (no double-count) ===
+    const runId2 = await runDetectOnce({ db, jobRuns, now, settings });
+    const run2 = await jobRuns.getById(runId2);
+    expect(run2!.status).toBe("SUCCESS");
+    expect(run2!.counts).toMatchObject({ debtPayments: 0 });
+
+    const paymentsAfter = await debtRepo.listPayments(debtId);
+    expect(paymentsAfter).toHaveLength(1); // still one, not doubled
+    const debtAfter = await debtRepo.getById(debtId);
+    expect(debtAfter!.currentBalanceCents).toBe(17_000); // unchanged
   });
 });

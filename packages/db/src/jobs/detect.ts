@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { JobRunRepo } from "@upshot/core";
-import { detectRecurring, matchInstallments, priceDrift } from "@upshot/core";
+import { detectRecurring, matchInstallments, priceDrift, matchDebtPayments, compilePatternRegex } from "@upshot/core";
 import { DrizzleInstallmentRepo } from "../repositories/installment-repo";
 import { DrizzleRecurringRepo } from "../repositories/recurring-repo";
+import { DrizzleDebtRepo } from "../repositories/debt-repo";
 import type { DbClient } from "../client";
 import * as tables from "../schema";
 import { gte } from "drizzle-orm";
@@ -152,11 +153,22 @@ export async function runDetectOnce(deps: {
       }
     }
 
+    // Step 4: Debt payment matching (Zip et al.) — reuses the matchableTxs already built above.
+    const debtRepo = new DrizzleDebtRepo(deps.db);
+    const withRules = await debtRepo.listWithRule();
+    const matchers = withRules
+      .filter((w) => w.rulePatterns.length > 0)
+      .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, pattern: compilePatternRegex(w.rulePatterns) }));
+    const linkedDebtTxIds = await debtRepo.listLinkedPaymentTxIds();
+    const { payments, balanceUpdates } = matchDebtPayments(matchers, matchableTxs, linkedDebtTxIds);
+    await debtRepo.applyPaymentMatches(payments, balanceUpdates);
+    const debtPayments = payments.length;
+
     await deps.jobRuns.finish(id, {
       status: "SUCCESS",
       finishedAt: nowISO,
       cursor: nowISO.slice(0, 10),
-      counts: { suggested, matched, drifted },
+      counts: { suggested, matched, drifted, debtPayments },
       error: null,
     });
   } catch (err) {

@@ -49,8 +49,8 @@ export { matchInstallments, planProgress } from "./installments";
 export type { InstallmentPlanInput, MatchableTransaction, InstallmentMatch, PlanUpdate } from "./installments";
 
 // Debts (Phase 5)
-export { addMonths, monthsBetween, computeSnowball, computeWhatIf, utilisation, accrueFee } from "./debt";
-export type { DebtStrategy, DebtInput, MonthlyPayment, PayoffSchedule, SnowballAnalysis, FeeAccrualInput } from "./debt";
+export { addMonths, monthsBetween, computeSnowball, computeWhatIf, utilisation, accrueFee, matchDebtPayments, compilePatternRegex } from "./debt";
+export type { DebtStrategy, DebtInput, MonthlyPayment, PayoffSchedule, SnowballAnalysis, FeeAccrualInput, DebtMatcher, DebtPaymentMatch, DebtBalanceUpdate } from "./debt";
 export type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "./ports";
 export { InMemoryDebtRepo } from "./testing/in-memory-debt-repo";
 export type { InstallmentRepo, NewInstallmentPlan } from "./ports";
