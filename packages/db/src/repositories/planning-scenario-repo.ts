@@ -30,7 +30,7 @@ export class DrizzlePlanningScenarioRepo {
   constructor(private readonly db: DbClient) {}
 
   async list(): Promise<PlanningScenarioRow[]> {
-    return this.db.select().from(planningScenarios).all() as PlanningScenarioRow[];
+    return this.db.select().from(planningScenarios).all() as unknown as PlanningScenarioRow[];
   }
 
   async getById(id: string): Promise<PlanningScenarioRow | null> {
@@ -46,7 +46,7 @@ export class DrizzlePlanningScenarioRepo {
     const now = new Date().toISOString();
     this.db
       .insert(planningScenarios)
-      .values({ id, name: input.name, createdAt: now, updatedAt: now, inputs: input.inputs })
+      .values({ id, name: input.name, createdAt: now, updatedAt: now, inputs: input.inputs as unknown as Record<string, unknown> })
       .run();
     return id;
   }
