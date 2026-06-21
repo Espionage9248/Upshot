@@ -261,6 +261,41 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // After delete the page refreshes; Phone should disappear.
   await expect(page.getByText("Phone")).not.toBeVisible({ timeout: 15000 });
 
+  // 10g2) Rules authoring (matching-foundation): build a Patreon-style rule that
+  // uses the NEW amount-bounded condition (amount + ± + currency) AND the new
+  // LINK_RECURRING action with an entity picker, then save it. This invokes the
+  // real saveRuleAction write path against the prod build and asserts the rule
+  // persists + renders. The DETECT run that follows (10h) then loads this rule
+  // through the engine — any prod-only crash from the new action type surfaces
+  // via the pageErrors guard below. (The currency-aware match + link mechanics
+  // themselves are proven at the integration layer in detect.test.ts.)
+  await page.goto("/settings/rules");
+  await expect(page.getByRole("button", { name: "+ Rule" })).toBeVisible();
+  await page.getByRole("button", { name: "+ Rule" }).click();
+  const ruleDialog = page.getByRole("dialog");
+  await expect(ruleDialog).toBeVisible();
+  await ruleDialog.getByLabel("Rule name").fill("Patreon membership");
+
+  // Condition: description contains "Patreon" AND ≈ $8.00 ± $0.50 USD (field +
+  // operator keep their defaults: description / contains).
+  await ruleDialog.getByRole("button", { name: "+ Add condition" }).click();
+  await ruleDialog.getByLabel("Condition value").fill("Patreon");
+  await ruleDialog.getByLabel("Condition amount").fill("8.00");
+  await ruleDialog.getByLabel("Condition tolerance").fill("0.50");
+  await ruleDialog.getByLabel("Condition currency").fill("USD");
+
+  // Action: Link to recurring → the seeded "Patreon Membership" item.
+  await ruleDialog.getByRole("button", { name: "+ Add action" }).click();
+  await ruleDialog.getByRole("combobox", { name: "Action type" }).click();
+  await page.getByRole("option", { name: "Link to recurring" }).click();
+  await ruleDialog.getByRole("combobox", { name: "Target recurring item" }).click();
+  await page.getByRole("option", { name: "Patreon Membership" }).click();
+
+  await ruleDialog.getByRole("button", { name: "Save" }).click();
+  // Saved: dialog closes, the rule card renders with the link-recurring summary.
+  await expect(page.getByText("Patreon membership")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/link recurring/)).toBeVisible();
+
   // 10h) DETECT / maintenance job (Task 7): trigger from Settings → Sync & activity.
   await page.goto("/settings/sync-activity");
   await expect(page.getByRole("button", { name: "Run detection" })).toBeVisible();

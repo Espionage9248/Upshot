@@ -82,17 +82,34 @@ export function seedTestDb(): TestDb {
 
   client
     .insert(tables.recurringItems)
-    .values({
-      id: "e2e-bill-phone",
-      name: "Phone",
-      kind: "BILL",
-      amountCents: 4500,
-      frequency: "MONTHLY",
-      status: "ACTIVE",
-      nextExpectedDate: "2026-06-18",
-      merchant: "Telco",
-      category: "Bills",
-    })
+    .values([
+      {
+        id: "e2e-bill-phone",
+        name: "Phone",
+        kind: "BILL",
+        amountCents: 4500,
+        frequency: "MONTHLY",
+        status: "ACTIVE",
+        nextExpectedDate: "2026-06-18",
+        merchant: "Telco",
+        category: "Bills",
+      },
+      // A USD subscription (the Patreon case) used only as a LINK_RECURRING
+      // target in the rules-authoring step. Seeded CANCELLED on purpose:
+      // RecurringRepo.list() still returns it for the rule editor's picker, but
+      // it stays out of the Active section so it doesn't add a second usage /
+      // delete control to the single-card recurring-page assertions above.
+      {
+        id: "e2e-rec-patreon",
+        name: "Patreon Membership",
+        kind: "SUBSCRIPTION",
+        amountCents: 1240,
+        frequency: "MONTHLY",
+        status: "CANCELLED",
+        merchant: "Patreon",
+        category: "Subscriptions",
+      },
+    ])
     .run();
 
   // One expense transaction (non-transfer, negative amount) so the /money
