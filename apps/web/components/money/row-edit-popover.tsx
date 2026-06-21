@@ -17,6 +17,7 @@ import {
   markTaxDeductibleAction,
 } from "@/server-actions/money";
 import { MarkAsBnplDialog } from "./mark-as-bnpl-dialog";
+import { MarkAsPurchaseDialog } from "./mark-as-purchase-dialog";
 
 export interface RowEditOption {
   value: string;
@@ -174,7 +175,12 @@ export function RowEditPopover({
                 amountCents={amountCents}
                 description={description}
               />
-              {/* TASK 17: Mark as purchase trigger here */}
+              <MarkAsPurchaseDialog
+                txId={txId}
+                txDate={txDate}
+                amountCents={amountCents}
+                description={description}
+              />
             </div>
           </Section>
         )}

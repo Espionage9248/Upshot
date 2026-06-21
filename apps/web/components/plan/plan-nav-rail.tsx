@@ -14,6 +14,7 @@ const PLAN_SECTIONS = [
   { label: "Debts", href: "/plan/debts" },
   { label: "BNPL", href: "/plan/installments" },
   { label: "Recurring", href: "/plan/recurring" },
+  { label: "Purchases", href: "/plan/purchases" },
 ];
 
 export function PlanNavRail() {
