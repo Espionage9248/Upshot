@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { JobRunRepo } from "@upshot/core";
-import { detectRecurring, matchInstallments, priceDrift, matchDebtPayments, compilePatternRegex } from "@upshot/core";
+import { detectRecurring, matchInstallments, priceDrift, matchDebtPayments } from "@upshot/core";
 import { DrizzleInstallmentRepo } from "../repositories/installment-repo";
 import { DrizzleRecurringRepo } from "../repositories/recurring-repo";
 import { DrizzleDebtRepo } from "../repositories/debt-repo";
@@ -46,7 +46,11 @@ export async function runDetectOnce(deps: {
       .select({
         id: tables.transactions.id,
         description: tables.transactions.description,
+        rawText: tables.transactions.rawText,
         amountCents: tables.transactions.amountCents,
+        currency: tables.transactions.currency,
+        foreignAmountCents: tables.transactions.foreignAmountCents,
+        foreignCurrency: tables.transactions.foreignCurrency,
         categoryId: tables.transactions.categoryId,
         accountId: tables.transactions.accountId,
         isTransfer: tables.transactions.isTransfer,
@@ -77,11 +81,16 @@ export async function runDetectOnce(deps: {
       isSalary: tx.isSalary,
     }));
 
-    // Shape for matchInstallments.
+    // Shape for matchInstallments (and debt matching).
     const matchableTxs = txRows.map((tx) => ({
       id: tx.id,
       description: tx.description,
+      rawText: tx.rawText ?? null,
       amountCents: tx.amountCents,
+      currency: tx.currency ?? "AUD",
+      foreignAmountCents: tx.foreignAmountCents ?? null,
+      foreignCurrency: tx.foreignCurrency ?? null,
+      categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
       createdAt: tx.createdAt,
       settledAt: tx.settledAt ?? null,
       isTransfer: tx.isTransfer,
@@ -157,8 +166,8 @@ export async function runDetectOnce(deps: {
     const debtRepo = new DrizzleDebtRepo(deps.db);
     const withRules = await debtRepo.listWithRule();
     const matchers = withRules
-      .filter((w) => w.rulePatterns.length > 0)
-      .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, pattern: compilePatternRegex(w.rulePatterns) }));
+      .filter((w) => w.conditions.length > 0)
+      .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, conditions: w.conditions }));
     const linkedDebtTxIds = await debtRepo.listLinkedPaymentTxIds();
     const { payments, balanceUpdates } = matchDebtPayments(matchers, matchableTxs, linkedDebtTxIds);
     await debtRepo.applyPaymentMatches(payments, balanceUpdates);

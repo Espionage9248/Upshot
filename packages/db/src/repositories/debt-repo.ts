@@ -1,7 +1,7 @@
 import { eq, isNotNull } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "@upshot/core";
-import type { Debt, DebtPayment } from "@upshot/contracts";
+import type { Debt, DebtPayment, MatchCondition } from "@upshot/contracts";
 import type { DbClient } from "../client";
 import { debts, debtPayments, matchConditions } from "../schema";
 
@@ -110,17 +110,14 @@ export class DrizzleDebtRepo implements DebtRepo {
     }).where(eq(debts.id, debtId)).run();
   }
 
-  async listWithRule(): Promise<{ debt: Debt; rulePatterns: string[] }[]> {
+  async listWithRule(): Promise<{ debt: Debt; conditions: MatchCondition[] }[]> {
     const allDebts = this.db.select().from(debts).all() as Debt[];
     return allDebts.map((debt) => {
-      if (!debt.matchRuleId) return { debt, rulePatterns: [] };
-      const conditions = this.db.select().from(matchConditions)
+      if (!debt.matchRuleId) return { debt, conditions: [] };
+      const rows = this.db.select().from(matchConditions)
         .where(eq(matchConditions.ruleId, debt.matchRuleId))
         .all();
-      const rulePatterns = conditions
-        .filter((c) => c.field === "description")
-        .map((c) => c.value);
-      return { debt, rulePatterns };
+      return { debt, conditions: rows as MatchCondition[] };
     });
   }
 

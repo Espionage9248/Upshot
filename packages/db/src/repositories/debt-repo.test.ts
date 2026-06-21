@@ -208,7 +208,7 @@ describe("DrizzleDebtRepo", () => {
 
   // ── New methods: listWithRule, listLinkedPaymentTxIds, applyPaymentMatches ──
 
-  it("listWithRule: returns rulePatterns from description conditions, [] when no rule", async () => {
+  it("listWithRule: returns full conditions, [] when no rule", async () => {
     const db = freshDb();
     const repo = new DrizzleDebtRepo(db);
     const { matchRules, matchConditions } = await import("../schema");
@@ -272,9 +272,10 @@ describe("DrizzleDebtRepo", () => {
     const noRule = results.find((r) => r.debt.id === idNoRule);
 
     expect(withRule).not.toBeUndefined();
-    expect(withRule?.rulePatterns).toEqual(["zip"]);
+    expect(withRule?.conditions).toHaveLength(1);
+    expect(withRule?.conditions[0]).toMatchObject({ id: "c1", ruleId: "r1", field: "description", mode: "contains", value: "zip" });
     expect(noRule).not.toBeUndefined();
-    expect(noRule?.rulePatterns).toEqual([]);
+    expect(noRule?.conditions).toEqual([]);
   });
 
   it("applyPaymentMatches inserts debt_payments and updates balance; listLinkedPaymentTxIds contains the tx", async () => {
