@@ -111,3 +111,14 @@ export async function deleteInstallmentPlan(db: DbClient, id: string): Promise<v
   await repo.delete(id);
   logEvent(db, "delete_installment_plan", id, `Deleted BNPL plan ${id}`, { id });
 }
+
+/** Update a BNPL plan's free-text note and write an event_log row. */
+export async function setInstallmentNotes(
+  db: DbClient,
+  id: string,
+  notes: string | null,
+): Promise<void> {
+  const repo = new DrizzleInstallmentRepo(db);
+  await repo.setNotes(id, notes);
+  logEvent(db, "set_installment_notes", id, `Updated note on BNPL plan ${id}`, { notes });
+}

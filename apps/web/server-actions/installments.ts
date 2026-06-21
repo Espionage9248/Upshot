@@ -20,6 +20,7 @@ import { matchInstallments, BNPL_RECENT_MATCH_WINDOW_DAYS } from "@upshot/core";
 import {
   buildInstallmentFromTransaction,
   deleteInstallmentPlan,
+  setInstallmentNotes,
 } from "./installments-core";
 
 /** Action: delete an installment plan. */
@@ -27,6 +28,16 @@ export const deleteInstallmentPlanAction = action(
   async (_session, id: string): Promise<void> => {
     const { db } = getDb();
     await deleteInstallmentPlan(db, id);
+    revalidatePath("/plan/installments");
+    revalidatePath("/plan");
+  },
+);
+
+/** Action: update a BNPL plan's free-text note. */
+export const updateInstallmentNotesAction = action(
+  async (_session, id: string, notes: string | null): Promise<void> => {
+    const { db } = getDb();
+    await setInstallmentNotes(db, id, notes);
     revalidatePath("/plan/installments");
     revalidatePath("/plan");
   },

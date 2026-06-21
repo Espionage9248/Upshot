@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
 import { Card, CardBody, CardHeader, CardTitle, Badge, Money, UiProgress, EmptyState } from "@upshot/ui";
-import type { InstallmentsData, InstallmentRow } from "@/app/(app)/plan/installments/data";
+import type { InstallmentsData, InstallmentRowView } from "@/app/(app)/plan/installments/data";
 import { InstallmentFormDialog } from "./installment-form-dialog";
 import { InstallmentDeleteButton } from "./installment-delete-button";
+import { InstallmentNotesEditor } from "./installment-notes-editor";
 
 function InstallmentCard({
   row,
   progress,
 }: {
-  row: InstallmentRow;
+  row: InstallmentRowView;
   progress: { remainingCents: number; percentComplete: number };
 }): ReactNode {
   return (
@@ -16,6 +17,7 @@ function InstallmentCard({
       <CardHeader>
         <CardTitle>{row.merchant}</CardTitle>
         <Badge tone="neutral">BNPL</Badge>
+        {row.category && <Badge tone="neutral">{row.category}</Badge>}
         <InstallmentDeleteButton id={row.id} />
       </CardHeader>
       <CardBody>
@@ -61,18 +63,22 @@ function InstallmentCard({
               </span>
             </span>
           </div>
+
+          {/* Editable note */}
+          <InstallmentNotesEditor id={row.id} notes={row.notes} />
         </div>
       </CardBody>
     </Card>
   );
 }
 
-function CompleteCard({ row }: { row: InstallmentRow }): ReactNode {
+function CompleteCard({ row }: { row: InstallmentRowView }): ReactNode {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{row.merchant}</CardTitle>
         <Badge tone="saved">Paid off</Badge>
+        {row.category && <Badge tone="neutral">{row.category}</Badge>}
         <InstallmentDeleteButton id={row.id} />
       </CardHeader>
       <CardBody>

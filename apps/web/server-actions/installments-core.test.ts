@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDbClient, applyMigrations, tables, DrizzleInstallmentRepo, type DbClient } from "@upshot/db";
-import { buildInstallmentFromTransaction, deleteInstallmentPlan } from "./installments-core";
+import { buildInstallmentFromTransaction, deleteInstallmentPlan, setInstallmentNotes } from "./installments-core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -62,6 +62,40 @@ describe("deleteInstallmentPlan", () => {
     const logs = installmentEventRows("delete_installment_plan");
     expect(logs).toHaveLength(1);
     expect(logs[0]!.entityId).toBe(id);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setInstallmentNotes
+// ---------------------------------------------------------------------------
+
+describe("setInstallmentNotes", () => {
+  it("updates the plan note and writes an event_log entry", async () => {
+    const repo = new DrizzleInstallmentRepo(db);
+    const id = await repo.create({
+      merchant: "Zip", totalCents: 8000, installmentCents: 2000, totalInstallments: 4,
+      installmentsPaid: 1, frequencyDays: 14, firstDueDate: "2026-06-01",
+      nextDueDate: "2026-06-15", status: "ACTIVE", matchRuleId: null, notes: null,
+    });
+
+    await setInstallmentNotes(db, id, "for the new couch");
+
+    expect((await repo.getById(id))?.notes).toBe("for the new couch");
+    const logs = installmentEventRows("set_installment_notes");
+    expect(logs).toHaveLength(1);
+    expect(logs[0]!.entityId).toBe(id);
+  });
+
+  it("clears the note when given null", async () => {
+    const repo = new DrizzleInstallmentRepo(db);
+    const id = await repo.create({
+      merchant: "Zip", totalCents: 8000, installmentCents: 2000, totalInstallments: 4,
+      installmentsPaid: 1, frequencyDays: 14, firstDueDate: "2026-06-01",
+      nextDueDate: "2026-06-15", status: "ACTIVE", matchRuleId: null, notes: "old",
+    });
+
+    await setInstallmentNotes(db, id, null);
+    expect((await repo.getById(id))?.notes).toBeNull();
   });
 });
 

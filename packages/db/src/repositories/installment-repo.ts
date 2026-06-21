@@ -4,7 +4,7 @@ import type { InstallmentRepo, NewInstallmentPlan } from "@upshot/core";
 import type { InstallmentMatch, PlanUpdate } from "@upshot/core";
 import type { InstallmentPlan } from "@upshot/contracts";
 import type { DbClient } from "../client";
-import { installmentPlans, installmentPlanPayments } from "../schema";
+import { installmentPlans, installmentPlanPayments, transactions, categories } from "../schema";
 
 export class DrizzleInstallmentRepo implements InstallmentRepo {
   constructor(private readonly db: DbClient) {}
@@ -55,6 +55,27 @@ export class DrizzleInstallmentRepo implements InstallmentRepo {
         }).run();
       }
     });
+  }
+
+  /** Override the plan's free-text note. */
+  async setNotes(id: string, notes: string | null): Promise<void> {
+    this.db.update(installmentPlans).set({ notes }).where(eq(installmentPlans.id, id)).run();
+  }
+
+  /**
+   * Category names of this plan's linked transactions (one entry per linked tx
+   * that has a category), for deriving a display category. Plans store no
+   * category of their own — it lives on the underlying transactions.
+   */
+  async categoriesForPlan(planId: string): Promise<string[]> {
+    const rows = this.db
+      .select({ name: categories.name })
+      .from(installmentPlanPayments)
+      .innerJoin(transactions, eq(installmentPlanPayments.transactionId, transactions.id))
+      .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .where(eq(installmentPlanPayments.planId, planId))
+      .all();
+    return rows.map((r) => r.name);
   }
 
   async listLinkedTransactionIds(): Promise<Set<string>> {
