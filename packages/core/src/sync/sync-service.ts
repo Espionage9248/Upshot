@@ -74,7 +74,7 @@ export class SyncService {
           foreignAmountCents: mapped.foreignAmountCents,
           foreignCurrency: mapped.foreignCurrency,
         };
-        const { transaction, applied } = applyRules(mapped, target, rules);
+        const { transaction, applied } = applyRules(mapped, target, rules); // linkIntents + tagIds wired in a later task
         rulesApplied += applied.length;
         await this.deps.transactions.upsert(transaction);
       }

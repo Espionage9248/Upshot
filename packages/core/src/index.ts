@@ -19,7 +19,7 @@ export {
 } from "./up/types";
 export { mapAccount, mapTransaction, mapCategory } from "./up/mappers";
 export { withRetry, type RetryOptions } from "./up/retry";
-export { applyRules, evaluateCondition, type MatchTarget } from "./match/engine";
+export { applyRules, evaluateCondition, type MatchTarget, type LinkIntent } from "./match/engine";
 export { previewMatches, planRuleApplication, validateRuleTargets } from "./match/apply";
 export type { RulePatch } from "./match/apply";
 export { SyncService, INCREMENTAL_OVERLAP_MS, type SyncDeps, type SyncResult } from "./sync/sync-service";
