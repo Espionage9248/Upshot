@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 import type { RecurringRepo, NewRecurring } from "@upshot/core";
 import type { DetectedRecurring } from "@upshot/core";
 import type { RecurringItem } from "@upshot/contracts";
+import type { MatchCondition } from "@upshot/contracts";
 import type { DbClient } from "../client";
-import { recurringItems } from "../schema";
+import { recurringItems, matchConditions } from "../schema";
 
 export class DrizzleRecurringRepo implements RecurringRepo {
   constructor(private readonly db: DbClient) {}
@@ -156,6 +157,65 @@ export class DrizzleRecurringRepo implements RecurringRepo {
       .where(ne(recurringItems.status, "SUGGESTED"))
       .all();
     return new Set(rows.map((r) => r.name.trim().toLowerCase()));
+  }
+
+  /**
+   * Returns ACTIVE recurring items that have a matchRuleId, with their conditions loaded.
+   * Items without a rule are excluded — this method is only for rule-driven items.
+   */
+  async listActiveWithRule(): Promise<{ item: RecurringItem; conditions: MatchCondition[] }[]> {
+    const activeRows = this.db
+      .select()
+      .from(recurringItems)
+      .where(eq(recurringItems.status, "ACTIVE"))
+      .all() as RecurringItem[];
+    const withRule = activeRows.filter((r) => r.matchRuleId !== null);
+    return withRule.map((item) => {
+      const conditions = this.db
+        .select()
+        .from(matchConditions)
+        .where(eq(matchConditions.ruleId, item.matchRuleId as string))
+        .all() as MatchCondition[];
+      return { item, conditions };
+    });
+  }
+
+  /**
+   * Update detection tracking fields (lastDetectedDate, nextExpectedDate).
+   * Also applies price drift if the new amount differs from the stored amountCents.
+   */
+  async recordDetection(
+    id: string,
+    update: {
+      lastDetectedDate: string;
+      nextExpectedDate: string;
+      newAmountCents?: number;
+      previousAmountCents?: number;
+      changedAt?: string;
+    },
+  ): Promise<void> {
+    if (update.newAmountCents !== undefined && update.newAmountCents !== update.previousAmountCents) {
+      this.db
+        .update(recurringItems)
+        .set({
+          lastDetectedDate: update.lastDetectedDate,
+          nextExpectedDate: update.nextExpectedDate,
+          amountCents: update.newAmountCents,
+          lastAmountCents: update.previousAmountCents ?? null,
+          priceLastChangedAt: update.changedAt ?? null,
+        })
+        .where(eq(recurringItems.id, id))
+        .run();
+    } else {
+      this.db
+        .update(recurringItems)
+        .set({
+          lastDetectedDate: update.lastDetectedDate,
+          nextExpectedDate: update.nextExpectedDate,
+        })
+        .where(eq(recurringItems.id, id))
+        .run();
+    }
   }
 
   async delete(id: string): Promise<void> {

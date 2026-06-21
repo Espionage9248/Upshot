@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { JobRunRepo } from "@upshot/core";
-import { detectRecurring, matchInstallments, priceDrift, matchDebtPayments } from "@upshot/core";
+import { detectRecurring, matchInstallments, priceDrift, matchDebtPayments, evaluateCondition, nextExpectedDate } from "@upshot/core";
+import type { Frequency } from "@upshot/core";
 import { DrizzleInstallmentRepo } from "../repositories/installment-repo";
 import { DrizzleRecurringRepo } from "../repositories/recurring-repo";
 import { DrizzleDebtRepo } from "../repositories/debt-repo";
@@ -134,10 +135,13 @@ export async function runDetectOnce(deps: {
     await installmentRepo.applyMatches(planUpdates, matches);
     const matched = matches.length;
 
-    // Step 3: Drift on ACTIVE recurring items.
+    // Step 3: Drift on ACTIVE recurring items WITHOUT a match rule (rule-driven handled in Step 3a).
     const activeRecurring = await recurringRepo.listByStatus("ACTIVE");
     let drifted = 0;
     for (const item of activeRecurring) {
+      // Skip rule-driven items — they are handled by the engine-based step below.
+      if (item.matchRuleId !== null) continue;
+
       // Find the newest matching charge: description contains item name/merchant (case-insensitive), negative amount.
       const nameLower = (item.merchant ?? item.name).toLowerCase();
       let newestCharge: { amountCents: number; createdAt: string } | null = null;
@@ -162,6 +166,53 @@ export async function runDetectOnce(deps: {
       }
     }
 
+    // Step 3a: Engine-based detection for ACTIVE recurring items WITH a match rule.
+    // Uses evaluateCondition (amount/currency-aware) for precise matching — e.g. Patreon USD.
+    const activeWithRule = await recurringRepo.listActiveWithRule();
+    let recurringLinked = 0;
+    for (const { item, conditions } of activeWithRule) {
+      if (conditions.length === 0) continue;
+
+      // Find all matching txs for this item.
+      let newestMatch: (typeof matchableTxs)[number] | null = null;
+      for (const tx of matchableTxs) {
+        if (tx.isTransfer) continue;
+        const target = {
+          description: tx.description,
+          categoryName: tx.categoryName,
+          rawText: tx.rawText,
+          amountCents: tx.amountCents,
+          currency: tx.currency,
+          foreignAmountCents: tx.foreignAmountCents,
+          foreignCurrency: tx.foreignCurrency,
+        };
+        if (!conditions.every((c) => evaluateCondition(c, target))) continue;
+        const txDate = tx.settledAt ?? tx.createdAt;
+        if (newestMatch === null || txDate > (newestMatch.settledAt ?? newestMatch.createdAt)) {
+          newestMatch = tx;
+        }
+      }
+
+      if (newestMatch === null) continue;
+
+      const lastDetectedDate = (newestMatch.settledAt ?? newestMatch.createdAt).slice(0, 10);
+      const nextDate = nextExpectedDate(lastDetectedDate, item.frequency as Frequency);
+      const newAmountCents = Math.abs(newestMatch.amountCents);
+      const driftResult = priceDrift(
+        { amountCents: item.amountCents, lastAmountCents: item.lastAmountCents },
+        newAmountCents,
+      );
+
+      await recurringRepo.recordDetection(item.id, {
+        lastDetectedDate,
+        nextExpectedDate: nextDate,
+        ...(driftResult.changed
+          ? { newAmountCents, previousAmountCents: item.amountCents, changedAt: nowISO }
+          : {}),
+      });
+      recurringLinked++;
+    }
+
     // Step 4: Debt payment matching (Zip et al.) — reuses the matchableTxs already built above.
     const debtRepo = new DrizzleDebtRepo(deps.db);
     const withRules = await debtRepo.listWithRule();
@@ -177,7 +228,7 @@ export async function runDetectOnce(deps: {
       status: "SUCCESS",
       finishedAt: nowISO,
       cursor: nowISO.slice(0, 10),
-      counts: { suggested, matched, drifted, debtPayments },
+      counts: { suggested, matched, drifted, debtPayments, recurringLinked },
       error: null,
     });
   } catch (err) {

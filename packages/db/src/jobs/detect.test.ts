@@ -318,4 +318,176 @@ describe("runDetectOnce", () => {
     const debtAfter = await debtRepo.getById(debtId);
     expect(debtAfter!.currentBalanceCents).toBe(17_000); // unchanged
   });
+
+  it("links ACTIVE recurring items with a match rule via engine (Patreon end-to-end)", async () => {
+    const db = freshDb();
+    const now = () => new Date("2026-06-15T00:00:00.000Z");
+    seedAccount(db);
+
+    // Seed a match rule for Patreon: description contains "patreon" AND USD 12.00 ±$1.00
+    const ruleId = "rule-patreon-1";
+    db.insert(tables.matchRules).values({
+      id: ruleId,
+      name: "Patreon USD rule",
+      isActive: true,
+      priority: 1,
+    }).run();
+    db.insert(tables.matchConditions).values({
+      id: "cond-pat-desc",
+      ruleId,
+      field: "description",
+      mode: "contains",
+      value: "patreon",
+    }).run();
+    db.insert(tables.matchConditions).values({
+      id: "cond-pat-amt",
+      ruleId,
+      field: "description", // amount condition uses field=description but amountCents drives matchAmount
+      mode: "contains",
+      value: "patreon",
+      amountCents: 1200,
+      toleranceCents: 100,
+      currency: "USD",
+    }).run();
+
+    // Seed ACTIVE recurring item "Patreon", MONTHLY, $12.00 AUD base
+    const recurringRepo = new DrizzleRecurringRepo(db);
+    const patreonId = await recurringRepo.create({
+      name: "Patreon",
+      kind: "SUBSCRIPTION",
+      amountCents: 1200,
+      frequency: "MONTHLY",
+      lastAmountCents: null,
+      status: "ACTIVE",
+      category: null,
+      merchant: "Patreon",
+      nextExpectedDate: null,
+      lastDetectedDate: null,
+      firstDetectedDate: null,
+      accountId: "acc-1",
+      isAutoDetected: false,
+      notes: null,
+      matchRuleId: ruleId,
+    });
+
+    // In-band tx: "Patreon", foreignCurrency USD, foreignAmountCents -1250 (within 100 cents of 1200)
+    db.insert(tables.transactions).values({
+      id: "tx-pat-in",
+      accountId: "acc-1",
+      status: "SETTLED",
+      description: "Patreon",
+      amountCents: -1900, // AUD equivalent
+      currency: "AUD",
+      foreignAmountCents: -1250,
+      foreignCurrency: "USD",
+      isTransfer: false,
+      isSalary: false,
+      settledAt: "2026-06-01T00:00:00.000Z",
+      createdAt: "2026-06-01T00:00:00.000Z",
+    }).run();
+
+    // Out-of-band tx: "Patreon", foreignCurrency USD, foreignAmountCents -2000 (>100 cents away)
+    db.insert(tables.transactions).values({
+      id: "tx-pat-out",
+      accountId: "acc-1",
+      status: "SETTLED",
+      description: "Patreon",
+      amountCents: -3100, // AUD equivalent
+      currency: "AUD",
+      foreignAmountCents: -2000,
+      foreignCurrency: "USD",
+      isTransfer: false,
+      isSalary: false,
+      settledAt: "2026-05-01T00:00:00.000Z",
+      createdAt: "2026-05-01T00:00:00.000Z",
+    }).run();
+
+    const jobRuns = new DrizzleJobRunRepo(db);
+    const settings = { autoDetectRecurring: false };
+
+    // === First run ===
+    const runId = await runDetectOnce({ db, jobRuns, now, settings });
+    const run = await jobRuns.getById(runId);
+    expect(run!.status).toBe("SUCCESS");
+    // recurringLinked count should be 1 (one item updated)
+    expect(run!.counts).toMatchObject({ recurringLinked: 1 });
+
+    // Item tracking should be updated to the most-recent IN-BAND tx (2026-06-01)
+    const patreon = await recurringRepo.getById(patreonId);
+    expect(patreon).not.toBeNull();
+    expect(patreon!.lastDetectedDate).toBe("2026-06-01");
+    // MONTHLY from 2026-06-01 → next expected 2026-07-01
+    expect(patreon!.nextExpectedDate).toBe("2026-07-01");
+
+    // === Second run (idempotency) ===
+    const runId2 = await runDetectOnce({ db, jobRuns, now, settings });
+    const run2 = await jobRuns.getById(runId2);
+    expect(run2!.status).toBe("SUCCESS");
+    // Re-running sets same date → still counts as 1 (idempotent update is fine)
+    // Most important: item dates haven't regressed
+    const patreon2 = await recurringRepo.getById(patreonId);
+    expect(patreon2!.lastDetectedDate).toBe("2026-06-01");
+    expect(patreon2!.nextExpectedDate).toBe("2026-07-01");
+  });
+
+  it("rule-driven recurring item does NOT get double-processed by description-substring drift", async () => {
+    const db = freshDb();
+    const now = () => new Date("2026-06-15T00:00:00.000Z");
+    seedAccount(db);
+
+    // Match rule: description contains "patreon"
+    const ruleId = "rule-pat-skip";
+    db.insert(tables.matchRules).values({
+      id: ruleId,
+      name: "Patreon skip-drift rule",
+      isActive: true,
+      priority: 1,
+    }).run();
+    db.insert(tables.matchConditions).values({
+      id: "cond-pat-skip",
+      ruleId,
+      field: "description",
+      mode: "contains",
+      value: "patreon",
+    }).run();
+
+    const recurringRepo = new DrizzleRecurringRepo(db);
+    await recurringRepo.create({
+      name: "Patreon",
+      kind: "SUBSCRIPTION",
+      amountCents: 1200,
+      frequency: "MONTHLY",
+      lastAmountCents: null,
+      status: "ACTIVE",
+      category: null,
+      merchant: "Patreon",
+      nextExpectedDate: null,
+      lastDetectedDate: null,
+      firstDetectedDate: null,
+      accountId: "acc-1",
+      isAutoDetected: false,
+      notes: null,
+      matchRuleId: ruleId,
+    });
+
+    // tx that would trigger description-substring drift if not skipped
+    db.insert(tables.transactions).values({
+      id: "tx-pat-drift",
+      accountId: "acc-1",
+      status: "SETTLED",
+      description: "Patreon",
+      amountCents: -1500,
+      currency: "AUD",
+      isTransfer: false,
+      isSalary: false,
+      createdAt: "2026-06-01T00:00:00.000Z",
+    }).run();
+
+    const jobRuns = new DrizzleJobRunRepo(db);
+    const runId = await runDetectOnce({ db, jobRuns, now, settings: { autoDetectRecurring: false } });
+    const run = await jobRuns.getById(runId);
+    expect(run!.status).toBe("SUCCESS");
+    // drifted must be 0: rule-driven items are skipped by the description-substring step
+    expect(run!.counts).toMatchObject({ drifted: 0 });
+  });
 });
