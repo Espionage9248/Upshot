@@ -59,7 +59,8 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
   const [limit, setLimit] = useState("");
   const [payment, setPayment] = useState("");
   const [rate, setRate] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [paymentPatterns, setPaymentPatterns] = useState("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -70,40 +71,32 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
     setLimit("");
     setPayment("");
     setRate("");
-    setError(null);
+    setPaymentPatterns("");
+    setErrors({});
   }
 
   function submit() {
-    setError(null);
-    if (!name.trim()) {
-      setError("Enter a name for this debt.");
-      return;
-    }
+    const next: Record<string, string> = {};
+    if (!name.trim()) next.name = "Enter a name for this debt.";
     const balanceCents = dollarsToCents(balance);
-    if (balanceCents === null) {
-      setError("Enter a valid balance.");
-      return;
-    }
+    if (balanceCents === null) next.balance = "Enter a valid balance.";
     const paymentCents = dollarsToCents(payment);
-    if (paymentCents === null) {
-      setError("Enter a valid monthly payment.");
-      return;
-    }
+    if (paymentCents === null) next.payment = "Enter a valid monthly payment.";
     const creditLimitCents = limit.trim() ? dollarsToCents(limit) : null;
-    if (limit.trim() && creditLimitCents === null) {
-      setError("Enter a valid credit limit.");
-      return;
-    }
+    if (limit.trim() && creditLimitCents === null) next.limit = "Enter a valid credit limit.";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
     const interestRate = parseRate(rate);
 
     startTransition(async () => {
       const res = await createDebtAction({
         name: name.trim(),
         type,
-        currentBalanceCents: balanceCents,
+        currentBalanceCents: balanceCents!,
         originalBalanceCents: null,
         creditLimitCents: creditLimitCents ?? null,
-        monthlyPaymentCents: paymentCents,
+        monthlyPaymentCents: paymentCents!,
         minimumPaymentCents: null,
         interestRate,
         monthlyFeeCents: null,
@@ -115,9 +108,10 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
         accountNumber: null,
         institutionName: null,
         notes: null,
+        paymentPatterns: paymentPatterns.split(",").map((s) => s.trim()).filter(Boolean),
       });
       if (!res.ok) {
-        setError(res.error.message);
+        setErrors({ form: res.error.message });
         return;
       }
       reset();
@@ -142,6 +136,7 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Visa card"
+            error={errors.name}
           />
           <UiSelect
             label="Type"
@@ -156,6 +151,7 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
             value={balance}
             onChange={(e) => setBalance(e.target.value)}
             placeholder="0.00"
+            error={errors.balance}
           />
           <Input
             label="Monthly payment"
@@ -164,6 +160,7 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
             value={payment}
             onChange={(e) => setPayment(e.target.value)}
             placeholder="0.00"
+            error={errors.payment}
           />
           <Input
             label="Credit limit (optional)"
@@ -172,6 +169,7 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
             placeholder="0.00"
+            error={errors.limit}
           />
           <Input
             label="Interest rate % p.a. (optional)"
@@ -180,8 +178,17 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
             value={rate}
             onChange={(e) => setRate(e.target.value)}
             placeholder="e.g. 19.99"
-            error={error ?? undefined}
           />
+          <Input
+            label="Payment match pattern(s)"
+            value={paymentPatterns}
+            onChange={(e) => setPaymentPatterns(e.target.value)}
+            placeholder="e.g. ZipMoney, ZipPay, Zip"
+            hint="Comma-separated names — debit transactions matching these are auto-linked as payments."
+          />
+          {errors.form && (
+            <span style={{ color: "var(--expense)", fontSize: "11.5px" }}>{errors.form}</span>
+          )}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
             <Button variant="ghost" size="md" onClick={() => setOpen(false)} disabled={pending}>
               Cancel
