@@ -28,7 +28,6 @@ export interface PlanningData {
     balanceGapCents: number;
     slipMonths: number;
     contributionsShortfallCents: number;
-    debtsChangedSinceLock: boolean;
   } | null;
 }
 
@@ -167,7 +166,6 @@ export async function loadPlanningData(db: DbClient, now: Date = new Date()): Pr
       balanceGapCents: status.balanceGapCents,
       slipMonths: status.slipMonths,
       contributionsShortfallCents: status.contributionsShortfallCents,
-      debtsChangedSinceLock: locked.projectedCurve.length === 0,
     };
   }
 

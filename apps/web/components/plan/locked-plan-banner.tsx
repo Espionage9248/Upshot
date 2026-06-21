@@ -54,9 +54,7 @@ export function LockedPlanBanner({ locked }: { locked: NonNullable<PlanningData[
           Behind on contributions this month by <Money cents={locked.contributionsShortfallCents} size={11.5} weight={700} />
         </span>
       )}
-      {locked.debtsChangedSinceLock && (
-        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>Debts changed since lock — re-model?</span>
-      )}
+
     </section>
   );
 }
