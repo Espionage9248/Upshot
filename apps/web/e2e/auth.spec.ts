@@ -166,10 +166,13 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await expect(page.getByText("Monthly total")).toBeVisible();
 
   // Recurring: toggle the seeded Phone bill's kind (exercises setRecurringKindAction
-  // in recurring.ts). Seeded as a BILL → toggling flips it to Subscription.
-  await expect(page.getByText("Bill")).toBeVisible();
-  await page.getByRole("button", { name: "Toggle recurring kind" }).first().click();
-  await expect(page.getByText("Subscription")).toBeVisible({ timeout: 15000 });
+  // in recurring.ts). Seeded as a BILL → toggling flips it to Subscription. Scope
+  // the assertion to the toggle button (the "Bills" category badge also contains
+  // the substring "Bill").
+  const kindToggle = page.getByRole("button", { name: "Toggle recurring kind" }).first();
+  await expect(kindToggle).toContainText("Bill");
+  await kindToggle.click();
+  await expect(kindToggle).toContainText("Subscription", { timeout: 15000 });
 
   // ─── Extended write-path coverage (Task 19) ───────────────────────────────
 
