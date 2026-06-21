@@ -72,7 +72,7 @@ export function LedgerTable({
               }}
               className="ledger-row"
             >
-              {/* merchant — always visible */}
+              {/* merchant + date — always visible */}
               <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
                 <span
                   style={{
@@ -83,16 +83,27 @@ export function LedgerTable({
                     flexShrink: 0,
                   }}
                 />
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {tx.description}
+                <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {tx.description}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-3)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {(tx.settledAt ?? tx.createdAt).slice(0, 10)}
+                  </span>
                 </span>
               </div>
 
