@@ -59,6 +59,17 @@ export { InMemoryInstallmentRepo } from "./testing/in-memory-installment-repo";
 // Purchases (Plan Room)
 export { monthlySaveTarget } from "./purchases";
 
+// Payoff planner (Scenario Planner)
+export { orderByStrategy } from "./payoff";
+export type {
+  PayoffDebtInput,
+  LumpSum,
+  ExtraStep,
+  PayoffInputs,
+  PayoffResult,
+  PlanStatus,
+} from "./payoff";
+
 // Recurring (Phase 5)
 export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring";
 export { toMonthlyCostCents } from "./recurring";
