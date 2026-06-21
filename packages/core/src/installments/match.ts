@@ -5,6 +5,8 @@ import type {
   PlanUpdate,
 } from "./types";
 
+export const BNPL_RECENT_MATCH_WINDOW_DAYS = 45;
+
 /** Adds `n` days to an ISO date string (date part only, e.g. "2026-06-01"). */
 function addDays(isoDate: string, n: number): string {
   const [y, m, d] = isoDate.split("-").map(Number) as [number, number, number];
@@ -30,9 +32,13 @@ export function matchInstallments(
   plans: InstallmentPlanInput[],
   transactions: MatchableTransaction[],
   alreadyLinkedTxIds: Set<string>,
-  opts?: { amountTolerance?: number },
+  opts?: { amountTolerance?: number; recentWindowDays?: number; now?: string },
 ): { matches: InstallmentMatch[]; planUpdates: PlanUpdate[] } {
   const tol = opts?.amountTolerance ?? 0.1;
+  const windowCutoff =
+    opts?.recentWindowDays != null && opts?.now != null
+      ? addDays(opts.now, -opts.recentWindowDays)
+      : null;
   const matches: InstallmentMatch[] = [];
   const planUpdates: PlanUpdate[] = [];
 
@@ -53,7 +59,12 @@ export function matchInstallments(
         if (alreadyLinkedTxIds.has(tx.id)) return false;
         if (!tx.description.toLowerCase().includes(merchantLower)) return false;
         const abs = Math.abs(tx.amountCents);
-        return abs >= low && abs <= high;
+        if (abs < low || abs > high) return false;
+        if (windowCutoff !== null) {
+          const txDate = (tx.settledAt ?? tx.createdAt).slice(0, 10);
+          if (txDate < windowCutoff) return false;
+        }
+        return true;
       })
       .sort((a, b) => {
         const ta = a.settledAt ?? a.createdAt;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { matchInstallments, planProgress } from "./match";
+import { matchInstallments, planProgress, BNPL_RECENT_MATCH_WINDOW_DAYS } from "./match";
 
 // Authoritative test scenario from task-B1-brief.md
 describe("matchInstallments", () => {
@@ -117,6 +117,98 @@ describe("matchInstallments", () => {
     const { matches } = matchInstallments([onePlan], [txLaterCreated, txEarlierSettled], new Set());
     expect(matches).toHaveLength(1);
     expect(matches[0]!.transactionId).toBe("tx-es"); // earliest settled date
+  });
+});
+
+describe("matchInstallments — recentWindowDays option", () => {
+  const plan = {
+    id: "plan-rw",
+    merchant: "Afterpay",
+    installmentCents: 2500,
+    totalInstallments: 4,
+    installmentsPaid: 0,
+    frequencyDays: 14,
+    nextDueDate: "2026-06-21",
+    status: "ACTIVE" as const,
+  };
+
+  const txBase = { description: "AFTERPAY purchase", isTransfer: false };
+
+  it("BNPL_RECENT_MATCH_WINDOW_DAYS equals 45", () => {
+    expect(BNPL_RECENT_MATCH_WINDOW_DAYS).toBe(45);
+  });
+
+  it("excludes candidates older than recentWindowDays; includes ones within the window", () => {
+    const now = "2026-06-21";
+    // Exactly 46 days before now → older than 45-day window → excluded
+    const txOld = {
+      id: "tx-old",
+      ...txBase,
+      amountCents: -2500,
+      createdAt: "2026-05-06T10:00:00.000Z", // 46 days before 2026-06-21
+      settledAt: null,
+    };
+    // Exactly 44 days before now → within window → included
+    const txRecent = {
+      id: "tx-recent",
+      ...txBase,
+      amountCents: -2500,
+      createdAt: "2026-05-08T10:00:00.000Z", // 44 days before 2026-06-21
+      settledAt: null,
+    };
+
+    const { matches } = matchInstallments(
+      [plan],
+      [txOld, txRecent],
+      new Set(),
+      { recentWindowDays: 45, now },
+    );
+
+    const ids = matches.map(m => m.transactionId);
+    expect(ids).not.toContain("tx-old");
+    expect(ids).toContain("tx-recent");
+  });
+
+  it("uses settledAt (not createdAt) for window check when settledAt is present", () => {
+    const now = "2026-06-21";
+    // createdAt is recent but settledAt is old → should be excluded
+    const txSettledOld = {
+      id: "tx-settled-old",
+      ...txBase,
+      amountCents: -2500,
+      createdAt: "2026-06-20T10:00:00.000Z", // recent
+      settledAt: "2026-05-05T10:00:00.000Z", // 47 days before now → old
+    };
+    // createdAt is old but settledAt is recent → should be included
+    const txSettledRecent = {
+      id: "tx-settled-recent",
+      ...txBase,
+      amountCents: -2500,
+      createdAt: "2026-04-01T10:00:00.000Z", // old
+      settledAt: "2026-06-10T10:00:00.000Z", // 11 days before now → recent
+    };
+
+    const { matches } = matchInstallments(
+      [plan],
+      [txSettledOld, txSettledRecent],
+      new Set(),
+      { recentWindowDays: 45, now },
+    );
+
+    const ids = matches.map(m => m.transactionId);
+    expect(ids).not.toContain("tx-settled-old");
+    expect(ids).toContain("tx-settled-recent");
+  });
+
+  it("without recentWindowDays/now opts, behaviour is unchanged (old tx still matches)", () => {
+    const txOld = {
+      id: "tx-old-noopt",
+      ...txBase,
+      amountCents: -2500,
+      createdAt: "2025-01-01T10:00:00.000Z", // very old
+    };
+    const { matches } = matchInstallments([plan], [txOld], new Set());
+    expect(matches[0]!.transactionId).toBe("tx-old-noopt");
   });
 });
 
