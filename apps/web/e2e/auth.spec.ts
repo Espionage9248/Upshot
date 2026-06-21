@@ -135,6 +135,44 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await debtDialog.getByRole("button", { name: "Add debt" }).click();
   await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
 
+  // --- Scenario planner: preview → save → lock → unlock (write paths) ---
+  const planner = page.getByRole("region", { name: "Scenario planner" });
+  await expect(planner).toBeVisible();
+
+  // Set a to-debt share so a preview computes.
+  await planner.getByRole("slider", { name: "To debt share" }).fill("60");
+
+  // Custom strategy → author a payoff order (write path: customOrder flows into the scenario).
+  // (Needs ≥1 included debt; "Visa card" was added earlier. A second debt makes reorder meaningful,
+  //  but with one debt the Custom list still renders and selecting Custom must not error.)
+  await planner.getByRole("radio", { name: "Custom" }).click();
+  const customList = planner.getByRole("list", { name: "Custom payoff order" });
+  await expect(customList).toBeVisible({ timeout: 15000 });
+  // If a second debt exists, exercise a move; otherwise the single row's buttons are disabled.
+  const downButtons = customList.getByRole("button", { name: /^Move .* down$/ });
+  if ((await downButtons.count()) > 0 && (await downButtons.first().isEnabled())) {
+    await downButtons.first().click();
+  }
+
+  // Save as scenario (auto-accept the name prompt).
+  page.once("dialog", (d) => d.accept("E2E scenario"));
+  await planner.getByRole("button", { name: "Save as scenario" }).click();
+
+  // Saved list shows it.
+  const saved = page.getByRole("region", { name: "Saved scenarios" });
+  await expect(saved.getByText("E2E scenario")).toBeVisible({ timeout: 15000 });
+
+  // Lock the current scenario as the tracked plan.
+  await planner.getByRole("button", { name: "Lock in debt plan" }).click();
+
+  // Locked banner appears.
+  const banner = page.getByRole("region", { name: "Locked debt plan" });
+  await expect(banner).toBeVisible({ timeout: 15000 });
+
+  // Unlock to restore the unlocked state.
+  await banner.getByRole("button", { name: "Re-model / unlock" }).click();
+  await expect(banner).toBeHidden({ timeout: 15000 });
+
   // 9) /plan/installments route smoke: navigates, renders empty state (no plans seeded).
   // The BNPL list was rebuilt in the Phase-5 rebuild: the button is "Add BNPL plan"
   // (InstallmentFormDialog Path B — per-installment amount + auto-match, no
