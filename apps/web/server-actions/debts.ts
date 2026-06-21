@@ -34,7 +34,7 @@ export const createDebtAction = action(
 
 /** Action: update an existing debt. */
 export const updateDebtAction = action(
-  async (_session, input: DebtRow): Promise<void> => {
+  async (_session, input: DebtRow & { paymentPatterns?: string[] }): Promise<void> => {
     const { db } = getDb();
     await updateDebt(db, input);
     revalidatePath("/plan/debts");
@@ -68,15 +68,29 @@ function toStrategy(raw: string): DebtStrategy {
   return "CUSTOM";
 }
 
+/** Action: persist the debt-repayment strategy to app_settings. */
+export const setDebtStrategyAction = action(
+  async (_session, strategy: DebtStrategy): Promise<void> => {
+    const { db } = getDb();
+    db.insert(tables.appSettings)
+      .values({ id: "default", debtStrategy: strategy })
+      .onConflictDoUpdate({ target: tables.appSettings.id, set: { debtStrategy: strategy } })
+      .run();
+    revalidatePath("/plan/debts");
+    revalidatePath("/plan");
+  },
+);
+
 /**
- * Action: pure what-if calculation — computes snowball with extra payment.
+ * Action: pure what-if calculation — computes snowball with optional extra payment,
+ * target debt, and rate overrides.
  * Read-only: no DB writes, no revalidatePath.
  */
 export const whatIfAction = action(
   async (
     _session,
-    extraPaymentCents: number,
-  ): Promise<{ withExtra: SnowballAnalysis; base: SnowballAnalysis; monthsSaved: number; interestSavedCents: number }> => {
+    input: { extraPaymentCents: number; extraTargetDebtId?: string; rateOverrides?: Record<string, number> },
+  ): Promise<{ withChanges: SnowballAnalysis; base: SnowballAnalysis; monthsSaved: number; interestSavedCents: number }> => {
     const { db } = getDb();
 
     const settings = db
@@ -102,10 +116,17 @@ export const whatIfAction = action(
       includeInSnowball: row.includeInSnowball,
     }));
 
-    return computeWhatIf(debtInputs, {
+    const result = computeWhatIf(debtInputs, {
       strategy,
-      extraPaymentCents,
       startMonth,
+      ...input,
     });
+
+    return {
+      withChanges: result.withChanges,
+      base: result.base,
+      monthsSaved: result.monthsSaved,
+      interestSavedCents: result.interestSavedCents,
+    };
   },
 );

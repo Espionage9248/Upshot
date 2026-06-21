@@ -100,6 +100,48 @@ describe("createDebt", () => {
 
     expect(id).toBe("debt-explicit");
   });
+
+  it("writes a match_rule + 3 match_conditions and sets matchRuleId when paymentPatterns supplied", async () => {
+    const id = await createDebt(db, {
+      name: "Zip BNPL",
+      type: "BNPL",
+      currentBalanceCents: 80000,
+      originalBalanceCents: null,
+      creditLimitCents: null,
+      monthlyPaymentCents: 10000,
+      minimumPaymentCents: 10000,
+      interestRate: null,
+      monthlyFeeCents: null,
+      feeDueDay: null,
+      payoffPriority: 1,
+      includeInSnowball: true,
+      includeInNetWorth: true,
+      matchRuleId: null,
+      accountNumber: null,
+      institutionName: null,
+      notes: null,
+      paymentPatterns: ["ZipMoney", "ZipPay", "Zip"],
+    });
+
+    const all = db.select().from(tables.debts).all();
+    const debtRow = all.find((r) => r.id === id)!;
+
+    expect(debtRow.matchRuleId).not.toBeNull();
+
+    const conds = db
+      .select()
+      .from(tables.matchConditions)
+      .all()
+      .filter((c) => c.ruleId === debtRow.matchRuleId);
+
+    expect(conds).toHaveLength(3);
+    expect(conds.every((c) => c.field === "description")).toBe(true);
+    expect(conds.every((c) => c.mode === "contains")).toBe(true);
+    const values = conds.map((c) => c.value);
+    expect(values).toContain("ZipMoney");
+    expect(values).toContain("ZipPay");
+    expect(values).toContain("Zip");
+  });
 });
 
 // ---------------------------------------------------------------------------

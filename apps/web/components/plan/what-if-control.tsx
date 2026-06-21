@@ -6,7 +6,7 @@ import { whatIfAction } from "@/server-actions/debts";
 import type { SnowballAnalysis } from "@upshot/core";
 
 interface WhatIfResult {
-  withExtra: SnowballAnalysis;
+  withChanges: SnowballAnalysis;
   base: SnowballAnalysis;
   monthsSaved: number;
   interestSavedCents: number;
@@ -48,7 +48,7 @@ export function WhatIfControl({ baseAnalysis, maxExtraDollars = 500 }: WhatIfCon
 
     const extraCents = dollars * 100;
     startTransition(async () => {
-      const res = await whatIfAction(extraCents);
+      const res = await whatIfAction({ extraPaymentCents: extraCents });
       if (res.ok) {
         setResult(res.data);
       }
@@ -57,7 +57,7 @@ export function WhatIfControl({ baseAnalysis, maxExtraDollars = 500 }: WhatIfCon
 
   const monthsSaved = result?.monthsSaved ?? 0;
   const interestSavedCents = result?.interestSavedCents ?? 0;
-  const debtFreeMonth = result?.withExtra.debtFreeMonth ?? baseAnalysis.debtFreeMonth;
+  const debtFreeMonth = result?.withChanges.debtFreeMonth ?? baseAnalysis.debtFreeMonth;
 
   return (
     <section
