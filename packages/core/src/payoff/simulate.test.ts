@@ -82,3 +82,57 @@ describe("simulatePayoff", () => {
     expect(r.curve.length).toBe(600);
   });
 });
+
+describe("simulatePayoff lump sums", () => {
+  it("a lump sum to a target debt reduces its balance that month", () => {
+    const r = simulatePayoff({
+      debts: [{ id: "a", currentBalanceCents: 100000, minimumPaymentCents: 10000, interestRate: 0 }],
+      order: ["a"],
+      startMonth: "2026-07",
+      extraSchedule: [{ fromMonth: "2026-07", extraCents: 0 }],
+      lumpSums: [{ amountCents: 50000, month: "2026-07", targetDebtId: "a" }],
+    });
+    // 100000 − 10000 (min) − 50000 (lump) = 40000 after month 1 → 4 more months. Total 5.
+    expect(r.monthsToPayoff).toBe(4); // 2026-07 + 4 = 2026-11
+    expect(r.debtFreeMonth).toBe("2026-11");
+  });
+
+  it("a null-target lump sum hits the first unpaid debt in order", () => {
+    const r = simulatePayoff({
+      debts: [
+        { id: "a", currentBalanceCents: 5000, minimumPaymentCents: 5000, interestRate: 0 },
+        { id: "b", currentBalanceCents: 100000, minimumPaymentCents: 1000, interestRate: 0 },
+      ],
+      order: ["a", "b"],
+      startMonth: "2026-07",
+      extraSchedule: [{ fromMonth: "2026-07", extraCents: 0 }],
+      // In month 2, "a" is already paid → lump should fall to "b".
+      lumpSums: [{ amountCents: 20000, month: "2026-08", targetDebtId: null }],
+    });
+    expect(r.debtFreeMonth).not.toBeNull();
+    // Sanity: the lump shortened "b" — compare against no-lump run.
+    const noLump = simulatePayoff({
+      debts: [
+        { id: "a", currentBalanceCents: 5000, minimumPaymentCents: 5000, interestRate: 0 },
+        { id: "b", currentBalanceCents: 100000, minimumPaymentCents: 1000, interestRate: 0 },
+      ],
+      order: ["a", "b"],
+      startMonth: "2026-07",
+      extraSchedule: [{ fromMonth: "2026-07", extraCents: 0 }],
+      lumpSums: [],
+    });
+    expect(r.monthsToPayoff).toBeLessThan(noLump.monthsToPayoff);
+  });
+
+  it("a lump sum never drives a balance negative", () => {
+    const r = simulatePayoff({
+      debts: [{ id: "a", currentBalanceCents: 3000, minimumPaymentCents: 1000, interestRate: 0 }],
+      order: ["a"],
+      startMonth: "2026-07",
+      extraSchedule: [{ fromMonth: "2026-07", extraCents: 0 }],
+      lumpSums: [{ amountCents: 999999, month: "2026-07", targetDebtId: "a" }],
+    });
+    expect(r.debtFreeMonth).toBe("2026-07");
+    expect(r.curve.at(-1)!.balanceCents).toBe(0);
+  });
+});
