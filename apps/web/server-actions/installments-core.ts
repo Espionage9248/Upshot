@@ -73,13 +73,6 @@ export function buildInstallmentFromTransaction(
   };
 }
 
-/** Create input: id, notes, and matchRuleId are optional (auto-generated / null when absent). */
-export type CreateInstallmentInput = Omit<NewInstallmentPlan, "id" | "notes" | "matchRuleId"> & {
-  id?: string;
-  notes?: string | null;
-  matchRuleId?: string | null;
-};
-
 // Re-export InstallmentPlan row type (avoids @upshot/contracts import in callers).
 export type InstallmentRow = Awaited<ReturnType<DrizzleInstallmentRepo["list"]>>[number];
 
@@ -106,30 +99,6 @@ function logEvent(
       meta,
     })
     .run();
-}
-
-// ---------------------------------------------------------------------------
-// createInstallmentPlan
-// ---------------------------------------------------------------------------
-
-/** Create an installment plan and write an event_log row. Returns the new plan id. */
-export async function createInstallmentPlan(
-  db: DbClient,
-  input: CreateInstallmentInput,
-): Promise<string> {
-  const repo = new DrizzleInstallmentRepo(db);
-  const normalized: NewInstallmentPlan = {
-    ...input,
-    notes: input.notes ?? null,
-    matchRuleId: input.matchRuleId ?? null,
-  };
-  const id = await repo.create(normalized);
-  logEvent(db, "create_installment_plan", id, `Created BNPL plan: ${input.merchant}`, {
-    merchant: input.merchant,
-    totalCents: input.totalCents,
-    totalInstallments: input.totalInstallments,
-  });
-  return id;
 }
 
 // ---------------------------------------------------------------------------

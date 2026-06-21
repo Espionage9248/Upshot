@@ -30,7 +30,7 @@ function formatMonths(months: number): string {
   return m > 0 ? `${y}y ${m}mo` : `${y}y`;
 }
 
-export function WhatIfPanel({ debts }: { debts: { id: string; name: string }[]; baseAnalysis: SnowballAnalysis }) {
+export function WhatIfPanel({ debts }: { debts: { id: string; name: string }[] }) {
   const [targetId, setTargetId] = useState(NONE);
   const [extraDollars, setExtraDollars] = useState(0);
   const [refiId, setRefiId] = useState(NONE);

@@ -47,7 +47,7 @@ export function DebtDashboard({ data }: { data: DebtsData }) {
         <Segmented options={STRATEGY_OPTIONS} value={data.strategy} onValueChange={onStrategy} aria-label="Debt payoff strategy" />
       </div>
 
-      {data.debts.length > 0 && <WhatIfPanel debts={data.debts.map((d) => ({ id: d.row.id, name: d.row.name }))} baseAnalysis={analysis} />}
+      {data.debts.length > 0 && <WhatIfPanel debts={data.debts.map((d) => ({ id: d.row.id, name: d.row.name }))} />}
 
       <DebtList data={data} />
 

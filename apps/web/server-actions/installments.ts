@@ -19,24 +19,8 @@ import { DrizzleInstallmentRepo, tables } from "@upshot/db";
 import { matchInstallments, BNPL_RECENT_MATCH_WINDOW_DAYS } from "@upshot/core";
 import {
   buildInstallmentFromTransaction,
-  createInstallmentPlan,
   deleteInstallmentPlan,
 } from "./installments-core";
-import type { CreateInstallmentInput } from "./installments-core";
-
-// Re-export shared input type so callers don't need @upshot/contracts.
-export type { CreateInstallmentInput } from "./installments-core";
-
-/** Action: mark a purchase as a BNPL installment plan. Returns the new plan id. */
-export const createInstallmentPlanAction = action(
-  async (_session, input: CreateInstallmentInput): Promise<string> => {
-    const { db } = getDb();
-    const id = await createInstallmentPlan(db, input);
-    revalidatePath("/plan/installments");
-    revalidatePath("/plan");
-    return id;
-  },
-);
 
 /** Action: delete an installment plan. */
 export const deleteInstallmentPlanAction = action(

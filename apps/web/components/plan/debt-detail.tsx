@@ -53,7 +53,7 @@ function PaymentRow({ payment }: { payment: MonthlyPayment }): ReactNode {
  * Presentational — data arrives via props; no DB/auth/hooks.
  */
 export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
-  const { debt, schedule, analysis } = data;
+  const { debt, schedule } = data;
   const utilPct = utilisationPct(debt.currentBalanceCents, debt.creditLimitCents ?? null);
 
   // Show at most 24 months of the breakdown to avoid a huge table.
@@ -158,7 +158,7 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
             <CardTitle>What if I pay extra?</CardTitle>
           </CardHeader>
           <CardBody>
-            <WhatIfPanel debts={[{ id: debt.id, name: debt.name }]} baseAnalysis={analysis} />
+            <WhatIfPanel debts={[{ id: debt.id, name: debt.name }]} />
           </CardBody>
         </Card>
       )}
