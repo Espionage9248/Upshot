@@ -9,3 +9,4 @@ export type {
 } from "./types";
 export { orderByStrategy } from "./order";
 export { simulatePayoff } from "./simulate";
+export { solveExtraForTargetDate } from "./solve";
