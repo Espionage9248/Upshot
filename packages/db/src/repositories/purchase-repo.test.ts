@@ -68,7 +68,7 @@ describe("DrizzlePurchaseRepo", () => {
 
     const list = await repo.list();
     expect(list).toHaveLength(1);
-    const got = list[0];
+    const got = list[0]!;
     expect(got.id).toBe("purchase-1");
     expect(got.customName).toBe("New headphones");
     expect(got.status).toBe("WISHLIST");
@@ -107,7 +107,7 @@ describe("DrizzlePurchaseRepo", () => {
 
     const purchased = await repo.listByStatus("PURCHASED");
     expect(purchased).toHaveLength(1);
-    expect(purchased[0].id).toBe("p-1");
+    expect(purchased[0]!.id).toBe("p-1");
   });
 
   it("getById returns null for unknown id", async () => {

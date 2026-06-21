@@ -25,5 +25,5 @@ test("links negative non-transfer matches, reduces balance, ignores income/trans
 test("balance never goes below zero", () => {
   const m = [{ debtId: "d1", currentBalanceCents: 1000, pattern: compilePatternRegex(["Zip"]) }];
   const r = matchDebtPayments(m, txs.filter((t) => t.id === "t2"), new Set());
-  expect(r.balanceUpdates[0].newBalanceCents).toBe(0);
+  expect(r.balanceUpdates[0]!.newBalanceCents).toBe(0);
 });

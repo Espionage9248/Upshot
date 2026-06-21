@@ -21,6 +21,7 @@ const DEBT_TYPE_OPTIONS = [
   { value: "CAR", label: "Car loan" },
   { value: "TAX", label: "Tax debt" },
   { value: "OVERDRAFT", label: "Overdraft" },
+  { value: "BNPL", label: "BNPL" },
 ] as const;
 
 type DebtTypeValue = typeof DEBT_TYPE_OPTIONS[number]["value"];
