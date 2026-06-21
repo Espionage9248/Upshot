@@ -6,6 +6,7 @@ import {
   createDbClient,
   applyMigrations,
   DrizzleDebtRepo,
+  DrizzleInstallmentRepo,
   tables,
   type DbClient,
 } from "@upshot/db";
@@ -213,5 +214,20 @@ describe("loadDebtsData", () => {
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain(KEY);
     expect(serialized).not.toContain("DB_ENCRYPTION_KEY");
+  });
+
+  it("returns BNPL rollup from ACTIVE installment plans + the persisted strategy", async () => {
+    const db = freshDb();
+    await new DrizzleInstallmentRepo(db).create({
+      id: "p1", merchant: "Afterpay – ACME", totalCents: 40000, installmentCents: 10000,
+      totalInstallments: 4, installmentsPaid: 1, frequencyDays: 14,
+      firstDueDate: "2026-06-01", nextDueDate: "2026-06-15", status: "ACTIVE",
+      matchRuleId: null, notes: null,
+    });
+    const result = await loadDebtsData(db, NOW);
+    expect(result.rollup.activeCount).toBe(1);
+    expect(result.rollup.remainingCents).toBe(30000); // (4 - 1) × 10000
+    expect(result.rollup.nextDueDate).toBe("2026-06-15");
+    expect(result.strategy).toBe("SNOWBALL"); // app_settings default
   });
 });

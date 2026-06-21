@@ -1,5 +1,6 @@
-import { DrizzleDebtRepo, tables, type DbClient } from "@upshot/db";
+import { DrizzleDebtRepo, DrizzleInstallmentRepo, tables, type DbClient } from "@upshot/db";
 import {
+  bnplRollup,
   computeSnowball,
   utilisation,
   type DebtStrategy,
@@ -12,6 +13,8 @@ export type DebtRow = Awaited<ReturnType<DrizzleDebtRepo["list"]>>[number];
 export interface DebtsData {
   debts: { row: DebtRow; utilisation: number | null }[];
   analysis: SnowballAnalysis;
+  strategy: DebtStrategy;
+  rollup: { remainingCents: number; activeCount: number; nextDueDate: string | null };
 }
 
 /** Maps the raw app_settings string to a typed DebtStrategy. */
@@ -65,5 +68,8 @@ export async function loadDebtsData(db: DbClient, now: Date = new Date()): Promi
     startMonth,
   });
 
-  return { debts, analysis };
+  const installments = await new DrizzleInstallmentRepo(db).list();
+  const rollup = bnplRollup(installments);
+
+  return { debts, analysis, strategy, rollup };
 }
