@@ -11,7 +11,7 @@ import {
   Button,
   Input,
 } from "@upshot/ui";
-import { createInstallmentPlanAction } from "@/server-actions/installments";
+import { createInstallmentByMatchAction } from "@/server-actions/installments";
 
 /** Parse a dollar string to integer cents; null when not a valid positive amount. */
 function dollarsToCents(value: string): number | null {
@@ -34,86 +34,71 @@ export interface InstallmentFormDialogProps {
 }
 
 /**
- * Dialog for marking a purchase as a BNPL installment plan. Client component —
- * receives serializable props only, never imports @upshot/db. Calls
- * createInstallmentPlanAction then router.refresh().
+ * Dialog for adding a BNPL plan (Path B — auto-match recent payments). Client
+ * component — receives serializable props only, never imports @upshot/db. Calls
+ * createInstallmentByMatchAction then router.refresh(). frequencyDays is fixed
+ * at 14 (Afterpay model); no frequency or first-due fields.
  */
 export function InstallmentFormDialog({ trigger }: InstallmentFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [merchant, setMerchant] = useState("");
-  const [total, setTotal] = useState("");
-  const [installments, setInstallments] = useState("");
-  const [firstDue, setFirstDue] = useState("");
-  const [frequencyDays, setFrequencyDays] = useState("14");
-  const [error, setError] = useState<string | null>(null);
+  const [amount, setAmount] = useState("");
+  const [count, setCount] = useState("4");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [matchedMsg, setMatchedMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   function reset() {
     setMerchant("");
-    setTotal("");
-    setInstallments("");
-    setFirstDue("");
-    setFrequencyDays("14");
-    setError(null);
+    setAmount("");
+    setCount("4");
+    setErrors({});
+    setMatchedMsg(null);
   }
 
   function submit() {
-    setError(null);
+    const next: Record<string, string> = {};
 
-    if (!merchant.trim()) {
-      setError("Enter the merchant name.");
-      return;
-    }
-    const totalCents = dollarsToCents(total);
-    if (totalCents === null || totalCents === 0) {
-      setError("Enter a valid total amount.");
-      return;
-    }
-    const totalInstallments = parseCount(installments);
-    if (totalInstallments === null) {
-      setError("Enter the number of installments (e.g. 4).");
-      return;
-    }
-    if (!firstDue.trim()) {
-      setError("Enter the first due date.");
-      return;
-    }
-    const freqDays = parseCount(frequencyDays);
-    if (freqDays === null) {
-      setError("Enter a valid frequency in days (e.g. 14).");
-      return;
-    }
-    const installmentCents = Math.round(totalCents / totalInstallments);
+    if (!merchant.trim()) next.merchant = "Enter the merchant name.";
+    const installmentCents = dollarsToCents(amount);
+    if (installmentCents === null || installmentCents === 0)
+      next.amount = "Enter a valid per-installment amount.";
+    const totalInstallments = parseCount(count);
+    if (totalInstallments === null) next.count = "Enter the number of installments (e.g. 4).";
+
+    setErrors(next);
+    if (Object.keys(next).length) return;
 
     startTransition(async () => {
-      const res = await createInstallmentPlanAction({
+      const res = await createInstallmentByMatchAction({
         merchant: merchant.trim(),
-        totalCents,
-        installmentCents,
-        totalInstallments,
-        frequencyDays: freqDays,
-        firstDueDate: firstDue.trim(),
+        installmentCents: installmentCents!,
+        totalInstallments: totalInstallments!,
       });
       if (!res.ok) {
-        setError(res.error.message);
+        setErrors({ form: res.error.message });
         return;
       }
-      reset();
-      setOpen(false);
-      router.refresh();
+      setMatchedMsg(`Matched ${res.data.matched} recent payment(s)`);
+      setTimeout(() => {
+        reset();
+        setOpen(false);
+        router.refresh();
+      }, 1200);
     });
   }
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
-        {trigger ?? <Button size="sm">Mark as BNPL</Button>}
+        {trigger ?? <Button size="sm">Add BNPL plan</Button>}
       </DialogTrigger>
       <DialogContent>
-        <DialogTitle>Mark as BNPL</DialogTitle>
+        <DialogTitle>Add BNPL plan</DialogTitle>
         <DialogDescription>
-          Record a buy-now-pay-later purchase to track your installment schedule.
+          Enter a merchant name and per-installment amount — recent payments will be
+          auto-matched to this plan.
         </DialogDescription>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Input
@@ -121,39 +106,32 @@ export function InstallmentFormDialog({ trigger }: InstallmentFormDialogProps) {
             value={merchant}
             onChange={(e) => setMerchant(e.target.value)}
             placeholder="e.g. Afterpay – ACME Store"
+            error={errors.merchant}
           />
           <Input
-            label="Total amount"
+            label="Per-installment amount"
             mono
             inputMode="decimal"
-            value={total}
-            onChange={(e) => setTotal(e.target.value)}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
+            error={errors.amount}
           />
           <Input
             label="Number of installments"
             mono
             inputMode="numeric"
-            value={installments}
-            onChange={(e) => setInstallments(e.target.value)}
+            value={count}
+            onChange={(e) => setCount(e.target.value)}
             placeholder="4"
+            error={errors.count}
           />
-          <Input
-            label="First due date (YYYY-MM-DD)"
-            mono
-            value={firstDue}
-            onChange={(e) => setFirstDue(e.target.value)}
-            placeholder="2026-06-20"
-          />
-          <Input
-            label="Frequency (days)"
-            mono
-            inputMode="numeric"
-            value={frequencyDays}
-            onChange={(e) => setFrequencyDays(e.target.value)}
-            placeholder="14"
-            error={error ?? undefined}
-          />
+          {matchedMsg && (
+            <span style={{ color: "var(--saved)", fontSize: "11.5px" }}>{matchedMsg}</span>
+          )}
+          {errors.form && (
+            <span style={{ color: "var(--expense)", fontSize: "11.5px" }}>{errors.form}</span>
+          )}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
             <Button variant="ghost" size="md" onClick={() => setOpen(false)} disabled={pending}>
               Cancel

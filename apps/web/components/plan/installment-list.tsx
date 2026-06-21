@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Card, CardBody, CardHeader, CardTitle, Badge, Money, UiProgress, EmptyState } from "@upshot/ui";
 import type { InstallmentsData, InstallmentRow } from "@/app/(app)/plan/installments/data";
 import { InstallmentFormDialog } from "./installment-form-dialog";
+import { InstallmentDeleteButton } from "./installment-delete-button";
 
 function InstallmentCard({
   row,
@@ -15,6 +16,7 @@ function InstallmentCard({
       <CardHeader>
         <CardTitle>{row.merchant}</CardTitle>
         <Badge tone="neutral">BNPL</Badge>
+        <InstallmentDeleteButton id={row.id} />
       </CardHeader>
       <CardBody>
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -71,6 +73,7 @@ function CompleteCard({ row }: { row: InstallmentRow }): ReactNode {
       <CardHeader>
         <CardTitle>{row.merchant}</CardTitle>
         <Badge tone="saved">Paid off</Badge>
+        <InstallmentDeleteButton id={row.id} />
       </CardHeader>
       <CardBody>
         <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
