@@ -13,6 +13,8 @@ export interface UiSelectOption {
 
 export interface UiSelectProps {
   label?: string;
+  /** Accessible name for the trigger when no visible `label` is shown. */
+  "aria-label"?: string;
   hint?: string;
   error?: string;
   value?: string;
@@ -25,6 +27,7 @@ export interface UiSelectProps {
 
 export function UiSelect({
   label,
+  "aria-label": ariaLabel,
   hint,
   error,
   value,
@@ -65,6 +68,7 @@ export function UiSelect({
       >
         <Select.Trigger
           id={controlId}
+          aria-label={ariaLabel}
           aria-describedby={describedBy}
           aria-invalid={error ? "true" : undefined}
           className={triggerClass}

@@ -115,7 +115,7 @@ export function ActionRow({
       {action.type === "LINK_DEBT" && (
         <div style={{ minWidth: 170 }}>
           <UiSelect
-            label="Target debt"
+            aria-label="Target debt"
             options={debtOptions}
             value={action.targetId ?? undefined}
             placeholder="Choose debt"
@@ -127,7 +127,7 @@ export function ActionRow({
       {action.type === "LINK_RECURRING" && (
         <div style={{ minWidth: 170 }}>
           <UiSelect
-            label="Target recurring item"
+            aria-label="Target recurring item"
             options={recurringOptions}
             value={action.targetId ?? undefined}
             placeholder="Choose recurring item"
@@ -139,7 +139,7 @@ export function ActionRow({
       {action.type === "LINK_INSTALLMENT" && (
         <div style={{ minWidth: 170 }}>
           <UiSelect
-            label="Target BNPL plan"
+            aria-label="Target BNPL plan"
             options={installmentOptions}
             value={action.targetId ?? undefined}
             placeholder="Choose plan"
