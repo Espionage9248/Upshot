@@ -13,6 +13,7 @@ export interface ScenarioInputs {
   recurringEdits: { id: string; keep: boolean; monthlyCentsOverride: number | null }[];
   toDebtShareBps: number; // 0..10000
   strategy: DebtStrategy;
+  customOrder: string[] | null; // CUSTOM strategy: debt ids target-first; null = use strategy default
   lumpSums: { amountCents: number; month: string; targetDebtId: string | null }[];
   targetMonth: string | null;
 }

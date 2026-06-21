@@ -28,13 +28,14 @@ const inputs: ScenarioInputs = {
   discretionaryCents: 80000,
   recurringEdits: [{ id: "r1", keep: true, monthlyCentsOverride: null }],
   toDebtShareBps: 5000,
-  strategy: "AVALANCHE",
+  strategy: "CUSTOM",
+  customOrder: ["d2", "d1"],
   lumpSums: [],
   targetMonth: null,
 };
 
 describe("DrizzlePlanningScenarioRepo", () => {
-  it("creates and lists a scenario with inputs intact", async () => {
+  it("creates and lists a scenario with inputs intact (incl. customOrder)", async () => {
     const repo = new DrizzlePlanningScenarioRepo(db);
     const id = await repo.create({ name: "Aggressive", inputs });
     const all = await repo.list();
@@ -42,6 +43,7 @@ describe("DrizzlePlanningScenarioRepo", () => {
     expect(all[0]!.id).toBe(id);
     expect(all[0]!.name).toBe("Aggressive");
     expect(all[0]!.inputs.raise).toEqual({ toCents: 700000, fromMonth: "2027-01" });
+    expect(all[0]!.inputs.customOrder).toEqual(["d2", "d1"]);
   });
 
   it("getById returns null for a missing id", async () => {

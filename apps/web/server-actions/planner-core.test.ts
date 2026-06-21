@@ -36,6 +36,7 @@ const inputs: ScenarioInputs = {
   ],
   toDebtShareBps: 5000,
   strategy: "AVALANCHE",
+  customOrder: null,
   lumpSums: [],
   targetMonth: null,
 };
@@ -72,6 +73,28 @@ describe("buildPayoffInputs", () => {
     const broke: ScenarioInputs = { ...inputs, baseIncomeCents: 10000 };
     const r = buildPayoffInputs(broke, debts, recurring, "2026-07");
     expect(r.preExtraCents).toBe(0);
+  });
+
+  it("honours a CUSTOM strategy customOrder (target-first) over the strategy default", () => {
+    const twoIncluded = [
+      { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, interestRate: 0.1, includeInSnowball: true },
+      { id: "d3", currentBalanceCents: 20000, minimumPaymentCents: 2000, interestRate: 0.3, includeInSnowball: true },
+    ];
+    // SNOWBALL would put d3 first (smaller balance); customOrder forces d1 first.
+    const custom: ScenarioInputs = { ...inputs, strategy: "CUSTOM", customOrder: ["d1", "d3"] };
+    const r = buildPayoffInputs(custom, twoIncluded, recurring, "2026-07");
+    expect(r.payoffInputs.order).toEqual(["d1", "d3"]);
+  });
+
+  it("falls back to the strategy default when customOrder is null", () => {
+    const twoIncluded = [
+      { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, interestRate: 0.1, includeInSnowball: true },
+      { id: "d3", currentBalanceCents: 20000, minimumPaymentCents: 2000, interestRate: 0.3, includeInSnowball: true },
+    ];
+    // CUSTOM with null order → orderByStrategy falls back to smallest-balance (snowball-like) → d3 first.
+    const custom: ScenarioInputs = { ...inputs, strategy: "CUSTOM", customOrder: null };
+    const r = buildPayoffInputs(custom, twoIncluded, recurring, "2026-07");
+    expect(r.payoffInputs.order).toEqual(["d3", "d1"]);
   });
 });
 
