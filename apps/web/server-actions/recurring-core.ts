@@ -78,6 +78,19 @@ export async function pauseRecurring(db: DbClient, id: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// removeRecurring
+// ---------------------------------------------------------------------------
+
+/**
+ * Permanently delete a recurring item and write an event_log row.
+ */
+export async function removeRecurring(db: DbClient, id: string): Promise<void> {
+  const repo = new DrizzleRecurringRepo(db);
+  await repo.delete(id);
+  logEvent(db, "delete_recurring", id, `Deleted recurring item ${id}`, { id });
+}
+
+// ---------------------------------------------------------------------------
 // setUsage
 // ---------------------------------------------------------------------------
 

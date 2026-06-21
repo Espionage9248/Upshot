@@ -18,6 +18,7 @@ import {
   acceptSuggestion,
   dismissSuggestion,
   pauseRecurring,
+  removeRecurring,
   setUsage,
 } from "./recurring-core";
 
@@ -46,6 +47,16 @@ export const pauseRecurringAction = action(
   async (_session, id: string): Promise<void> => {
     const { db } = getDb();
     await pauseRecurring(db, id);
+    revalidatePath("/plan/recurring");
+    revalidatePath("/plan");
+  },
+);
+
+/** Action: permanently delete an active or paused recurring item. */
+export const deleteRecurringAction = action(
+  async (_session, id: string): Promise<void> => {
+    const { db } = getDb();
+    await removeRecurring(db, id);
     revalidatePath("/plan/recurring");
     revalidatePath("/plan");
   },

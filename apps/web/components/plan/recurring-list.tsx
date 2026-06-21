@@ -13,6 +13,7 @@ import { toMonthlyCostCents } from "@upshot/core";
 import type { RecurringData, RecurringRow } from "@/app/(app)/plan/recurring/data";
 import { RecurringSuggestionCard } from "./recurring-suggestion-card";
 import { UsageControl } from "./usage-control";
+import { RecurringDeleteButton } from "./recurring-delete-button";
 
 // ---------------------------------------------------------------------------
 // Section header
@@ -53,9 +54,13 @@ function RecurringItemCard({
         <Badge tone={row.kind === "BILL" ? "expense" : "neutral"}>
           {row.kind === "BILL" ? "Bill" : "Subscription"}
         </Badge>
+        <RecurringDeleteButton id={row.id} />
       </CardHeader>
       <CardBody>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {row.category && (
+            <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{row.category}</span>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>
               {row.frequency.charAt(0) + row.frequency.slice(1).toLowerCase()}
@@ -107,6 +112,10 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
   const hasAny =
     data.active.length > 0 || data.paused.length > 0 || data.suggested.length > 0;
 
+  const nameById = new Map(
+    [...data.active, ...data.paused].map((r) => [r.id, r.name]),
+  );
+
   return (
     <section aria-label="Recurring charges">
       {/* Monthly total summary */}
@@ -151,7 +160,14 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
               : `merchant "${group.groupKey.slice("merchant:".length)}"`;
             return (
               <Alert key={group.groupKey} tone="info">
-                {group.itemIds.length} active subscriptions share the same {label} — possible duplicate.
+                These share {label}:{" "}
+                {group.itemIds.map((id, i) => (
+                  <span key={id}>
+                    <a href={`#recurring-${id}`}>{nameById.get(id) ?? id}</a>
+                    {i < group.itemIds.length - 1 ? ", " : ""}
+                  </span>
+                ))}{" "}
+                — possible duplicate.
               </Alert>
             );
           })}
@@ -185,7 +201,9 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
           <SectionLabel>Active</SectionLabel>
           <CardGrid>
             {data.active.map((row) => (
-              <RecurringItemCard key={row.id} row={row} />
+              <div key={row.id} id={`recurring-${row.id}`}>
+                <RecurringItemCard row={row} />
+              </div>
             ))}
           </CardGrid>
         </div>
@@ -197,7 +215,9 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
           <SectionLabel>Paused</SectionLabel>
           <CardGrid>
             {data.paused.map((row) => (
-              <RecurringItemCard key={row.id} row={row} />
+              <div key={row.id} id={`recurring-${row.id}`}>
+                <RecurringItemCard row={row} />
+              </div>
             ))}
           </CardGrid>
         </div>
