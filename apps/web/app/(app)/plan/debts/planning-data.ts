@@ -52,7 +52,13 @@ export async function loadPlanningData(db: DbClient, now: Date = new Date()): Pr
     interestRate: row.interestRate ?? null,
     includeInSnowball: row.includeInSnowball,
   }));
-  const plannerDebts: PlannerDebt[] = debts.map(({ name: _n, ...rest }) => rest);
+  const plannerDebts: PlannerDebt[] = debts.map((d) => ({
+    id: d.id,
+    currentBalanceCents: d.currentBalanceCents,
+    minimumPaymentCents: d.minimumPaymentCents,
+    interestRate: d.interestRate,
+    includeInSnowball: d.includeInSnowball,
+  }));
 
   // --- recurring (monthly normalised) ---
   const recurringRows = await new DrizzleRecurringRepo(db).list();
