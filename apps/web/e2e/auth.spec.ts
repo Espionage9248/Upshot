@@ -165,13 +165,11 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // Monthly total summary is present.
   await expect(page.getByText("Monthly total")).toBeVisible();
 
-  // Recurring: setUsageAction on the seeded Phone bill (exercises recurring.ts).
-  await page.getByRole("button", { name: "Set usage count" }).first().click();
-  await page.getByLabel("Usage count").fill("3");
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("button", { name: "Set usage count" }).first()).toBeVisible({
-    timeout: 15000,
-  });
+  // Recurring: toggle the seeded Phone bill's kind (exercises setRecurringKindAction
+  // in recurring.ts). Seeded as a BILL → toggling flips it to Subscription.
+  await expect(page.getByText("Bill")).toBeVisible();
+  await page.getByRole("button", { name: "Toggle recurring kind" }).first().click();
+  await expect(page.getByText("Subscription")).toBeVisible({ timeout: 15000 });
 
   // ─── Extended write-path coverage (Task 19) ───────────────────────────────
 

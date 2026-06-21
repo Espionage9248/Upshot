@@ -61,7 +61,7 @@ export { monthlySaveTarget } from "./purchases";
 
 // Recurring (Phase 5)
 export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring";
-export { toMonthlyCostCents, costPerUseCents } from "./recurring";
+export { toMonthlyCostCents } from "./recurring";
 export { inferRecurringKind } from "./recurring";
 export { priceDrift, findOverlaps } from "./recurring";
 export type { Frequency, DetectableTransaction, DetectedRecurring, DriftResult, OverlapGroup } from "./recurring";

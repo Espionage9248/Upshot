@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toMonthlyCostCents, costPerUseCents } from "./cost";
+import { toMonthlyCostCents } from "./cost";
 import { nextExpectedDate } from "./detect";
 
 describe("toMonthlyCostCents", () => {
@@ -34,32 +34,6 @@ describe("toMonthlyCostCents", () => {
   it("returns an integer (not a float)", () => {
     const result = toMonthlyCostCents(1500, "WEEKLY");
     expect(Number.isInteger(result)).toBe(true);
-  });
-});
-
-describe("costPerUseCents", () => {
-  it("returns null when usageCount is 0", () => {
-    expect(costPerUseCents(6500, 0)).toBeNull();
-  });
-
-  it("returns null when usageCount is negative", () => {
-    expect(costPerUseCents(6500, -1)).toBeNull();
-  });
-
-  it("returns monthlyCostCents / usageCount when usageCount > 0", () => {
-    expect(costPerUseCents(6500, 5)).toBe(Math.round(6500 / 5)); // 1300
-  });
-
-  it("returns integer when result divides evenly", () => {
-    const result = costPerUseCents(1000, 4);
-    expect(result).toBe(250);
-    expect(Number.isInteger(result!)).toBe(true);
-  });
-
-  it("rounds to integer for non-divisible amounts", () => {
-    const result = costPerUseCents(1000, 3);
-    expect(result).toBe(Math.round(1000 / 3)); // 333
-    expect(Number.isInteger(result!)).toBe(true);
   });
 });
 

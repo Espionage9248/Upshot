@@ -107,24 +107,3 @@ export async function setRecurringKind(
   await repo.setKind(id, kind);
   logEvent(db, "set_kind", id, `Set kind to ${kind} for recurring item ${id}`, { kind });
 }
-
-// ---------------------------------------------------------------------------
-// setUsage
-// ---------------------------------------------------------------------------
-
-/**
- * Update the usage tally for a recurring item and write an event_log row.
- */
-export async function setUsage(
-  db: DbClient,
-  id: string,
-  usageCount: number,
-  usageResetAt: string | null = null,
-): Promise<void> {
-  const repo = new DrizzleRecurringRepo(db);
-  await repo.setUsage(id, usageCount, usageResetAt);
-  logEvent(db, "set_usage", id, `Set usage to ${usageCount} for recurring item ${id}`, {
-    usageCount,
-    usageResetAt,
-  });
-}

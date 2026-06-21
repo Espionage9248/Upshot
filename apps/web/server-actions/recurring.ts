@@ -20,7 +20,6 @@ import {
   pauseRecurring,
   removeRecurring,
   setRecurringKind,
-  setUsage,
 } from "./recurring-core";
 
 /** Action: accept a suggested recurring item → sets status ACTIVE. */
@@ -73,12 +72,3 @@ export const setRecurringKindAction = action(
   },
 );
 
-/** Action: update the manual usage tally for a recurring item. */
-export const setUsageAction = action(
-  async (_session, id: string, usageCount: number): Promise<void> => {
-    const { db } = getDb();
-    await setUsage(db, id, usageCount);
-    revalidatePath("/plan/recurring");
-    revalidatePath("/plan");
-  },
-);

@@ -1,5 +1,5 @@
 export { detectRecurring, detectFrequency, nextExpectedDate } from "./detect";
-export { toMonthlyCostCents, costPerUseCents } from "./cost";
+export { toMonthlyCostCents } from "./cost";
 export { inferRecurringKind } from "./kind";
 export { priceDrift, findOverlaps } from "./drift";
 export type {

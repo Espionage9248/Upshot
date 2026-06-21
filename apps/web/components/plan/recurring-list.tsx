@@ -11,7 +11,6 @@ import {
 import { toMonthlyCostCents } from "@upshot/core";
 import type { RecurringData, RecurringRow } from "@/app/(app)/plan/recurring/data";
 import { RecurringSuggestionCard } from "./recurring-suggestion-card";
-import { UsageControl } from "./usage-control";
 import { RecurringKindToggle } from "./recurring-kind-toggle";
 import { RecurringDeleteButton } from "./recurring-delete-button";
 
@@ -72,12 +71,6 @@ function RecurringItemCard({
               )}
             </div>
           </div>
-
-          <UsageControl
-            id={row.id}
-            usageCount={row.usageCount ?? 0}
-            monthlyCostCents={monthlyCents}
-          />
         </div>
       </CardBody>
     </Card>

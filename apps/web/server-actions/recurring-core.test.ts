@@ -9,7 +9,7 @@ import {
   tables,
   type DbClient,
 } from "@upshot/db";
-import { acceptSuggestion, dismissSuggestion, pauseRecurring, setUsage } from "./recurring-core";
+import { acceptSuggestion, dismissSuggestion, pauseRecurring, setRecurringKind } from "./recurring-core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -148,46 +148,23 @@ describe("pauseRecurring", () => {
 });
 
 // ---------------------------------------------------------------------------
-// setUsage
+// setRecurringKind
 // ---------------------------------------------------------------------------
 
-describe("setUsage", () => {
-  it("updates usageCount and writes an event_log entry", async () => {
+describe("setRecurringKind", () => {
+  it("overrides the kind and writes an event_log entry", async () => {
     const id = await createActive("Gym Membership");
 
-    await setUsage(db, id, 8);
+    await setRecurringKind(db, id, "BILL");
 
     const repo = new DrizzleRecurringRepo(db);
     const row = await repo.getById(id);
-    expect(row?.usageCount).toBe(8);
+    expect(row?.kind).toBe("BILL");
 
-    const logs = recurringEventRows("set_usage");
+    const logs = recurringEventRows("set_kind");
     expect(logs).toHaveLength(1);
     expect(logs[0]!.entityId).toBe(id);
     const meta = logs[0]!.meta as Record<string, unknown>;
-    expect(meta.usageCount).toBe(8);
-  });
-
-  it("updates usageResetAt when provided", async () => {
-    const id = await createActive("Gym Membership");
-
-    await setUsage(db, id, 0, "2026-07-01");
-
-    const repo = new DrizzleRecurringRepo(db);
-    const row = await repo.getById(id);
-    expect(row?.usageCount).toBe(0);
-    expect(row?.usageResetAt).toBe("2026-07-01");
-  });
-
-  it("event_log meta reflects usageCount and usageResetAt", async () => {
-    const id = await createActive();
-
-    await setUsage(db, id, 12, "2026-06-30");
-
-    const logs = recurringEventRows("set_usage");
-    expect(logs).toHaveLength(1);
-    const meta = logs[0]!.meta as Record<string, unknown>;
-    expect(meta.usageCount).toBe(12);
-    expect(meta.usageResetAt).toBe("2026-06-30");
+    expect(meta.kind).toBe("BILL");
   });
 });

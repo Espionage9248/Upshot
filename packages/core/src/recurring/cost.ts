@@ -18,12 +18,3 @@ export function toMonthlyCostCents(amountCents: number, frequency: Frequency): n
       return Math.round(amountCents / 12);
   }
 }
-
-/**
- * Cost per use: monthly cost divided by usage count.
- * Returns null if usageCount <= 0.
- */
-export function costPerUseCents(monthlyCostCents: number, usageCount: number): number | null {
-  if (usageCount <= 0) return null;
-  return Math.round(monthlyCostCents / usageCount);
-}
