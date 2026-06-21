@@ -45,7 +45,7 @@ export { computeMonthlySnapshot } from "./networth/snapshot";
 export type { MonthlySnapshotInput, MonthlySnapshot } from "./networth/snapshot";
 
 // Installments (Phase 5)
-export { matchInstallments, planProgress, bnplRollup } from "./installments";
+export { matchInstallments, planProgress, bnplRollup, BNPL_RECENT_MATCH_WINDOW_DAYS } from "./installments";
 export type { InstallmentPlanInput, MatchableTransaction, InstallmentMatch, PlanUpdate } from "./installments";
 
 // Debts (Phase 5)

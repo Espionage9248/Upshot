@@ -10,6 +10,69 @@ import { randomUUID } from "node:crypto";
 import { DrizzleInstallmentRepo, tables, type DbClient } from "@upshot/db";
 import type { NewInstallmentPlan } from "@upshot/core";
 
+// ---------------------------------------------------------------------------
+// UTC date arithmetic (mirrors packages/core/src/installments/match.ts:11)
+// ---------------------------------------------------------------------------
+
+/** Adds `n` days to an ISO date string (date part only, e.g. "2026-06-01"). */
+function addDays(isoDate: string, n: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number) as [number, number, number];
+  const date = new Date(Date.UTC(y, m - 1, d));
+  date.setUTCDate(date.getUTCDate() + n);
+  const yy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+// ---------------------------------------------------------------------------
+// buildInstallmentFromTransaction (pure, no db)
+// ---------------------------------------------------------------------------
+
+/** Input for Path A: transaction-anchored BNPL plan creation. */
+export interface BuildInstallmentFromTransactionInput {
+  txDate: string;
+  merchant: string;
+  installmentCents: number;
+  totalInstallments: number;
+  installmentsPaid: number;
+}
+
+/**
+ * Builds a NewInstallmentPlan from a source transaction.
+ *
+ * Rules:
+ * - frequencyDays is always 14 (BNPL invariant).
+ * - firstDueDate = txDate.
+ * - nextDueDate = txDate + installmentsPaid × 14.
+ * - totalCents = installmentCents × totalInstallments.
+ * - status = installmentsPaid >= totalInstallments ? "COMPLETE" : "ACTIVE".
+ */
+export function buildInstallmentFromTransaction(
+  input: BuildInstallmentFromTransactionInput,
+): NewInstallmentPlan {
+  const { txDate, merchant, installmentCents, totalInstallments, installmentsPaid } = input;
+  const frequencyDays = 14;
+  const firstDueDate = txDate;
+  const nextDueDate = addDays(txDate, installmentsPaid * frequencyDays);
+  const totalCents = installmentCents * totalInstallments;
+  const status: "ACTIVE" | "COMPLETE" =
+    installmentsPaid >= totalInstallments ? "COMPLETE" : "ACTIVE";
+  return {
+    merchant,
+    installmentCents,
+    totalInstallments,
+    installmentsPaid,
+    frequencyDays,
+    firstDueDate,
+    nextDueDate,
+    totalCents,
+    status,
+    matchRuleId: null,
+    notes: null,
+  };
+}
+
 /** Create input: id, notes, and matchRuleId are optional (auto-generated / null when absent). */
 export type CreateInstallmentInput = Omit<NewInstallmentPlan, "id" | "notes" | "matchRuleId"> & {
   id?: string;

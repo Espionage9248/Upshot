@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, test } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDbClient, applyMigrations, tables, type DbClient } from "@upshot/db";
-import { createInstallmentPlan, deleteInstallmentPlan } from "./installments-core";
+import { buildInstallmentFromTransaction, createInstallmentPlan, deleteInstallmentPlan } from "./installments-core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -120,4 +120,23 @@ describe("deleteInstallmentPlan", () => {
     expect(logs).toHaveLength(1);
     expect(logs[0]!.entityId).toBe(id);
   });
+});
+
+// ---------------------------------------------------------------------------
+// buildInstallmentFromTransaction
+// ---------------------------------------------------------------------------
+
+test("Path A: 14-day cadence, derived total, ACTIVE when partly paid", () => {
+  const p = buildInstallmentFromTransaction({ txDate: "2026-06-01", merchant: "Afterpay – ACME", installmentCents: 2500, totalInstallments: 4, installmentsPaid: 1 });
+  expect(p.frequencyDays).toBe(14);
+  expect(p.firstDueDate).toBe("2026-06-01");
+  expect(p.nextDueDate).toBe("2026-06-15");          // +1×14
+  expect(p.totalCents).toBe(10000);                   // 2500×4
+  expect(p.installmentsPaid).toBe(1);
+  expect(p.status).toBe("ACTIVE");
+});
+
+test("Path A: COMPLETE when installmentsPaid >= totalInstallments", () => {
+  const p = buildInstallmentFromTransaction({ txDate: "2026-06-01", merchant: "X", installmentCents: 2500, totalInstallments: 4, installmentsPaid: 4 });
+  expect(p.status).toBe("COMPLETE");
 });
