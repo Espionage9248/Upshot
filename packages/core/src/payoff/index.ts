@@ -8,3 +8,4 @@ export type {
   PlanStatus,
 } from "./types";
 export { orderByStrategy } from "./order";
+export { simulatePayoff } from "./simulate";
