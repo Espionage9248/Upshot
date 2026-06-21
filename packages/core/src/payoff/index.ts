@@ -10,3 +10,6 @@ export type {
 export { orderByStrategy } from "./order";
 export { simulatePayoff } from "./simulate";
 export { solveExtraForTargetDate } from "./solve";
+export { headroomCents } from "./headroom";
+export { evaluatePlanStatus } from "./status";
+export type { EvaluatePlanStatusArgs } from "./status";

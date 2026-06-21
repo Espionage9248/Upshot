@@ -60,7 +60,7 @@ export { InMemoryInstallmentRepo } from "./testing/in-memory-installment-repo";
 export { monthlySaveTarget } from "./purchases";
 
 // Payoff planner (Scenario Planner)
-export { orderByStrategy, simulatePayoff, solveExtraForTargetDate } from "./payoff";
+export { orderByStrategy, simulatePayoff, solveExtraForTargetDate, headroomCents, evaluatePlanStatus } from "./payoff";
 export type {
   PayoffDebtInput,
   LumpSum,
@@ -68,6 +68,7 @@ export type {
   PayoffInputs,
   PayoffResult,
   PlanStatus,
+  EvaluatePlanStatusArgs,
 } from "./payoff";
 
 // Recurring (Phase 5)
