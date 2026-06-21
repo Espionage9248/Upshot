@@ -28,6 +28,7 @@ export type CreatePurchaseInput = {
   priority?: number | null;
   url?: string | null;
   notes?: string | null;
+  category?: string | null;
 };
 
 /** Action: create a wishlist item. Returns the new purchase id. */
@@ -43,6 +44,7 @@ export const createPurchaseAction = action(
       priority: input.priority ?? null,
       url: input.url ?? null,
       notes: input.notes ?? null,
+      category: input.category ?? null,
       currency: "AUD",
     });
     revalidatePath("/plan/purchases");

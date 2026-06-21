@@ -31,6 +31,17 @@ function WishlistCard({
               /mo
             </div>
           )}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {row.category && <Badge tone="neutral">{row.category}</Badge>}
+            {row.targetDate && (
+              <span style={{ fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                by {row.targetDate}
+              </span>
+            )}
+          </div>
+          {row.notes && (
+            <p style={{ fontSize: 11.5, color: "var(--text-3)", margin: 0 }}>{row.notes}</p>
+          )}
           {row.url && (
             <a
               href={row.url}
@@ -41,7 +52,8 @@ function WishlistCard({
               {row.url}
             </a>
           )}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+            <PurchaseFormDialog purchase={row} />
             <PurchaseDeleteButton id={row.id} />
           </div>
         </div>
