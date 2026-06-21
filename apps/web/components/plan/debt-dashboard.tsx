@@ -7,6 +7,7 @@ import { Segmented, Money } from "@upshot/ui";
 import type { DebtsData } from "@/app/(app)/plan/debts/data";
 import { setDebtStrategyAction } from "@/server-actions/debts";
 import { DebtList } from "./debt-list";
+import { WhatIfPanel } from "./what-if-panel";
 
 const STRATEGY_OPTIONS = [
   { value: "SNOWBALL", label: "Snowball" },
@@ -46,7 +47,7 @@ export function DebtDashboard({ data }: { data: DebtsData }) {
         <Segmented options={STRATEGY_OPTIONS} value={data.strategy} onValueChange={onStrategy} aria-label="Debt payoff strategy" />
       </div>
 
-      {/* TASK 11 SLOT: <WhatIfPanel debts={...} baseAnalysis={analysis} /> goes here */}
+      {data.debts.length > 0 && <WhatIfPanel debts={data.debts.map((d) => ({ id: d.row.id, name: d.row.name }))} baseAnalysis={analysis} />}
 
       <DebtList data={data} />
 

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Card, CardBody, CardHeader, CardTitle, Badge, Money, UiProgress } from "@upshot/ui";
 import type { DebtDetailData } from "@/app/(app)/plan/debts/[id]/data";
 import type { MonthlyPayment } from "@upshot/core";
-import { WhatIfControl } from "./what-if-control";
+import { WhatIfPanel } from "./what-if-panel";
 
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
@@ -158,7 +158,7 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
             <CardTitle>What if I pay extra?</CardTitle>
           </CardHeader>
           <CardBody>
-            <WhatIfControl baseAnalysis={analysis} />
+            <WhatIfPanel debts={[{ id: debt.id, name: debt.name }]} baseAnalysis={analysis} />
           </CardBody>
         </Card>
       )}
