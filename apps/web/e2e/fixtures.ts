@@ -95,6 +95,25 @@ export function seedTestDb(): TestDb {
     })
     .run();
 
+  // One expense transaction (non-transfer, negative amount) so the /money
+  // "Mark as BNPL" and "Mark as purchase" write paths have a row to act on.
+  client
+    .insert(tables.transactions)
+    .values({
+      id: "e2e-tx-expense-1",
+      accountId: "e2e-acc-spend",
+      status: "SETTLED",
+      description: "Klarna Purchase",
+      amountCents: -5000,
+      isTransfer: false,
+      isSalary: false,
+      isInterest: false,
+      isTaxDeductible: false,
+      createdAt: "2026-06-14T10:00:00.000Z",
+      settledAt: "2026-06-14T10:00:00.000Z",
+    })
+    .run();
+
   client
     .insert(tables.eventLog)
     .values([
