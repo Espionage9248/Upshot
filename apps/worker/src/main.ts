@@ -3,12 +3,12 @@ import {
   createDbClientFromEnv, applyMigrations, seed,
   DrizzleAccountRepo, DrizzleTransactionRepo, DrizzleCategoryRepo,
   DrizzleMatchRuleRepo, DrizzleJobRunRepo, DrizzleSettingsRepo, type DbClient,
+  runSnapshotOnce, runFeesOnce, runDetectOnce,
 } from "@upshot/db";
 import { SyncService, UpClient } from "@upshot/core";
 import { NtfyNotifier, NullNotifier, type Notifier } from "./notifier";
 import { CircuitBreaker } from "./circuit-breaker";
 import { cadenceToCron, runSyncOnce } from "./scheduler";
-import { runSnapshotOnce } from "./snapshot";
 
 const CIRCUIT_BREAKER_THRESHOLD = 5;
 
@@ -57,10 +57,34 @@ export async function start(log: (message: string) => void = console.log): Promi
     catch (err) { log(`snapshot tick error: ${err instanceof Error ? err.message : String(err)}`); }
   };
 
+  const feesTick = async (): Promise<void> => {
+    try { const runId = await runFeesOnce({ db: db as DbClient, jobRuns }); log(`fees tick: ${runId}`); }
+    catch (err) { log(`fees tick error: ${err instanceof Error ? err.message : String(err)}`); }
+  };
+
+  const autoDetectRecurring = settings?.autoDetectRecurring ?? true;
+  const detectTick = async (): Promise<void> => {
+    try {
+      const runId = await runDetectOnce({
+        db: db as DbClient,
+        jobRuns,
+        settings: { autoDetectRecurring },
+      });
+      log(`detect tick: ${runId}`);
+    } catch (err) {
+      log(`detect tick error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
   const job = new Cron(cron, () => { void tick(); });
   const snapshotJob = new Cron("0 4 1 * *", () => { void snapshotTick(); });
+  const feesJob = new Cron("0 2 * * *", () => { void feesTick(); });
+  const detectJob = new Cron("0 5 * * *", () => { void detectTick(); });
   log(`worker started (cadence ${settings?.syncCadence ?? "DAILY"} -> "${cron}")`);
-  return { stop: () => { job.stop(); snapshotJob.stop(); }, runNow: tick };
+  return {
+    stop: () => { job.stop(); snapshotJob.stop(); feesJob.stop(); detectJob.stop(); },
+    runNow: tick,
+  };
 }
 
 function requireEnv(name: string): string {

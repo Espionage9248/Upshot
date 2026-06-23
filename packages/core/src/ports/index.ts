@@ -6,3 +6,6 @@ export type { MatchRuleRepo, LoadedRule } from "./match-rule-repo";
 export type { SettingsRepo, SettingsPatch } from "./settings-repo";
 export type { BudgetAllocationRepo, NewBudgetAllocation } from "./budget-allocation-repo";
 export type { AssetRepo, NewAsset } from "./asset-repo";
+export type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "./debt-repo";
+export type { InstallmentRepo, NewInstallmentPlan } from "./installment-repo";
+export type { RecurringRepo, NewRecurring } from "./recurring-repo";

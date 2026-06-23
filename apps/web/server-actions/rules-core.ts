@@ -16,7 +16,15 @@
  */
 
 import { eq } from "drizzle-orm";
-import { tables, DrizzleMatchRuleRepo, DrizzleCategoryRepo, type DbClient } from "@upshot/db";
+import {
+  tables,
+  DrizzleMatchRuleRepo,
+  DrizzleCategoryRepo,
+  DrizzleRecurringRepo,
+  DrizzleDebtRepo,
+  DrizzleInstallmentRepo,
+  type DbClient,
+} from "@upshot/db";
 import {
   previewMatches,
   planRuleApplication,
@@ -59,11 +67,41 @@ export async function saveRule(db: DbClient, rule: LoadedRule): Promise<SaveRule
   } else {
     await repo.create(rule);
   }
+
+  // Reconcile entity FKs from LINK_* actions (diff-based — never clear-all-then-set).
+  const linkPlan: Array<{
+    type: "LINK_RECURRING" | "LINK_DEBT" | "LINK_INSTALLMENT";
+    setMatchRule: (id: string, ruleId: string | null) => Promise<void>;
+  }> = [
+    { type: "LINK_RECURRING",   setMatchRule: (id, r) => new DrizzleRecurringRepo(db).setMatchRule(id, r) },
+    { type: "LINK_DEBT",        setMatchRule: (id, r) => new DrizzleDebtRepo(db).setMatchRule(id, r) },
+    { type: "LINK_INSTALLMENT", setMatchRule: (id, r) => new DrizzleInstallmentRepo(db).setMatchRule(id, r) },
+  ];
+
+  const targetsFor = (actions: LoadedRule["actions"], type: string): Set<string> =>
+    new Set(actions.filter((a) => a.type === type && a.targetId !== null).map((a) => a.targetId as string));
+
+  for (const { type, setMatchRule } of linkPlan) {
+    const oldTargets = targetsFor(exists?.actions ?? [], type);
+    const newTargets = targetsFor(rule.actions, type);
+    // Unlink only the targets this rule previously linked and no longer does.
+    for (const id of oldTargets) {
+      if (!newTargets.has(id)) await setMatchRule(id, null);
+    }
+    // Link the current targets.
+    for (const id of newTargets) {
+      await setMatchRule(id, rule.rule.id);
+    }
+  }
+
   return { ok: true };
 }
 
-/** Delete a rule (cascade removes its conditions + actions). */
+/** Delete a rule (cascade removes its conditions + actions). Also clears any entity FK pointing at this rule. */
 export async function deleteRule(db: DbClient, id: string): Promise<void> {
+  await new DrizzleRecurringRepo(db).clearMatchRuleByRule(id);
+  await new DrizzleDebtRepo(db).clearMatchRuleByRule(id);
+  await new DrizzleInstallmentRepo(db).clearMatchRuleByRule(id);
   await new DrizzleMatchRuleRepo(db).delete(id);
 }
 

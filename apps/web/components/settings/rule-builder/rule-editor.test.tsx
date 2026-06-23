@@ -22,6 +22,9 @@ const categoryOptions = [
   { value: "cat-fun", label: "Fun" },
 ];
 const tagOptions = [{ value: "tag-work", label: "tag-work" }];
+const debtOptions: { value: string; label: string }[] = [];
+const recurringOptions: { value: string; label: string }[] = [];
+const installmentOptions: { value: string; label: string }[] = [];
 
 function renderEditor(rule?: LoadedRule) {
   render(
@@ -29,6 +32,9 @@ function renderEditor(rule?: LoadedRule) {
       rule={rule ?? null}
       categoryOptions={categoryOptions}
       tagOptions={tagOptions}
+      debtOptions={debtOptions}
+      recurringOptions={recurringOptions}
+      installmentOptions={installmentOptions}
       onClose={vi.fn()}
     />,
   );
@@ -106,6 +112,9 @@ describe("RuleEditor", () => {
         rule={null}
         categoryOptions={categoryOptions}
         tagOptions={tagOptions}
+        debtOptions={debtOptions}
+        recurringOptions={recurringOptions}
+        installmentOptions={installmentOptions}
         onClose={onClose}
       />,
     );

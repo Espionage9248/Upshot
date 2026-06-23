@@ -66,6 +66,40 @@ describe("LedgerTable", () => {
     expect(screen.getByText("Groceries")).toBeInTheDocument();
   });
 
+  it("renders the transaction date, preferring settledAt over createdAt", () => {
+    render(
+      <LedgerTable
+        rows={[tx({ settledAt: "2026-06-14T10:00:00.000Z", createdAt: "2026-06-01T00:00:00.000Z" })]}
+        total={1}
+        page={0}
+        hasNext={false}
+        categoryNames={categoryNames}
+        rowTagIds={{}}
+        searchParams={{}}
+        categoryOptions={[]}
+        tagOptions={[]}
+      />,
+    );
+    expect(screen.getByText("2026-06-14")).toBeInTheDocument();
+  });
+
+  it("falls back to createdAt for the date when settledAt is null", () => {
+    render(
+      <LedgerTable
+        rows={[tx({ settledAt: null, createdAt: "2026-06-01T00:00:00.000Z" })]}
+        total={1}
+        page={0}
+        hasNext={false}
+        categoryNames={categoryNames}
+        rowTagIds={{}}
+        searchParams={{}}
+        categoryOptions={[]}
+        tagOptions={[]}
+      />,
+    );
+    expect(screen.getByText("2026-06-01")).toBeInTheDocument();
+  });
+
   it("renders flag chips for salary / transfer / interest / tax-deductible", () => {
     render(
       <LedgerTable

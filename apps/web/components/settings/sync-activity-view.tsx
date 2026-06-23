@@ -23,6 +23,11 @@ import {
 } from "@upshot/ui";
 import { syncHealthToState } from "@/lib/sync-state";
 import { syncNowAction } from "@/server-actions/sync";
+import {
+  runDetectNowAction,
+  runFeesNowAction,
+  runSnapshotNowAction,
+} from "@/server-actions/jobs";
 import type {
   SyncActivityData,
   RunRow,
@@ -73,6 +78,8 @@ export function SyncActivityView({ data }: { data: SyncActivityData }) {
         </Button>
       </div>
 
+      <MaintenanceJobs router={router} />
+
       <UiTabs defaultValue="runs">
         <TabsList>
           <TabsTrigger value="runs">Runs</TabsTrigger>
@@ -88,6 +95,50 @@ export function SyncActivityView({ data }: { data: SyncActivityData }) {
         </TabsContent>
       </UiTabs>
     </>
+  );
+}
+
+function MaintenanceJobs({ router }: { router: ReturnType<typeof useRouter> }) {
+  const [detectPending, startDetect] = useTransition();
+  const [feesPending, startFees] = useTransition();
+  const [snapshotPending, startSnapshot] = useTransition();
+
+  function onDetect() {
+    startDetect(async () => {
+      const res = await runDetectNowAction();
+      if (res.ok) router.refresh();
+    });
+  }
+  function onFees() {
+    startFees(async () => {
+      const res = await runFeesNowAction();
+      if (res.ok) router.refresh();
+    });
+  }
+  function onSnapshot() {
+    startSnapshot(async () => {
+      const res = await runSnapshotNowAction();
+      if (res.ok) router.refresh();
+    });
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)", marginBottom: 10 }}>
+        Maintenance jobs
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Button variant="secondary" leadingIcon="repeat" loading={detectPending} onClick={onDetect}>
+          Run detection
+        </Button>
+        <Button variant="secondary" leadingIcon="card" loading={feesPending} onClick={onFees}>
+          Accrue fees
+        </Button>
+        <Button variant="secondary" leadingIcon="trend" loading={snapshotPending} onClick={onSnapshot}>
+          Snapshot net worth
+        </Button>
+      </div>
+    </div>
   );
 }
 

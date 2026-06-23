@@ -65,7 +65,7 @@ export function AllocateDialog({ accountId, accountName, month, currentCents }: 
           Allocate
         </Button>
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent>
         <DialogTitle>Allocate to {accountName}</DialogTitle>
         <DialogDescription>Set this saver&rsquo;s budget for {month}.</DialogDescription>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

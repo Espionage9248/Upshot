@@ -82,7 +82,7 @@ export function TransferDialog({ month, fromAccountId, fromAccountName, destinat
           Move
         </Button>
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent>
         <DialogTitle>Move from {fromAccountName}</DialogTitle>
         <DialogDescription>Reallocate budget to another saver for {month}.</DialogDescription>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

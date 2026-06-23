@@ -4,7 +4,7 @@ export const ACCOUNT_ROLES = ["SPENDING", "SAVER", "ESSENTIALS", "EMERGENCY", "N
 
 export const TRANSACTION_STATUSES = ["HELD", "SETTLED"] as const;
 
-export const DEBT_TYPES = ["PERSONAL_LOAN", "CREDIT_CARD", "MORTGAGE", "CAR", "TAX", "OVERDRAFT"] as const;
+export const DEBT_TYPES = ["PERSONAL_LOAN", "CREDIT_CARD", "MORTGAGE", "CAR", "TAX", "OVERDRAFT", "BNPL"] as const;
 export const INSTALLMENT_STATUSES = ["ACTIVE", "COMPLETE"] as const;
 
 export const RECURRING_KINDS = ["BILL", "SUBSCRIPTION"] as const;

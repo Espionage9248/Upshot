@@ -12,6 +12,7 @@ import {
   DialogTrigger,
   DialogContent,
   DialogTitle,
+  DialogDescription,
   type UiSelectOption,
 } from "@upshot/ui";
 import { saveRuleAction, deleteRuleAction } from "@/server-actions/rules";
@@ -25,6 +26,10 @@ const ACTION_LABEL: Record<string, string> = {
   MARK_TRANSFER: "mark transfer",
   MARK_INTEREST: "mark interest",
   MARK_DEDUCTIBLE: "mark deductible",
+  LINK_DEBT: "link debt",
+  LINK_RECURRING: "link recurring",
+  LINK_INSTALLMENT: "link BNPL",
+  IGNORE_SUBSCRIPTION: "ignore subscription",
 };
 
 /** Read-only one-line summary of a rule's conditions → actions. */
@@ -47,10 +52,16 @@ export function RuleList({
   rules,
   categoryOptions,
   tagOptions,
+  debtOptions,
+  recurringOptions,
+  installmentOptions,
 }: {
   rules: LoadedRule[];
   categoryOptions: UiSelectOption[];
   tagOptions: UiSelectOption[];
+  debtOptions: UiSelectOption[];
+  recurringOptions: UiSelectOption[];
+  installmentOptions: UiSelectOption[];
 }) {
   const router = useRouter();
   // `open` is the rule being edited, or "new", or null (closed).
@@ -131,11 +142,17 @@ export function RuleList({
 
       <DialogContent>
         <DialogTitle>{open === "new" ? "New rule" : "Edit rule"}</DialogTitle>
+        <DialogDescription>
+          Define how matching transactions are renamed, tagged, or categorised.
+        </DialogDescription>
         {open !== null && (
           <RuleEditor
             rule={open === "new" ? null : open}
             categoryOptions={categoryOptions}
             tagOptions={tagOptions}
+            debtOptions={debtOptions}
+            recurringOptions={recurringOptions}
+            installmentOptions={installmentOptions}
             onClose={close}
           />
         )}

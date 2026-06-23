@@ -130,6 +130,7 @@ export function CommandPalette() {
           <Dialog.Content
             onKeyDown={onContentKeyDown}
             aria-label="Command palette"
+            aria-describedby={undefined}
             style={{
               position: "fixed",
               top: 70,

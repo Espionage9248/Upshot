@@ -62,11 +62,17 @@ export function RuleEditor({
   rule,
   categoryOptions,
   tagOptions,
+  debtOptions,
+  recurringOptions,
+  installmentOptions,
   onClose,
 }: {
   rule: LoadedRule | null;
   categoryOptions: UiSelectOption[];
   tagOptions: UiSelectOption[];
+  debtOptions: UiSelectOption[];
+  recurringOptions: UiSelectOption[];
+  installmentOptions: UiSelectOption[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -146,6 +152,9 @@ export function RuleEditor({
             action={a}
             categoryOptions={categoryOptions}
             tagOptions={tagOptions}
+            debtOptions={debtOptions}
+            recurringOptions={recurringOptions}
+            installmentOptions={installmentOptions}
             onChange={(next) => changeAction(i, next)}
             onRemove={() => removeAction(i)}
           />

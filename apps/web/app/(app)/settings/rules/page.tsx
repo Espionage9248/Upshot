@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { tables, DrizzleCategoryRepo } from "@upshot/db";
+import { tables, DrizzleCategoryRepo, DrizzleDebtRepo, DrizzleRecurringRepo, DrizzleInstallmentRepo } from "@upshot/db";
 import { getDb } from "@/lib/db";
 import { listRules } from "@/server-actions/rules-core";
 import { RuleList } from "@/components/settings/rule-builder/rule-list";
@@ -17,6 +17,10 @@ export default async function RulesPage(): Promise<ReactNode> {
   const tagRows = db.select({ id: tables.tags.id }).from(tables.tags).all();
   const tagOptions = tagRows.map((t) => ({ value: t.id, label: t.id }));
 
+  const debtOptions = (await new DrizzleDebtRepo(db).list()).map((d) => ({ value: d.id, label: d.name }));
+  const recurringOptions = (await new DrizzleRecurringRepo(db).list()).map((i) => ({ value: i.id, label: i.name }));
+  const installmentOptions = (await new DrizzleInstallmentRepo(db).list()).map((p) => ({ value: p.id, label: p.merchant }));
+
   return (
     <>
       <div>
@@ -26,7 +30,14 @@ export default async function RulesPage(): Promise<ReactNode> {
         </div>
       </div>
 
-      <RuleList rules={rules} categoryOptions={categoryOptions} tagOptions={tagOptions} />
+      <RuleList
+        rules={rules}
+        categoryOptions={categoryOptions}
+        tagOptions={tagOptions}
+        debtOptions={debtOptions}
+        recurringOptions={recurringOptions}
+        installmentOptions={installmentOptions}
+      />
     </>
   );
 }

@@ -13,32 +13,64 @@ export interface MatchTarget {
   foreignCurrency: string | null;
 }
 
-/** Phase 2 supports the transaction-column actions only. The rest are deferred (Phase 4.3). */
-const SUPPORTED = new Set(["RENAME", "SET_CATEGORY", "MARK_SALARY", "MARK_TRANSFER", "MARK_INTEREST", "MARK_DEDUCTIBLE"]);
+export interface LinkIntent {
+  kind: "DEBT" | "RECURRING" | "INSTALLMENT" | "IGNORE_SUBSCRIPTION";
+  targetId: string | null; // null only for IGNORE_SUBSCRIPTION
+  transactionId: string;
+}
 
 /**
  * Apply active rules (assumed already sorted by ascending priority) to `txn`.
- * Conditions are evaluated against the immutable `target`; supported actions
- * accumulate onto a copy of `txn`. Returns the result + the list of applied
- * action types (for counts).
+ * Conditions are evaluated against the immutable `target`; transaction-column
+ * actions accumulate onto a copy of `txn`. Side-effect actions (APPLY_TAG,
+ * LINK_*, IGNORE_SUBSCRIPTION) are emitted as `tagIds` / `linkIntents` for
+ * the caller to apply to separate relations. Returns the result + the list of
+ * applied action types (for counts).
  */
 export function applyRules(
   txn: NewTransaction,
   target: MatchTarget,
   rules: LoadedRule[],
-): { transaction: NewTransaction; applied: string[] } {
+): { transaction: NewTransaction; applied: string[]; linkIntents: LinkIntent[]; tagIds: string[] } {
   let out = { ...txn };
   const applied: string[] = [];
+  const linkIntents: LinkIntent[] = [];
+  const tagIds: string[] = [];
   for (const { rule, conditions, actions } of rules) {
     if (!rule.isActive || conditions.length === 0) continue;
     if (!conditions.every((c) => evaluateCondition(c, target))) continue;
     for (const action of actions) {
-      if (!SUPPORTED.has(action.type)) continue;
-      out = applyAction(out, action);
       applied.push(action.type);
+      switch (action.type) {
+        case "RENAME":
+        case "SET_CATEGORY":
+        case "MARK_SALARY":
+        case "MARK_TRANSFER":
+        case "MARK_INTEREST":
+        case "MARK_DEDUCTIBLE":
+          out = applyAction(out, action);
+          break;
+        case "APPLY_TAG":
+          if (action.targetId !== null) tagIds.push(action.targetId);
+          break;
+        case "LINK_DEBT":
+          linkIntents.push({ kind: "DEBT", targetId: action.targetId, transactionId: txn.id });
+          break;
+        case "LINK_RECURRING":
+          linkIntents.push({ kind: "RECURRING", targetId: action.targetId, transactionId: txn.id });
+          break;
+        case "LINK_INSTALLMENT":
+          linkIntents.push({ kind: "INSTALLMENT", targetId: action.targetId, transactionId: txn.id });
+          break;
+        case "IGNORE_SUBSCRIPTION":
+          linkIntents.push({ kind: "IGNORE_SUBSCRIPTION", targetId: null, transactionId: txn.id });
+          break;
+        default:
+          return assertNever(action.type);
+      }
     }
   }
-  return { transaction: out, applied };
+  return { transaction: out, applied, linkIntents, tagIds };
 }
 
 export function evaluateCondition(c: MatchCondition, t: MatchTarget): boolean {
@@ -101,7 +133,14 @@ function applyAction(txn: NewTransaction, action: MatchAction): NewTransaction {
     case "MARK_TRANSFER": return { ...txn, isTransfer: true };
     case "MARK_INTEREST": return { ...txn, isInterest: true };
     case "MARK_DEDUCTIBLE": return { ...txn, isTaxDeductible: true, taxDeductionCategory: action.value ?? txn.taxDeductionCategory };
-    default: return txn;
+    // The cases below are handled in applyRules before applyAction is called — they should never reach here.
+    case "APPLY_TAG":
+    case "LINK_DEBT":
+    case "LINK_RECURRING":
+    case "LINK_INSTALLMENT":
+    case "IGNORE_SUBSCRIPTION":
+      return txn;
+    default: return assertNever(action.type);
   }
 }
 

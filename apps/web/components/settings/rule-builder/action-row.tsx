@@ -7,9 +7,8 @@ import { Input, UiSelect, Button, UIcon, type UiSelectOption } from "@upshot/ui"
 type MatchAction = LoadedRule["actions"][number];
 
 /**
- * Action types OFFERED in the builder. Deliberately excludes
- * IGNORE_SUBSCRIPTION / LINK_* — C2 no-ops those in Phase 4, so offering them
- * would let the user build a rule that does nothing.
+ * Action types offered in the builder. Now includes LINK_DEBT / LINK_RECURRING /
+ * LINK_INSTALLMENT / IGNORE_SUBSCRIPTION — all wired and honoured by the engine.
  */
 const ACTION_OPTIONS = [
   { value: "RENAME", label: "Rename to" },
@@ -19,24 +18,35 @@ const ACTION_OPTIONS = [
   { value: "MARK_TRANSFER", label: "Mark as transfer" },
   { value: "MARK_INTEREST", label: "Mark as interest" },
   { value: "MARK_DEDUCTIBLE", label: "Mark tax-deductible" },
+  { value: "LINK_DEBT", label: "Link to debt" },
+  { value: "LINK_RECURRING", label: "Link to recurring" },
+  { value: "LINK_INSTALLMENT", label: "Link to BNPL plan" },
+  { value: "IGNORE_SUBSCRIPTION", label: "Ignore (not a subscription)" },
 ];
 
 /**
  * One action row: `→ [action] [dependent field]`, styled as the coral action
  * chip (--coral-dim / --coral-text). SET_CATEGORY / APPLY_TAG write the chosen
- * id to targetId; RENAME writes free text to value; MARK_* have no extra field.
- * These placements match C3/C2 exactly. Serializable props only.
+ * id to targetId; RENAME writes free text to value; MARK_* and
+ * IGNORE_SUBSCRIPTION have no extra field; LINK_* show an entity target picker.
+ * Serializable props only.
  */
 export function ActionRow({
   action,
   categoryOptions,
   tagOptions,
+  debtOptions,
+  recurringOptions,
+  installmentOptions,
   onChange,
   onRemove,
 }: {
   action: MatchAction;
   categoryOptions: UiSelectOption[];
   tagOptions: UiSelectOption[];
+  debtOptions: UiSelectOption[];
+  recurringOptions: UiSelectOption[];
+  installmentOptions: UiSelectOption[];
   onChange: (next: MatchAction) => void;
   onRemove: () => void;
 }) {
@@ -97,6 +107,42 @@ export function ActionRow({
             options={tagOptions}
             value={action.targetId ?? undefined}
             placeholder="Choose tag"
+            onValueChange={(v) => onChange({ ...action, targetId: v })}
+          />
+        </div>
+      )}
+
+      {action.type === "LINK_DEBT" && (
+        <div style={{ minWidth: 170 }}>
+          <UiSelect
+            aria-label="Target debt"
+            options={debtOptions}
+            value={action.targetId ?? undefined}
+            placeholder="Choose debt"
+            onValueChange={(v) => onChange({ ...action, targetId: v })}
+          />
+        </div>
+      )}
+
+      {action.type === "LINK_RECURRING" && (
+        <div style={{ minWidth: 170 }}>
+          <UiSelect
+            aria-label="Target recurring item"
+            options={recurringOptions}
+            value={action.targetId ?? undefined}
+            placeholder="Choose recurring item"
+            onValueChange={(v) => onChange({ ...action, targetId: v })}
+          />
+        </div>
+      )}
+
+      {action.type === "LINK_INSTALLMENT" && (
+        <div style={{ minWidth: 170 }}>
+          <UiSelect
+            aria-label="Target BNPL plan"
+            options={installmentOptions}
+            value={action.targetId ?? undefined}
+            placeholder="Choose plan"
             onValueChange={(v) => onChange({ ...action, targetId: v })}
           />
         </div>

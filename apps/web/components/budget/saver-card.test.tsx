@@ -95,4 +95,37 @@ describe("SaverCard", () => {
     render(<SaverCard saver={makeSaver()} />);
     expect(screen.queryByTestId("saver-bar")).toBeNull();
   });
+
+  // --- 6-month breakdown ---
+  it("renders a month label for each entry in last6Months", () => {
+    const analysis = {
+      ...makeSaver().analysis,
+      last6Months: [
+        { month: "2026-05", allocated: 60000, spent: 40000, variance: 20000 },
+        { month: "2026-04", allocated: 60000, spent: 55000, variance: 5000 },
+        { month: "2026-03", allocated: 60000, spent: 62000, variance: -2000 },
+      ],
+    };
+    render(<SaverCard saver={makeSaver({ analysis })} />);
+    // Should show short month labels (oldest-to-newest left-to-right)
+    expect(screen.getByTestId("saver-month-history")).toBeInTheDocument();
+    expect(screen.getAllByTestId("saver-month-row").length).toBe(3);
+  });
+
+  it("renders variance via Money for each month row", () => {
+    const analysis = {
+      ...makeSaver().analysis,
+      last6Months: [
+        { month: "2026-05", allocated: 60000, spent: 40000, variance: 20000 },
+      ],
+    };
+    render(<SaverCard saver={makeSaver({ analysis })} />);
+    // Variance of 20000 cents = $200 saved
+    expect(screen.getByTestId("saver-month-variance")).toBeInTheDocument();
+  });
+
+  it("omits the 6-month section when last6Months is empty", () => {
+    render(<SaverCard saver={makeSaver()} />);
+    expect(screen.queryByTestId("saver-month-history")).toBeNull();
+  });
 });

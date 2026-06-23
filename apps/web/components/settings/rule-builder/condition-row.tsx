@@ -19,11 +19,20 @@ const MODE_OPTIONS = [
   { value: "regex", label: "matches regex" },
 ];
 
+/** Parse a dollar string to integer cents; null when blank or invalid. */
+function dollarsToCents(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null;
+  return Math.round(Number(trimmed) * 100);
+}
+
 /**
- * One condition row: `IF [field] [operator] [value]`. Field/operator are
+ * One condition row: `IF [field] [operator] [value]` with an optional second
+ * line for `≈ $[amount] ± $[tolerance] [currency]`. Field/operator are
  * token-styled chips (--surface-2 / --line); value is a free-text Input. Amount
- * / tolerance / currency are omitted for v1 (kept null on the assembled
- * condition). Serializable props only — no @upshot/db.
+ * / tolerance / currency are optional — null means no amount check. Serializable
+ * props only — no @upshot/db.
  */
 export function ConditionRow({
   condition,
@@ -86,6 +95,53 @@ export function ConditionRow({
       >
         <UIcon name="x" size={14} />
       </Button>
+
+      {/* Optional amount constraint — same flex container, wraps to a second line */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          flexBasis: "100%",
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>≈ $</span>
+        <div style={{ width: 80 }}>
+          <Input
+            aria-label="Condition amount"
+            value={condition.amountCents != null ? (condition.amountCents / 100).toFixed(2) : ""}
+            onChange={(e) =>
+              onChange({ ...condition, amountCents: dollarsToCents(e.target.value) })
+            }
+            placeholder="8.00"
+          />
+        </div>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>±$</span>
+        <div style={{ width: 80 }}>
+          <Input
+            aria-label="Condition tolerance"
+            value={condition.toleranceCents != null ? (condition.toleranceCents / 100).toFixed(2) : ""}
+            onChange={(e) =>
+              onChange({ ...condition, toleranceCents: dollarsToCents(e.target.value) })
+            }
+            placeholder="0.50"
+          />
+        </div>
+        <div style={{ width: 70 }}>
+          <Input
+            aria-label="Condition currency"
+            value={condition.currency ?? ""}
+            onChange={(e) =>
+              onChange({
+                ...condition,
+                currency: e.target.value.toUpperCase() || null,
+              })
+            }
+            placeholder="USD"
+          />
+        </div>
+      </div>
     </div>
   );
 }

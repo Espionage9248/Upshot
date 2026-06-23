@@ -1,6 +1,6 @@
 // packages/core/src/match/engine.test.ts
 import { describe, it, expect } from "vitest";
-import { applyRules, type MatchTarget } from "./engine";
+import { applyRules, type MatchTarget, type LinkIntent } from "./engine";
 import type { LoadedRule } from "../ports/match-rule-repo";
 import type { NewTransaction } from "../ports/transaction-repo";
 
@@ -114,17 +114,18 @@ describe("applyRules — salary / transfer / interest / deductible", () => {
 });
 
 describe("applyRules — engine semantics", () => {
-  it("ignores unsupported actions (APPLY_TAG/LINK_*) and does not count them", () => {
+  it("APPLY_TAG is now honoured: appears in applied + emitted in tagIds", () => {
     const txn = baseTxn({ description: "Netflix" });
     const rules = [rule({}, [
       { id: "c", ruleId: "r", field: "description", mode: "contains", value: "netflix", amountCents: null, toleranceCents: null, currency: null },
     ], [
-      { id: "a1", ruleId: "r", type: "APPLY_TAG", value: "Streaming", targetId: null },
+      { id: "a1", ruleId: "r", type: "APPLY_TAG", value: "Streaming", targetId: "tag-streaming" },
       { id: "a2", ruleId: "r", type: "MARK_DEDUCTIBLE", value: null, targetId: null },
     ])];
-    const { transaction, applied } = applyRules(txn, targetFrom(txn), rules);
+    const { transaction, applied, tagIds } = applyRules(txn, targetFrom(txn), rules);
     expect(transaction.isTaxDeductible).toBe(true);
-    expect(applied).toEqual(["MARK_DEDUCTIBLE"]); // APPLY_TAG not applied
+    expect(applied).toEqual(["APPLY_TAG", "MARK_DEDUCTIBLE"]);
+    expect(tagIds).toEqual(["tag-streaming"]);
   });
 
   it("evaluates against the original target — a RENAME does not affect later rules", () => {
@@ -181,5 +182,102 @@ describe("applyRules — engine semantics", () => {
     ], [{ id: "a", ruleId: "r", type: "MARK_DEDUCTIBLE", value: null, targetId: null }])];
     expect(applyRules(onAmount, targetFrom(onAmount), rules).transaction.isTaxDeductible).toBe(true);
     expect(applyRules(offByOne, targetFrom(offByOne), rules).transaction.isTaxDeductible).toBe(false);
+  });
+});
+
+describe("applyRules — LinkIntent + tagIds side-effects", () => {
+  it("LINK_RECURRING in-band emits a RECURRING intent; out-of-band emits nothing", () => {
+    // Patreon USD semantics: condition on foreignCurrency=USD, 800 cents ±50
+    const txnInBand = baseTxn({ id: "t-in", description: "Patreon", amountCents: -1250, foreignAmountCents: -810, foreignCurrency: "USD" });
+    const txnOutOfBand = baseTxn({ id: "t-out", description: "Patreon", amountCents: -1400, foreignAmountCents: -900, foreignCurrency: "USD" });
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "description", mode: "contains", value: "patreon", amountCents: 800, toleranceCents: 50, currency: "USD" },
+    ], [
+      { id: "a", ruleId: "r", type: "LINK_RECURRING", value: null, targetId: "rec-1" },
+    ])];
+
+    const inResult = applyRules(txnInBand, targetFrom(txnInBand), rules);
+    const expectedIntent: LinkIntent = { kind: "RECURRING", targetId: "rec-1", transactionId: "t-in" };
+    expect(inResult.linkIntents).toEqual([expectedIntent]);
+    expect(inResult.applied).toEqual(["LINK_RECURRING"]);
+
+    const outResult = applyRules(txnOutOfBand, targetFrom(txnOutOfBand), rules);
+    expect(outResult.linkIntents).toEqual([]);
+    expect(outResult.applied).toEqual([]);
+  });
+
+  it("APPLY_TAG emits tagId when targetId is non-null", () => {
+    const txn = baseTxn({ description: "Spotify" });
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "description", mode: "contains", value: "spotify", amountCents: null, toleranceCents: null, currency: null },
+    ], [
+      { id: "a", ruleId: "r", type: "APPLY_TAG", value: null, targetId: "tag-x" },
+    ])];
+    const { tagIds, linkIntents, applied } = applyRules(txn, targetFrom(txn), rules);
+    expect(tagIds).toEqual(["tag-x"]);
+    expect(linkIntents).toEqual([]);
+    expect(applied).toEqual(["APPLY_TAG"]);
+  });
+
+  it("APPLY_TAG with null targetId does not push to tagIds", () => {
+    const txn = baseTxn({ description: "Spotify" });
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "description", mode: "contains", value: "spotify", amountCents: null, toleranceCents: null, currency: null },
+    ], [
+      { id: "a", ruleId: "r", type: "APPLY_TAG", value: null, targetId: null },
+    ])];
+    const { tagIds, applied } = applyRules(txn, targetFrom(txn), rules);
+    expect(tagIds).toEqual([]);
+    expect(applied).toEqual(["APPLY_TAG"]);
+  });
+
+  it("LINK_DEBT emits a DEBT intent", () => {
+    const txn = baseTxn({ id: "t-debt", description: "CBA Repayment" });
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "description", mode: "contains", value: "cba", amountCents: null, toleranceCents: null, currency: null },
+    ], [
+      { id: "a", ruleId: "r", type: "LINK_DEBT", value: null, targetId: "debt-1" },
+    ])];
+    const { linkIntents, applied } = applyRules(txn, targetFrom(txn), rules);
+    expect(linkIntents).toEqual([{ kind: "DEBT", targetId: "debt-1", transactionId: "t-debt" }]);
+    expect(applied).toEqual(["LINK_DEBT"]);
+  });
+
+  it("LINK_INSTALLMENT emits an INSTALLMENT intent", () => {
+    const txn = baseTxn({ id: "t-inst", description: "Afterpay" });
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "description", mode: "contains", value: "afterpay", amountCents: null, toleranceCents: null, currency: null },
+    ], [
+      { id: "a", ruleId: "r", type: "LINK_INSTALLMENT", value: null, targetId: "inst-1" },
+    ])];
+    const { linkIntents, applied } = applyRules(txn, targetFrom(txn), rules);
+    expect(linkIntents).toEqual([{ kind: "INSTALLMENT", targetId: "inst-1", transactionId: "t-inst" }]);
+    expect(applied).toEqual(["LINK_INSTALLMENT"]);
+  });
+
+  it("IGNORE_SUBSCRIPTION emits an IGNORE_SUBSCRIPTION intent with null targetId", () => {
+    const txn = baseTxn({ id: "t-ign", description: "Netflix" });
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "description", mode: "contains", value: "netflix", amountCents: null, toleranceCents: null, currency: null },
+    ], [
+      { id: "a", ruleId: "r", type: "IGNORE_SUBSCRIPTION", value: null, targetId: null },
+    ])];
+    const { linkIntents, applied } = applyRules(txn, targetFrom(txn), rules);
+    expect(linkIntents).toEqual([{ kind: "IGNORE_SUBSCRIPTION", targetId: null, transactionId: "t-ign" }]);
+    expect(applied).toEqual(["IGNORE_SUBSCRIPTION"]);
+  });
+
+  it("multiple actions in one rule produce multiple intents and tagIds", () => {
+    const txn = baseTxn({ id: "t-multi", description: "Patreon" });
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "description", mode: "contains", value: "patreon", amountCents: null, toleranceCents: null, currency: null },
+    ], [
+      { id: "a1", ruleId: "r", type: "APPLY_TAG", value: null, targetId: "tag-sub" },
+      { id: "a2", ruleId: "r", type: "LINK_RECURRING", value: null, targetId: "rec-99" },
+    ])];
+    const { tagIds, linkIntents, applied } = applyRules(txn, targetFrom(txn), rules);
+    expect(tagIds).toEqual(["tag-sub"]);
+    expect(linkIntents).toEqual([{ kind: "RECURRING", targetId: "rec-99", transactionId: "t-multi" }]);
+    expect(applied).toEqual(["APPLY_TAG", "LINK_RECURRING"]);
   });
 });

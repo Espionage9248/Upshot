@@ -19,7 +19,7 @@ export {
 } from "./up/types";
 export { mapAccount, mapTransaction, mapCategory } from "./up/mappers";
 export { withRetry, type RetryOptions } from "./up/retry";
-export { applyRules, evaluateCondition, type MatchTarget } from "./match/engine";
+export { applyRules, evaluateCondition, type MatchTarget, type LinkIntent } from "./match/engine";
 export { previewMatches, planRuleApplication, validateRuleTargets } from "./match/apply";
 export type { RulePatch } from "./match/apply";
 export { SyncService, INCREMENTAL_OVERLAP_MS, type SyncDeps, type SyncResult } from "./sync/sync-service";
@@ -43,3 +43,27 @@ export { computeNetWorth } from "./networth";
 export type { NetWorthInput } from "./networth";
 export { computeMonthlySnapshot } from "./networth/snapshot";
 export type { MonthlySnapshotInput, MonthlySnapshot } from "./networth/snapshot";
+
+// Installments (Phase 5)
+export { matchInstallments, planProgress, bnplRollup, BNPL_RECENT_MATCH_WINDOW_DAYS } from "./installments";
+export type { InstallmentPlanInput, MatchableTransaction, InstallmentMatch, PlanUpdate } from "./installments";
+
+// Debts (Phase 5)
+export { addMonths, monthsBetween, computeSnowball, computeWhatIf, utilisation, accrueFee, matchDebtPayments, compilePatternRegex } from "./debt";
+export type { DebtStrategy, DebtInput, MonthlyPayment, PayoffSchedule, SnowballAnalysis, FeeAccrualInput, DebtMatcher, DebtPaymentMatch, DebtBalanceUpdate } from "./debt";
+export type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "./ports";
+export { InMemoryDebtRepo } from "./testing/in-memory-debt-repo";
+export type { InstallmentRepo, NewInstallmentPlan } from "./ports";
+export { InMemoryInstallmentRepo } from "./testing/in-memory-installment-repo";
+
+// Purchases (Plan Room)
+export { monthlySaveTarget } from "./purchases";
+
+// Recurring (Phase 5)
+export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring";
+export { toMonthlyCostCents } from "./recurring";
+export { inferRecurringKind } from "./recurring";
+export { priceDrift, findOverlaps } from "./recurring";
+export type { Frequency, DetectableTransaction, DetectedRecurring, DriftResult, OverlapGroup } from "./recurring";
+export type { RecurringRepo, NewRecurring } from "./ports";
+export { InMemoryRecurringRepo } from "./testing/in-memory-recurring-repo";

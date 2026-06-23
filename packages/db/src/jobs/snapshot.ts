@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { JobRunRepo } from "@upshot/core";
 import { computeMonthlySnapshot } from "@upshot/core";
-import {
-  DrizzleAccountRepo, DrizzleAssetRepo, tables, type DbClient,
-} from "@upshot/db";
+import { DrizzleAccountRepo } from "../repositories/account-repo";
+import { DrizzleAssetRepo } from "../repositories/asset-repo";
+import type { DbClient } from "../client";
+import * as tables from "../schema";
 
 /**
  * Compute and upsert the monthly net-worth snapshot for the previous complete
