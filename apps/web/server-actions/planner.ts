@@ -10,7 +10,7 @@
 import { revalidatePath } from "next/cache";
 import { action } from "@/lib/action";
 import { getDb } from "@/lib/db";
-import { simulatePayoff, solveExtraForTargetDate, toMonthlyCostCents, type PayoffResult } from "@upshot/core";
+import { simulatePayoff, solveExtraForTargetDate, toMonthlyCostCents, headroomCents, type PayoffResult } from "@upshot/core";
 import {
   DrizzleDebtRepo,
   DrizzleRecurringRepo,
@@ -62,10 +62,11 @@ export const previewScenarioAction = action(
   async (
     _session,
     inputs: ScenarioInputs,
-  ): Promise<{ scenario: PayoffResult; baseline: PayoffResult; extraPaymentCents: number; achievable: boolean }> => {
+  ): Promise<{ scenario: PayoffResult; baseline: PayoffResult; extraPaymentCents: number; achievable: boolean; headroomCents: number; overHeadroom: boolean }> => {
     const { db } = getDb();
     const { debts, recurring, startMonth } = await liveContext(db);
     const built = buildPayoffInputs(inputs, debts, recurring, startMonth);
+    const headroom = headroomCents(inputs.baseIncomeCents, built.expenseCents, built.minimumsCents);
 
     const baseline = simulatePayoff({ ...built.payoffInputs, extraSchedule: [{ fromMonth: startMonth, extraCents: 0 }], lumpSums: [] });
 
@@ -75,11 +76,11 @@ export const previewScenarioAction = action(
         inputs.targetMonth,
       );
       const scenario = simulatePayoff({ ...built.payoffInputs, extraSchedule: [{ fromMonth: startMonth, extraCents }] });
-      return { scenario, baseline, extraPaymentCents: extraCents, achievable };
+      return { scenario, baseline, extraPaymentCents: extraCents, achievable, headroomCents: headroom, overHeadroom: extraCents > headroom };
     }
 
     const scenario = simulatePayoff(built.payoffInputs);
-    return { scenario, baseline, extraPaymentCents: built.preExtraCents, achievable: true };
+    return { scenario, baseline, extraPaymentCents: built.preExtraCents, achievable: true, headroomCents: headroom, overHeadroom: built.preExtraCents > headroom };
   },
 );
 

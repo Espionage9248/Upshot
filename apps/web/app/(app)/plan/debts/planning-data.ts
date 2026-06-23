@@ -6,6 +6,7 @@ import {
   DrizzlePlanningScenarioRepo,
   tables,
   type DbClient,
+  type ScenarioInputs,
 } from "@upshot/db";
 import { simulatePayoff, evaluatePlanStatus, orderByStrategy, toMonthlyCostCents } from "@upshot/core";
 import { buildPayoffInputs, type PlannerDebt } from "@/server-actions/planner-core";
@@ -17,7 +18,7 @@ export interface PlanningData {
   recurring: { id: string; name: string; monthlyCents: number; kind: string }[];
   debts: { id: string; name: string; currentBalanceCents: number; minimumPaymentCents: number; interestRate: number | null; includeInSnowball: boolean }[];
   strategy: "SNOWBALL" | "AVALANCHE" | "CUSTOM";
-  scenarios: { id: string; name: string; debtFreeMonth: string | null; extraPaymentCents: number }[];
+  scenarios: { id: string; name: string; debtFreeMonth: string | null; extraPaymentCents: number; interestSavedCents: number; monthsSaved: number }[];
   lockedPlan: {
     lockedAt: string;
     extraPaymentCents: number;
@@ -28,6 +29,9 @@ export interface PlanningData {
     balanceGapCents: number;
     slipMonths: number;
     contributionsShortfallCents: number;
+    lockBalanceCents: number;
+    projectedCurve: { month: string; balanceCents: number }[];
+    inputs: ScenarioInputs | null;
   } | null;
 }
 
@@ -107,7 +111,19 @@ export async function loadPlanningData(db: DbClient, now: Date = new Date()): Pr
   const scenarios = scenarioRows.map((s) => {
     const built = buildPayoffInputs(s.inputs, plannerDebts, recurring, startMonth);
     const result = simulatePayoff(built.payoffInputs);
-    return { id: s.id, name: s.name, debtFreeMonth: result.debtFreeMonth, extraPaymentCents: built.preExtraCents };
+    const baseline = simulatePayoff({
+      ...built.payoffInputs,
+      extraSchedule: [{ fromMonth: startMonth, extraCents: 0 }],
+      lumpSums: [],
+    });
+    return {
+      id: s.id,
+      name: s.name,
+      debtFreeMonth: result.debtFreeMonth,
+      extraPaymentCents: built.preExtraCents,
+      interestSavedCents: Math.max(0, baseline.totalInterestCents - result.totalInterestCents),
+      monthsSaved: Math.max(0, baseline.monthsToPayoff - result.monthsToPayoff),
+    };
   });
 
   // --- locked plan status ---
@@ -166,6 +182,9 @@ export async function loadPlanningData(db: DbClient, now: Date = new Date()): Pr
       balanceGapCents: status.balanceGapCents,
       slipMonths: status.slipMonths,
       contributionsShortfallCents: status.contributionsShortfallCents,
+      lockBalanceCents: locked.projectedCurve[0]?.balanceCents ?? currentBalanceCents,
+      projectedCurve: locked.projectedCurve,
+      inputs: (locked.inputs as ScenarioInputs | null) ?? null,
     };
   }
 
