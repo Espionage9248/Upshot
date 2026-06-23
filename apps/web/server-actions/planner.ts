@@ -99,6 +99,7 @@ export const lockPayoffPlanAction = action(async (_session, inputs: ScenarioInpu
     projectedDebtFreeMonth: result.debtFreeMonth,
     projectedCurve: result.curve,
     totalInterestProjectedCents: result.totalInterestCents,
+    inputs: inputs as unknown as Record<string, unknown>,
   };
   await lockPayoffPlan(db, row);
   revalidatePlan();

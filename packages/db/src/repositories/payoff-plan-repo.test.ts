@@ -31,6 +31,7 @@ const sample: PayoffPlanRow = {
   projectedDebtFreeMonth: "2027-12",
   projectedCurve: [{ month: "2026-07", balanceCents: 100000 }],
   totalInterestProjectedCents: 12345,
+  inputs: null,
 };
 
 describe("DrizzlePayoffPlanRepo", () => {

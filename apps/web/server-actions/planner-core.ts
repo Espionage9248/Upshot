@@ -140,5 +140,6 @@ export async function promoteScenarioToPlan(
     projectedDebtFreeMonth: result.debtFreeMonth,
     projectedCurve: result.curve,
     totalInterestProjectedCents: result.totalInterestCents,
+    inputs: scenario.inputs as unknown as Record<string, unknown>,
   });
 }

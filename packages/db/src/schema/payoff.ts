@@ -15,6 +15,9 @@ export const payoffPlan = sqliteTable("payoff_plan", {
     .$type<{ month: string; balanceCents: number }[]>()
     .notNull(),
   totalInterestProjectedCents: integer().notNull(),
+  // Full ScenarioInputs captured at lock time so "Re-model" restores the exact tuning.
+  // Loosely typed (no import cycle); cast to ScenarioInputs on read, as planning_scenarios.inputs does.
+  inputs: text({ mode: "json" }).$type<Record<string, unknown> | null>(),
 });
 
 /** 0..many named simulations. `inputs` holds tuning only — debts stay live. */

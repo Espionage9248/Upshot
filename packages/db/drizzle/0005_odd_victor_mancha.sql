@@ -1,0 +1,1 @@
+ALTER TABLE `payoff_plan` ADD `inputs` text;

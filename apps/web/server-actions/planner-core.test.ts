@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDbClient, applyMigrations, tables, DrizzlePayoffPlanRepo, type DbClient } from "@upshot/db";
 import type { ScenarioInputs } from "@upshot/db";
+import { simulatePayoff } from "@upshot/core";
 import { buildPayoffInputs, savePlanningScenario, lockPayoffPlan, unlockPayoffPlan, type PlannerDebt } from "./planner-core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
@@ -109,7 +110,7 @@ describe("scenario + plan writes log events", () => {
     await lockPayoffPlan(db, {
       id: "default", strategy: "SNOWBALL", extraPaymentCents: 1000, customOrder: null,
       lumpSums: [], lockedAt: "2026-06-21T00:00:00.000Z", projectedDebtFreeMonth: "2027-01",
-      projectedCurve: [], totalInterestProjectedCents: 0,
+      projectedCurve: [], totalInterestProjectedCents: 0, inputs: null,
     });
     expect(await new DrizzlePayoffPlanRepo(db).get()).not.toBeNull();
     await unlockPayoffPlan(db);
@@ -117,5 +118,45 @@ describe("scenario + plan writes log events", () => {
     const actions = db.select().from(tables.eventLog).all().map((e) => e.action);
     expect(actions).toContain("lock_payoff_plan");
     expect(actions).toContain("unlock_payoff_plan");
+  });
+});
+
+describe("payoff_plan inputs round-trip", () => {
+  it("persists and round-trips the source inputs on the locked plan", async () => {
+    const built = buildPayoffInputs(inputs, debts, recurring, "2026-07");
+    const result = simulatePayoff(built.payoffInputs);
+    await lockPayoffPlan(db, {
+      id: "default",
+      strategy: inputs.strategy,
+      extraPaymentCents: built.preExtraCents,
+      customOrder: inputs.customOrder,
+      lumpSums: inputs.lumpSums,
+      lockedAt: "2026-07-01T00:00:00.000Z",
+      projectedDebtFreeMonth: result.debtFreeMonth,
+      projectedCurve: result.curve,
+      totalInterestProjectedCents: result.totalInterestCents,
+      inputs: inputs as unknown as Record<string, unknown>,
+    });
+    const row = await new DrizzlePayoffPlanRepo(db).get();
+    expect(row?.inputs).toEqual(inputs);
+  });
+
+  it("reads a legacy locked row (no inputs) back as null", async () => {
+    const built = buildPayoffInputs(inputs, debts, recurring, "2026-07");
+    const result = simulatePayoff(built.payoffInputs);
+    await lockPayoffPlan(db, {
+      id: "default",
+      strategy: inputs.strategy,
+      extraPaymentCents: built.preExtraCents,
+      customOrder: inputs.customOrder,
+      lumpSums: inputs.lumpSums,
+      lockedAt: "2026-07-01T00:00:00.000Z",
+      projectedDebtFreeMonth: result.debtFreeMonth,
+      projectedCurve: result.curve,
+      totalInterestProjectedCents: result.totalInterestCents,
+      inputs: null,
+    });
+    const row = await new DrizzlePayoffPlanRepo(db).get();
+    expect(row?.inputs ?? null).toBeNull();
   });
 });
