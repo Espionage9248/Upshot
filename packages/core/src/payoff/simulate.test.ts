@@ -136,3 +136,23 @@ describe("simulatePayoff lump sums", () => {
     expect(r.curve.at(-1)!.balanceCents).toBe(0);
   });
 });
+
+describe("simulatePayoff per-debt clear months", () => {
+  it("records the month each debt is cleared, last clear = debtFreeMonth", () => {
+    const result = simulatePayoff({
+      debts: [
+        { id: "a", currentBalanceCents: 10000, minimumPaymentCents: 5000, interestRate: 0 },
+        { id: "b", currentBalanceCents: 100000, minimumPaymentCents: 5000, interestRate: 0 },
+      ],
+      order: ["a", "b"],
+      startMonth: "2026-01",
+      extraSchedule: [{ fromMonth: "2026-01", extraCents: 0 }],
+      lumpSums: [],
+    });
+    const a = result.perDebt.find((p) => p.id === "a")!;
+    const b = result.perDebt.find((p) => p.id === "b")!;
+    expect(a.clearedMonth).toBe("2026-02");                 // tiny debt clears in 2 months
+    expect(b.clearedMonth).toBe(result.debtFreeMonth);      // last debt sets the debt-free month
+    expect(a.clearedMonth! < b.clearedMonth!).toBe(true);   // a clears before b
+  });
+});

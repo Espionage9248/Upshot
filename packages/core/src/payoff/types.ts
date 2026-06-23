@@ -33,6 +33,7 @@ export interface PayoffResult {
   monthsToPayoff: number;
   totalInterestCents: number;
   curve: { month: string; balanceCents: number }[]; // total balance, end of each month
+  perDebt: { id: string; clearedMonth: string | null }[]; // month each debt first hit 0; null = not cleared in horizon
 }
 
 export interface PlanStatus {

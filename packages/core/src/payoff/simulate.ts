@@ -22,6 +22,7 @@ export function simulatePayoff(inputs: PayoffInputs): PayoffResult {
   const balances = new Map(debts.map((d) => [d.id, d.currentBalanceCents]));
   const steps = [...extraSchedule].sort((a, b) => (a.fromMonth < b.fromMonth ? -1 : 1));
   const curve: { month: string; balanceCents: number }[] = [];
+  const clearedMonth = new Map<string, string>();
   let totalInterestCents = 0;
   let month = startMonth;
   let monthsElapsed = 0;
@@ -76,6 +77,13 @@ export function simulatePayoff(inputs: PayoffInputs): PayoffResult {
       pool -= pay;
     }
 
+    // Record the month each debt first reaches zero (after this month's payments).
+    for (const d of debts) {
+      if (!clearedMonth.has(d.id) && (balances.get(d.id) ?? 0) <= 0) {
+        clearedMonth.set(d.id, month);
+      }
+    }
+
     curve.push({ month, balanceCents: totalBalance() });
     month = addMonths(month, 1);
     monthsElapsed += 1;
@@ -89,5 +97,6 @@ export function simulatePayoff(inputs: PayoffInputs): PayoffResult {
     monthsToPayoff: debtFreeMonth ? monthsBetween(startMonth, debtFreeMonth) : monthsElapsed,
     totalInterestCents,
     curve,
+    perDebt: debts.map((d) => ({ id: d.id, clearedMonth: clearedMonth.get(d.id) ?? null })),
   };
 }
