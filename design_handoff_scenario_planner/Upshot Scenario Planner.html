@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Upshot — Scenario Planner & Locked Payoff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --font-sans: "Figtree", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --spacing: 0.25rem;
+    --radius-data: 9px; --radius-sm: 6px; --radius-card: 18px; --radius-pill: 999px;
+    --duration-fast: 120ms; --duration-base: 180ms; --duration-slow: 280ms;
+    --ease-out: cubic-bezier(0.2,0.7,0.3,1); --ease-in-out: cubic-bezier(0.65,0,0.35,1); --ease-spring: cubic-bezier(0.34,1.4,0.64,1);
+  }
+  :root {
+    color-scheme: light;
+    --n-0: oklch(1 0 0); --n-25: oklch(0.988 0.005 75); --n-50: oklch(0.972 0.008 70);
+    --n-100: oklch(0.952 0.009 68); --n-200: oklch(0.918 0.010 66); --n-300: oklch(0.865 0.011 64);
+    --n-400: oklch(0.740 0.012 62); --n-500: oklch(0.605 0.013 60); --n-600: oklch(0.500 0.013 58);
+    --n-700: oklch(0.405 0.013 58); --n-800: oklch(0.300 0.013 56); --n-900: oklch(0.235 0.013 56);
+    --bg: var(--n-50); --surface: var(--n-0); --surface-2: var(--n-100); --surface-3: var(--n-200);
+    --line: oklch(0.45 0.012 60 / 0.16); --line-soft: oklch(0.45 0.012 60 / 0.09);
+    --text: var(--n-900); --text-2: var(--n-600); --text-3: var(--n-500);
+    --coral: #ff705c; --coral-text: oklch(0.535 0.165 28); --coral-dim: color-mix(in oklch, #ff705c 13%, transparent);
+    --on-coral: oklch(0.22 0.03 30); --yellow: #ffee52; --focus: #ff705c;
+    --income: oklch(0.50 0.14 158); --expense: oklch(0.53 0.17 25); --transfer: oklch(0.50 0.10 255);
+    --saved: oklch(0.50 0.10 200); --debt: oklch(0.52 0.13 58); --warn: oklch(0.55 0.13 66); --proj: oklch(0.58 0.012 60);
+    --viz-1: #ff705c; --viz-2: oklch(0.60 0.12 205); --viz-3: oklch(0.68 0.13 78); --viz-4: oklch(0.52 0.13 288);
+    --viz-5: oklch(0.58 0.12 150); --viz-6: oklch(0.58 0.15 342); --viz-7: oklch(0.58 0.05 60);
+    --elev-1: 0 1px 2px rgba(40,30,20,0.06), 0 1px 3px rgba(40,30,20,0.05);
+    --elev-2: 0 2px 4px rgba(40,30,20,0.06), 0 6px 16px rgba(40,30,20,0.08);
+    --elev-3: 0 8px 18px rgba(40,30,20,0.10), 0 18px 40px rgba(40,30,20,0.12);
+    --elev-pop: 0 8px 28px rgba(40,30,20,0.16), 0 0 0 1px rgba(40,30,20,0.04);
+  }
+  .dark {
+    color-scheme: dark;
+    --n-0: oklch(0.300 0.016 58); --n-25: oklch(0.250 0.015 58); --n-50: oklch(0.213 0.013 58);
+    --n-100: oklch(0.250 0.015 58); --n-200: oklch(0.300 0.016 58); --n-300: oklch(0.355 0.016 58);
+    --n-400: oklch(0.430 0.015 58); --n-500: oklch(0.585 0.013 60); --n-600: oklch(0.660 0.013 62);
+    --n-700: oklch(0.745 0.013 64); --n-800: oklch(0.840 0.012 68); --n-900: oklch(0.948 0.012 75);
+    --bg: oklch(0.172 0.012 58); --surface: oklch(0.213 0.013 58); --surface-2: oklch(0.250 0.015 58); --surface-3: oklch(0.300 0.016 58);
+    --line: oklch(0.355 0.015 58 / 0.70); --line-soft: oklch(0.355 0.015 58 / 0.38);
+    --text: oklch(0.948 0.012 75); --text-2: oklch(0.745 0.013 64); --text-3: oklch(0.585 0.012 60);
+    --coral: #ff705c; --coral-text: oklch(0.760 0.150 30); --coral-dim: color-mix(in oklch, #ff705c 16%, transparent);
+    --on-coral: oklch(0.20 0.03 30); --yellow: #ffee52; --focus: #ff8473;
+    --income: oklch(0.78 0.125 158); --expense: oklch(0.685 0.135 22); --transfer: oklch(0.72 0.085 250);
+    --saved: oklch(0.80 0.110 195); --debt: oklch(0.785 0.130 70); --warn: oklch(0.805 0.130 80); --proj: oklch(0.630 0.014 70);
+    --viz-1: #ff705c; --viz-2: oklch(0.80 0.11 200); --viz-3: oklch(0.82 0.13 92); --viz-4: oklch(0.71 0.10 285);
+    --viz-5: oklch(0.80 0.12 150); --viz-6: oklch(0.74 0.13 340); --viz-7: oklch(0.72 0.045 60);
+    --elev-1: 0 1px 0 rgba(255,255,255,0.03) inset, 0 2px 8px rgba(0,0,0,0.20);
+    --elev-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 6px 22px rgba(0,0,0,0.28);
+    --elev-3: 0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 50px rgba(0,0,0,0.42);
+    --elev-pop: 0 1px 0 rgba(255,255,255,0.05) inset, 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.4);
+  }
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+  #root { height: 100vh; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="build/planner-core.jsx"></script>
+<script type="text/babel" src="build/planner-chart.jsx"></script>
+<script type="text/babel" src="build/planner-tuner.jsx"></script>
+<script type="text/babel" src="build/planner-views.jsx"></script>
+<script type="text/babel" src="build/planner-states.jsx"></script>
+<script type="text/babel" src="lib/design-canvas.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const Canvas = window.DesignCanvas, Section = window.DCSection, Artboard = window.DCArtboard, Note = window.DCPostIt;
+  const { DebtsPage, ScenarioPlanner, LockedBanner, SavedScenarios, DebtSummary, FeedbackShowcase,
+    MobileTuner, MobileChart, MobileBanner, usePlanner, PayoffChart, ChartEmpty, ChartLoading,
+    AllocationBlock, Card, Label, Button, PL_TOTAL, PL_BASELINE_MONTHS } = window;
+
+  // ── light/dark toggle ──
+  function useMode() {
+    const [dark, setDark] = React.useState(() => { try { const v = localStorage.getItem('upshot-plan-mode'); return v ? v === 'dark' : true; } catch { return true; } });
+    React.useEffect(() => { document.documentElement.classList.toggle('dark', dark); try { localStorage.setItem('upshot-plan-mode', dark ? 'dark' : 'light'); } catch {} }, [dark]);
+    return [dark, setDark];
+  }
+  function ModeToggle({ dark, setDark }) {
+    const Btn = ({ on, label, glyph, onClick }) => (
+      <button onClick={onClick} aria-pressed={on} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, background: on ? 'var(--coral)' : 'transparent', color: on ? 'var(--on-coral)' : 'var(--text-3)' }}><span style={{ fontSize: 13 }}>{glyph}</span>{label}</button>
+    );
+    return (
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 200, display: 'flex', gap: 3, padding: 3, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 999, boxShadow: 'var(--elev-2)' }}>
+        <Btn on={!dark} label="Light" glyph="☀" onClick={() => setDark(false)} />
+        <Btn on={dark} label="Dark" glyph="☾" onClick={() => setDark(true)} />
+      </div>
+    );
+  }
+
+  // ── demo wrappers (each own engine instance) ──
+  function PlannerDemo({ variant, mode = 'hypothesis', name, init }) {
+    const p = usePlanner(init);
+    return <div className="up" style={{ background: 'var(--bg)', padding: 24, minHeight: '100%' }}><ScenarioPlanner p={p} variant={variant} mode={mode} name={name} /></div>;
+  }
+  function AllocDemo({ init, title, blurb }) {
+    const p = usePlanner(init);
+    return (
+      <div className="up" style={{ background: 'var(--bg)', padding: 24, minHeight: '100%' }}>
+        <Card>
+          <Label style={{ marginBottom: 4 }}>{title}</Label>
+          <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 14, lineHeight: 1.4 }}>{blurb}</div>
+          <AllocationBlock p={p} />
+        </Card>
+      </div>
+    );
+  }
+  function ChartDemo({ locked, label }) {
+    const p = usePlanner({ headroomShare: 45 });
+    return (
+      <div className="up" style={{ background: 'var(--bg)', padding: 24, minHeight: '100%' }}>
+        <Card><Label style={{ marginBottom: 12 }}>{label}</Label>
+          <PayoffChart total={PL_TOTAL} scenarioMonths={p.m.months} baselineMonths={PL_BASELINE_MONTHS} lump={p.m.lumpForChart} locked={locked} startDate={window.PL_START} height={320} />
+        </Card>
+      </div>
+    );
+  }
+  function ChartStateDemo({ kind, label }) {
+    return (
+      <div className="up" style={{ background: 'var(--bg)', padding: 24, minHeight: '100%' }}>
+        <Card><Label style={{ marginBottom: 12 }}>{label}</Label>{kind === 'empty' ? <ChartEmpty height={320} /> : <ChartLoading height={320} />}</Card>
+      </div>
+    );
+  }
+  function BannerDemo({ status, label }) {
+    return <div className="up" style={{ background: 'var(--bg)', padding: 24, minHeight: '100%' }}><Label style={{ marginBottom: 12 }}>{label}</Label><LockedBanner status={status} /></div>;
+  }
+  function SavedDemo({ empty }) {
+    const items = [
+      { name: 'Stretch — extra $600', extra: 600, free: "Nov '27", saved: 1620 },
+      { name: 'Comfortable — extra $300', extra: 300, free: "Aug '28", saved: 880 },
+      { name: 'Tax refund in March', extra: 400, free: "Dec '27", saved: 1180 },
+    ];
+    return <div className="up" style={{ background: 'var(--bg)', padding: 28, minHeight: '100%' }}><SavedScenarios items={empty ? [] : items} empty={empty} /></div>;
+  }
+
+  function App() {
+    const [dark, setDark] = useMode();
+    return (
+      <React.Fragment>
+        <ModeToggle dark={dark} setDark={setDark} />
+        <Canvas>
+          <Section id="hero" title="Scenario Planner · /plan/debts" subtitle="The live surface in context — drag the slider, switch modes, save & lock. Fully interactive.">
+            <Artboard id="live" label="★ Interactive — full page (workspace direction)" width={1300} height={1680}>
+              <DebtsPage phase="tuning" variant="workspace" />
+            </Artboard>
+            <Artboard id="firstrun" label="First run — nothing saved or locked yet" width={1300} height={1380}>
+              <DebtsPage phase="first-run" variant="workspace" />
+            </Artboard>
+            <Artboard id="locked-page" label="Tracked plan locked — banner + reality line in place" width={1300} height={1720}>
+              <DebtsPage phase="locked" variant="workspace" />
+            </Artboard>
+          </Section>
+
+          <Section id="ia" title="The dense tuner — two IA directions" subtitle="One engine, two ways to tame the controls. Both reflow to phone.">
+            <Artboard id="workspace" label="A · Workspace — primary controls open, assumptions disclosed" width={1180} height={1040}>
+              <PlannerDemo variant="workspace" name="New what-if" />
+            </Artboard>
+            <Artboard id="stepped" label="B · Stepped — one numbered section at a time (calmer, phone-friendly)" width={1180} height={940}>
+              <PlannerDemo variant="stepped" name="New what-if" />
+            </Artboard>
+            <Artboard id="locked-edit" label="Re-modelling the locked plan (reality line: solid coral)" width={1180} height={1040}>
+              <PlannerDemo variant="workspace" mode="locked-edit" name="Tracked plan" />
+            </Artboard>
+          </Section>
+
+          <Section id="alloc" title="Allocation — forward vs target-date" subtitle="Two intents, kept at parity. Target-date solves the payment and warns when unreachable.">
+            <Artboard id="forward" label="Forward — share of spare cash → $/mo" width={470} height={360}>
+              <AllocDemo init={{ mode: 'forward', headroomShare: 42 }} title="Allocation · forward" blurb="Drag how much of your spare cash goes to debt." />
+            </Artboard>
+            <Artboard id="target" label="Target-date — solved payment" width={470} height={360}>
+              <AllocDemo init={{ mode: 'target', targetMonths: 18 }} title="Allocation · pick a date" blurb="Pick when you want to be free; we solve the payment." />
+            </Artboard>
+            <Artboard id="unreach" label="Target-date — unreachable warning" width={470} height={400}>
+              <AllocDemo init={{ mode: 'target', targetMonths: 9 }} title="Allocation · unreachable" blurb="Too soon for your spare cash — we say so, gently." />
+            </Artboard>
+          </Section>
+
+          <Section id="chart" title="The timeline chart" subtitle="Baseline · scenario · locked reference, debt-free markers, you-are-here, hover readout. Bespoke, token-themed.">
+            <Artboard id="chart-full" label="Hypothesis — baseline vs scenario (hover to inspect)" width={820} height={460}>
+              <ChartDemo label="Total debt over months" />
+            </Artboard>
+            <Artboard id="chart-locked" label="Locked — ahead/behind read against the frozen curve" width={820} height={460}>
+              <ChartDemo locked={{ months: 26, currentMonth: 5, status: 'on' }} label="Tracking against your locked plan" />
+            </Artboard>
+            <Artboard id="chart-empty" label="Empty" width={560} height={440}>
+              <ChartStateDemo kind="empty" label="Before anything's modelled" />
+            </Artboard>
+            <Artboard id="chart-loading" label="Loading / recomputing" width={560} height={440}>
+              <ChartStateDemo kind="loading" label="Recomputing against balances" />
+            </Artboard>
+          </Section>
+
+          <Section id="reality" title="The reality line — your one tracked plan" subtitle="The locked banner across every status. Frozen target vs real progress.">
+            <Artboard id="ahead" label="Ahead" width={680} height={300}><BannerDemo status="on" label="Status · ahead" /></Artboard>
+            <Artboard id="ontrack" label="On track" width={680} height={300}><BannerDemo status="at" label="Status · on track" /></Artboard>
+            <Artboard id="behind" label="Behind" width={680} height={300}><BannerDemo status="off" label="Status · behind" /></Artboard>
+          </Section>
+
+          <Section id="saved" title="Saved scenarios" subtitle="Hypotheses you keep — dashed 'what-if' treatment, recomputed live, promotable.">
+            <Artboard id="saved-list" label="Populated" width={1040} height={300}><SavedDemo /></Artboard>
+            <Artboard id="saved-empty" label="Empty state" width={620} height={280}><SavedDemo empty /></Artboard>
+          </Section>
+
+          <Section id="feedback" title="Feedback & states" subtitle="Saving, locking, promoting, unlocking, errors — every action confirms itself.">
+            <Artboard id="fb" label="Toasts + confirm dialog" width={960} height={520}><FeedbackShowcase /></Artboard>
+          </Section>
+
+          <Section id="mobile" title="Mobile · 360px" subtitle="First-class small-screen designs for the dense tuner, the chart, and the tracked-plan banner.">
+            <Artboard id="m-tuner" label="Tuner (stepped reflow)" width={380} height={824}><MobileTuner /></Artboard>
+            <Artboard id="m-banner" label="Tracked plan + scenarios" width={380} height={692}><MobileBanner /></Artboard>
+            <Artboard id="m-chart" label="Chart with locked read" width={380} height={692}><MobileChart /></Artboard>
+          </Section>
+        </Canvas>
+      </React.Fragment>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
