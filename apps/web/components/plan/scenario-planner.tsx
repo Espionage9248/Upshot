@@ -20,6 +20,7 @@ import { IncomeBlock } from "./income-block";
 import { ExpensesBlock } from "./expenses-block";
 import { LumpsBlock } from "./lumps-block";
 import { Disclosure, PlannerLabel, diffMonths } from "./planner-atoms";
+import { DebtPaymentsLine } from "./debt-payments-line";
 import type { PlannerPreview } from "./planner-types";
 
 const STRATEGY_LABEL: Record<ScenarioInputs["strategy"], string> = {
@@ -181,6 +182,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis" }: { data: PlanningD
             <PlannerLabel style={{ margin: 0 }}>Budget assumptions</PlannerLabel>
             <span style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
           </div>
+          <DebtPaymentsLine debts={data.debts} />
           <Disclosure icon="wallet" title="Income" summary={incSummary} open={open.income} onToggle={() => toggle("income")}>
             <IncomeBlock inputs={inputs} incomeSeedCents={data.incomeBaseSeedCents} startMonth={data.startMonth} onPatch={patch} />
           </Disclosure>
