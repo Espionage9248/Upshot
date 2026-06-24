@@ -32,6 +32,20 @@ test("renders an svg with TODAY divider, DEBT-FREE flag and a $ tick label", () 
   expect(screen.getByText("$0")).toBeInTheDocument();
 });
 
+test("renders lump notch when lump prop is provided", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={scenario}
+      baseline={baseline}
+      scenarioDebtFreeMonth="2028-02"
+      baselineDebtFreeMonth="2029-08"
+      lump={{ monthIndex: 6, amountCents: 200000 }}
+    />,
+  );
+  expect(screen.getByText("+ lump")).toBeInTheDocument();
+});
+
 test("empty curves do not crash", () => {
   render(
     <PayoffChart

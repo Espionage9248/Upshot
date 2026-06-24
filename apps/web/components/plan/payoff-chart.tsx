@@ -61,7 +61,7 @@ export function PayoffChart({
       .map((p, i) => `${i ? "L" : "M"}${X(diffMonths(startMonth, p.month)).toFixed(1)} ${Y(p.balanceCents).toFixed(1)}`)
       .join(" ");
 
-  const yTicks = [0, yMax / 3, (yMax * 2) / 3, yMax];
+  const yTicks = [0, yMax / 4, yMax / 2, (yMax * 3) / 4, yMax];
   const xTicks: number[] = [];
   for (let m = 0; m <= horizon; m += 6) xTicks.push(m);
 
@@ -73,8 +73,15 @@ export function PayoffChart({
     ? `${toPath(scenario)} L${X(diffMonths(startMonth, scenario[scenario.length - 1].month)).toFixed(1)} ${Y(0).toFixed(1)} L${X(0).toFixed(1)} ${Y(0).toFixed(1)} Z`
     : "";
 
-  const lumpY =
-    lump && scenario.length ? Y(scenario.find((_, i) => i === Math.min(lump.monthIndex, scenario.length - 1))?.balanceCents ?? 0) : 0;
+  const lumpScenPoint = lump && scenario.length
+    ? scenario.reduce((best, p) =>
+        Math.abs(diffMonths(startMonth, p.month) - lump.monthIndex) <
+        Math.abs(diffMonths(startMonth, best.month) - lump.monthIndex)
+          ? p
+          : best
+      )
+    : null;
+  const lumpY = lumpScenPoint ? Y(lumpScenPoint.balanceCents) : 0;
 
   return (
     <svg
@@ -115,7 +122,7 @@ export function PayoffChart({
       {/* scenario solid */}
       {scenario.length > 0 && <path d={toPath(scenario)} fill="none" stroke="var(--coral)" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" />}
       {/* lump notch */}
-      {lump && (
+      {lump && lumpScenPoint && (
         <g>
           <line x1={X(lump.monthIndex)} x2={X(lump.monthIndex)} y1={lumpY - 4} y2={lumpY + 18} stroke="var(--coral)" strokeWidth={1.5} />
           <circle cx={X(lump.monthIndex)} cy={lumpY} r={3.5} fill="var(--coral)" stroke="var(--surface)" strokeWidth={1.5} />
