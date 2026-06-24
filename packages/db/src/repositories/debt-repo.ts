@@ -139,6 +139,27 @@ export class DrizzleDebtRepo implements DebtRepo {
     return new Set(rows.map((r) => r.transactionId as string));
   }
 
+  /**
+   * Latest debt_payment amount per debt, keyed by debtId. "Latest" = greatest
+   * paymentDate (ISO strings sort correctly). Debts with no payments are absent.
+   */
+  async latestPaymentCentsByDebt(): Promise<Map<string, { amountCents: number; paidAt: string }>> {
+    const rows = this.db.select({
+      debtId: debtPayments.debtId,
+      amountCents: debtPayments.amountCents,
+      paymentDate: debtPayments.paymentDate,
+    }).from(debtPayments).all();
+
+    const latest = new Map<string, { amountCents: number; paidAt: string }>();
+    for (const r of rows) {
+      const cur = latest.get(r.debtId);
+      if (cur === undefined || r.paymentDate > cur.paidAt) {
+        latest.set(r.debtId, { amountCents: r.amountCents, paidAt: r.paymentDate });
+      }
+    }
+    return latest;
+  }
+
   async applyPaymentMatches(
     payments: { debtId: string; transactionId: string; amountCents: number; paidAt: string }[],
     balanceUpdates: { debtId: string; newBalanceCents: number }[],

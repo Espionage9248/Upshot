@@ -421,4 +421,34 @@ describe("DrizzleDebtRepo", () => {
     // cascade: listPayments of deleted debt returns empty
     expect(await repo.listPayments(id)).toHaveLength(0);
   });
+
+  describe("latestPaymentCentsByDebt", () => {
+    it("returns the latest payment per debt (max paymentDate) and omits debts with no payments", async () => {
+      const db = freshDb();
+      const repo = new DrizzleDebtRepo(db);
+
+      await repo.create({
+        id: "d1", name: "Zip", type: "BNPL", currentBalanceCents: 50000,
+        originalBalanceCents: null, creditLimitCents: null, monthlyPaymentCents: 8000,
+        minimumPaymentCents: 4000, interestRate: null, monthlyFeeCents: null, feeDueDay: null,
+        payoffPriority: 1, includeInSnowball: true, includeInNetWorth: true, matchRuleId: null,
+        accountNumber: null, institutionName: null, notes: null,
+      });
+      await repo.create({
+        id: "d2", name: "No-pay", type: "CREDIT_CARD", currentBalanceCents: 100000,
+        originalBalanceCents: null, creditLimitCents: null, monthlyPaymentCents: 6000,
+        minimumPaymentCents: 6000, interestRate: null, monthlyFeeCents: null, feeDueDay: null,
+        payoffPriority: 2, includeInSnowball: true, includeInNetWorth: true, matchRuleId: null,
+        accountNumber: null, institutionName: null, notes: null,
+      });
+
+      // Two payments on d1; the later date (2026-05-10) wins even though inserted first.
+      await repo.recordPayment({ debtId: "d1", amountCents: 7300, paymentDate: "2026-05-10" });
+      await repo.recordPayment({ debtId: "d1", amountCents: 6900, paymentDate: "2026-04-10" });
+
+      const map = await repo.latestPaymentCentsByDebt();
+      expect(map.get("d1")).toEqual({ amountCents: 7300, paidAt: "2026-05-10" });
+      expect(map.has("d2")).toBe(false);
+    });
+  });
 });
