@@ -71,16 +71,25 @@ export async function runDetectOnce(deps: {
       .all();
     const categoryNameById = new Map(categoryRows.map((c) => [c.id, c.name]));
 
+    // Debt-matched transactions are owned by their debt (Approach A) — never
+    // offer them as a generic recurring suggestion (spec §7). Built once here
+    // and reused by Step 4 below.
+    const debtRepo = new DrizzleDebtRepo(deps.db);
+    const linkedDebtTxIds = await debtRepo.listLinkedPaymentTxIds();
+
     // Shape for detectRecurring: needs amountCents < 0 expenses, date as YYYY-MM-DD.
-    const detectableTxs = txRows.map((tx) => ({
-      description: tx.description,
-      amountCents: tx.amountCents,
-      date: tx.createdAt.slice(0, 10),
-      categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
-      accountId: tx.accountId,
-      isTransfer: tx.isTransfer,
-      isSalary: tx.isSalary,
-    }));
+    // Exclude transactions already matched to a debt (owned by the debt).
+    const detectableTxs = txRows
+      .filter((tx) => !linkedDebtTxIds.has(tx.id))
+      .map((tx) => ({
+        description: tx.description,
+        amountCents: tx.amountCents,
+        date: tx.createdAt.slice(0, 10),
+        categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
+        accountId: tx.accountId,
+        isTransfer: tx.isTransfer,
+        isSalary: tx.isSalary,
+      }));
 
     // Shape for matchInstallments (and debt matching).
     const matchableTxs = txRows.map((tx) => ({
@@ -214,12 +223,10 @@ export async function runDetectOnce(deps: {
     }
 
     // Step 4: Debt payment matching (Zip et al.) — reuses the matchableTxs already built above.
-    const debtRepo = new DrizzleDebtRepo(deps.db);
     const withRules = await debtRepo.listWithRule();
     const matchers = withRules
       .filter((w) => w.conditions.length > 0)
       .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, conditions: w.conditions }));
-    const linkedDebtTxIds = await debtRepo.listLinkedPaymentTxIds();
     const { payments, balanceUpdates } = matchDebtPayments(matchers, matchableTxs, linkedDebtTxIds);
     await debtRepo.applyPaymentMatches(payments, balanceUpdates);
     const debtPayments = payments.length;

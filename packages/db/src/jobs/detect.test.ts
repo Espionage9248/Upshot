@@ -430,6 +430,73 @@ describe("runDetectOnce", () => {
     expect(patreon2!.nextExpectedDate).toBe("2026-07-01");
   });
 
+  it("excludes debt-matched transactions from generic recurring detection", async () => {
+    const db = freshDb();
+    seedAccount(db);
+
+    // Seed a match rule + condition for "ZIP PAYMENT"
+    db.insert(tables.matchRules).values({ id: "zip-rule", name: "Zip", isActive: true, priority: 50 }).run();
+    db.insert(tables.matchConditions).values({
+      id: "zc1", ruleId: "zip-rule", field: "description", mode: "contains", value: "ZIP PAYMENT",
+    }).run();
+
+    // Seed a debt linked to that rule
+    db.insert(tables.debts).values({
+      id: "zip",
+      name: "Zip",
+      type: "BNPL",
+      currentBalanceCents: 50000,
+      monthlyPaymentCents: 8000,
+      payoffPriority: 1,
+      includeInSnowball: true,
+      includeInNetWorth: true,
+      matchRuleId: "zip-rule",
+    }).run();
+
+    // Three monthly ZIP PAYMENT txns (would otherwise be a perfect generic suggestion)
+    for (let i = 1; i <= 3; i++) {
+      db.insert(tables.transactions).values({
+        id: `zip-tx-${i}`,
+        accountId: "acc-1",
+        status: "SETTLED",
+        description: "ZIP PAYMENT",
+        amountCents: -8000,
+        isTransfer: false,
+        isSalary: false,
+        createdAt: `2026-0${i}-12T10:00:00.000Z`,
+        settledAt: `2026-0${i}-12T10:00:00.000Z`,
+      }).run();
+    }
+    // Three NETFLIX txns that SHOULD still be detected
+    for (let i = 1; i <= 3; i++) {
+      db.insert(tables.transactions).values({
+        id: `nf-tx-${i}`,
+        accountId: "acc-1",
+        status: "SETTLED",
+        description: "NETFLIX",
+        amountCents: -1899,
+        isTransfer: false,
+        isSalary: false,
+        createdAt: `2026-0${i}-20T10:00:00.000Z`,
+        settledAt: `2026-0${i}-20T10:00:00.000Z`,
+      }).run();
+    }
+
+    const jobRuns = new DrizzleJobRunRepo(db);
+    const now = () => new Date("2026-04-01T00:00:00.000Z");
+
+    // Run 1: debt matching only — links the ZIP txns so listLinkedPaymentTxIds is populated.
+    await runDetectOnce({ db, jobRuns, now, settings: { autoDetectRecurring: false } });
+    // Run 2: detection enabled — ZIP txns are now excluded so ZIP must NOT be suggested.
+    await runDetectOnce({ db, jobRuns, now, settings: { autoDetectRecurring: true } });
+
+    const suggestions = new DrizzleRecurringRepo(db);
+    const suggested = await suggestions.listByStatus("SUGGESTED");
+    const names = suggested.map((s) => s.name.toLowerCase());
+    expect(names.some((n) => n.includes("zip"))).toBe(false);
+    expect(names.some((n) => n.includes("netflix"))).toBe(true);
+  });
+
   it("rule-driven recurring item does NOT get double-processed by description-substring drift", async () => {
     const db = freshDb();
     const now = () => new Date("2026-06-15T00:00:00.000Z");
