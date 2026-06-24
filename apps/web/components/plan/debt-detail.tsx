@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Card, CardBody, CardHeader, CardTitle, Badge, Money, UiProgress } from "@upshot/ui";
 import type { DebtDetailData } from "@/app/(app)/plan/debts/[id]/data";
 import type { MonthlyPayment } from "@upshot/core";
-import { WhatIfPanel } from "./what-if-panel";
+import { DebtDeleteButton } from "./debt-delete-button";
 
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
@@ -70,6 +70,7 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
           <Badge tone="neutral">
             {debt.type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
           </Badge>
+          <DebtDeleteButton debtId={debt.id} debtName={debt.name} />
         </CardHeader>
         <CardBody>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -150,18 +151,6 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
           </div>
         </CardBody>
       </Card>
-
-      {/* What-if slider */}
-      {debt.includeInSnowball && (
-        <Card>
-          <CardHeader>
-            <CardTitle>What if I pay extra?</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <WhatIfPanel debts={[{ id: debt.id, name: debt.name }]} />
-          </CardBody>
-        </Card>
-      )}
 
       {/* Payoff timeline */}
       {shownMonths.length > 0 && (
