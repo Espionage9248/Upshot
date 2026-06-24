@@ -21,8 +21,8 @@ beforeEach(() => {
 afterEach(() => { while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
 
 const debts: PlannerDebt[] = [
-  { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, interestRate: 0.1, includeInSnowball: true },
-  { id: "d2", currentBalanceCents: 50000, minimumPaymentCents: 3000, interestRate: 0.2, includeInSnowball: false },
+  { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, effectivePaymentCents: 5000, paymentIsActual: false, interestRate: 0.1, includeInSnowball: true },
+  { id: "d2", currentBalanceCents: 50000, minimumPaymentCents: 3000, effectivePaymentCents: 3000, paymentIsActual: false, interestRate: 0.2, includeInSnowball: false },
 ];
 const recurring = [{ id: "r1", monthlyCents: 20000 }, { id: "r2", monthlyCents: 10000 }];
 
@@ -77,9 +77,9 @@ describe("buildPayoffInputs", () => {
   });
 
   it("honours a CUSTOM strategy customOrder (target-first) over the strategy default", () => {
-    const twoIncluded = [
-      { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, interestRate: 0.1, includeInSnowball: true },
-      { id: "d3", currentBalanceCents: 20000, minimumPaymentCents: 2000, interestRate: 0.3, includeInSnowball: true },
+    const twoIncluded: PlannerDebt[] = [
+      { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, effectivePaymentCents: 5000, paymentIsActual: false, interestRate: 0.1, includeInSnowball: true },
+      { id: "d3", currentBalanceCents: 20000, minimumPaymentCents: 2000, effectivePaymentCents: 2000, paymentIsActual: false, interestRate: 0.3, includeInSnowball: true },
     ];
     // SNOWBALL would put d3 first (smaller balance); customOrder forces d1 first.
     const custom: ScenarioInputs = { ...inputs, strategy: "CUSTOM", customOrder: ["d1", "d3"] };
@@ -88,9 +88,9 @@ describe("buildPayoffInputs", () => {
   });
 
   it("falls back to the strategy default when customOrder is null", () => {
-    const twoIncluded = [
-      { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, interestRate: 0.1, includeInSnowball: true },
-      { id: "d3", currentBalanceCents: 20000, minimumPaymentCents: 2000, interestRate: 0.3, includeInSnowball: true },
+    const twoIncluded: PlannerDebt[] = [
+      { id: "d1", currentBalanceCents: 100000, minimumPaymentCents: 5000, effectivePaymentCents: 5000, paymentIsActual: false, interestRate: 0.1, includeInSnowball: true },
+      { id: "d3", currentBalanceCents: 20000, minimumPaymentCents: 2000, effectivePaymentCents: 2000, paymentIsActual: false, interestRate: 0.3, includeInSnowball: true },
     ];
     // CUSTOM with null order → orderByStrategy falls back to smallest-balance (snowball-like) → d3 first.
     const custom: ScenarioInputs = { ...inputs, strategy: "CUSTOM", customOrder: null };
@@ -118,6 +118,45 @@ describe("scenario + plan writes log events", () => {
     const actions = db.select().from(tables.eventLog).all().map((e) => e.action);
     expect(actions).toContain("lock_payoff_plan");
     expect(actions).toContain("unlock_payoff_plan");
+  });
+});
+
+describe("buildPayoffInputs reserves the effective payment", () => {
+  const baseInputs = {
+    mode: "FORWARD" as const,
+    baseIncomeCents: 500000,
+    raise: null,
+    discretionaryCents: 100000,
+    recurringEdits: [],
+    toDebtShareBps: 5000,
+    strategy: "SNOWBALL" as const,
+    customOrder: null,
+    lumpSums: [],
+    targetMonth: null,
+  };
+
+  it("sums effectivePaymentCents (actual when linked, typed fallback otherwise) for included debts", () => {
+    const debts: PlannerDebt[] = [
+      // linked: actual 7300 overrides the typed minimum 4000
+      { id: "zip", currentBalanceCents: 50000, minimumPaymentCents: 4000, effectivePaymentCents: 7300, paymentIsActual: true, interestRate: null, includeInSnowball: true },
+      // unlinked: falls back to the typed minimum 6000
+      { id: "visa", currentBalanceCents: 100000, minimumPaymentCents: 6000, effectivePaymentCents: 6000, paymentIsActual: false, interestRate: 0.18, includeInSnowball: true },
+    ];
+    const built = buildPayoffInputs(baseInputs, debts, [], "2026-06");
+    // reserved sum = 7300 + 6000
+    expect(built.minimumsCents).toBe(13300);
+    // engine per-debt minimum uses the effective payment too
+    expect(built.payoffInputs.debts.find((d) => d.id === "zip")?.minimumPaymentCents).toBe(7300);
+    expect(built.payoffInputs.debts.find((d) => d.id === "visa")?.minimumPaymentCents).toBe(6000);
+  });
+
+  it("excludes debts not in the snowball from the reserved sum", () => {
+    const debts: PlannerDebt[] = [
+      { id: "zip", currentBalanceCents: 50000, minimumPaymentCents: 4000, effectivePaymentCents: 7300, paymentIsActual: true, interestRate: null, includeInSnowball: true },
+      { id: "off", currentBalanceCents: 100000, minimumPaymentCents: 6000, effectivePaymentCents: 6000, paymentIsActual: false, interestRate: 0.18, includeInSnowball: false },
+    ];
+    const built = buildPayoffInputs(baseInputs, debts, [], "2026-06");
+    expect(built.minimumsCents).toBe(7300);
   });
 });
 

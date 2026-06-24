@@ -23,7 +23,7 @@ const planning = {
   incomeBaseSeedCents: 0,
   discretionarySeedCents: 0,
   recurring: [],
-  debts: [{ id: "d1", name: "Visa", currentBalanceCents: 100000, minimumPaymentCents: 5000, interestRate: 0.2, includeInSnowball: true }],
+  debts: [{ id: "d1", name: "Visa", currentBalanceCents: 100000, minimumPaymentCents: 5000, effectivePaymentCents: 5000, paymentIsActual: false, interestRate: 0.2, includeInSnowball: true }],
   strategy: "SNOWBALL" as const,
   scenarios: [],
   lockedPlan: null,

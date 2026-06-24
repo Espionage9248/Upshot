@@ -8,7 +8,7 @@ import {
   type DbClient,
   type ScenarioInputs,
 } from "@upshot/db";
-import { simulatePayoff, evaluatePlanStatus, orderByStrategy, toMonthlyCostCents } from "@upshot/core";
+import { simulatePayoff, evaluatePlanStatus, orderByStrategy, toMonthlyCostCents, effectiveDebtPaymentCents } from "@upshot/core";
 import { buildPayoffInputs, type PlannerDebt } from "@/server-actions/planner-core";
 
 export interface PlanningData {
@@ -16,7 +16,7 @@ export interface PlanningData {
   incomeBaseSeedCents: number;
   discretionarySeedCents: number;
   recurring: { id: string; name: string; monthlyCents: number; kind: string }[];
-  debts: { id: string; name: string; currentBalanceCents: number; minimumPaymentCents: number; interestRate: number | null; includeInSnowball: boolean }[];
+  debts: { id: string; name: string; currentBalanceCents: number; minimumPaymentCents: number; effectivePaymentCents: number; paymentIsActual: boolean; interestRate: number | null; includeInSnowball: boolean }[];
   strategy: "SNOWBALL" | "AVALANCHE" | "CUSTOM";
   scenarios: { id: string; name: string; debtFreeMonth: string | null; extraPaymentCents: number; interestSavedCents: number; monthsSaved: number }[];
   lockedPlan: {
@@ -46,19 +46,32 @@ export async function loadPlanningData(db: DbClient, now: Date = new Date()): Pr
   const startMonth = monthOf(now);
 
   // --- live debts ---
-  const debtRows = await new DrizzleDebtRepo(db).list();
-  const debts = debtRows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    currentBalanceCents: row.currentBalanceCents,
-    minimumPaymentCents: row.minimumPaymentCents ?? row.monthlyPaymentCents,
-    interestRate: row.interestRate ?? null,
-    includeInSnowball: row.includeInSnowball,
-  }));
+  const debtRepo = new DrizzleDebtRepo(db);
+  const debtRows = await debtRepo.list();
+  const latest = await debtRepo.latestPaymentCentsByDebt();
+  const debts = debtRows.map((row) => {
+    const actual = latest.get(row.id)?.amountCents ?? null;
+    return {
+      id: row.id,
+      name: row.name,
+      currentBalanceCents: row.currentBalanceCents,
+      minimumPaymentCents: row.minimumPaymentCents ?? row.monthlyPaymentCents,
+      effectivePaymentCents: effectiveDebtPaymentCents({
+        actualPaymentCents: actual,
+        minimumPaymentCents: row.minimumPaymentCents,
+        monthlyPaymentCents: row.monthlyPaymentCents,
+      }),
+      paymentIsActual: actual !== null,
+      interestRate: row.interestRate ?? null,
+      includeInSnowball: row.includeInSnowball,
+    };
+  });
   const plannerDebts: PlannerDebt[] = debts.map((d) => ({
     id: d.id,
     currentBalanceCents: d.currentBalanceCents,
     minimumPaymentCents: d.minimumPaymentCents,
+    effectivePaymentCents: d.effectivePaymentCents,
+    paymentIsActual: d.paymentIsActual,
     interestRate: d.interestRate,
     includeInSnowball: d.includeInSnowball,
   }));
@@ -140,11 +153,11 @@ export async function loadPlanningData(db: DbClient, now: Date = new Date()): Pr
     }
 
     // recompute debt-free month from current balances with the locked extra/strategy.
-    const minimumsCents = included.reduce((s, d) => s + d.minimumPaymentCents, 0);
+    const minimumsCents = included.reduce((s, d) => s + d.effectivePaymentCents, 0);
     const recomputed = simulatePayoff({
-      debts: included.map((d) => ({ id: d.id, currentBalanceCents: d.currentBalanceCents, minimumPaymentCents: d.minimumPaymentCents, interestRate: d.interestRate })),
+      debts: included.map((d) => ({ id: d.id, currentBalanceCents: d.currentBalanceCents, minimumPaymentCents: d.effectivePaymentCents, interestRate: d.interestRate })),
       order: orderByStrategy(
-        included.map((d) => ({ id: d.id, currentBalanceCents: d.currentBalanceCents, minimumPaymentCents: d.minimumPaymentCents, interestRate: d.interestRate })),
+        included.map((d) => ({ id: d.id, currentBalanceCents: d.currentBalanceCents, minimumPaymentCents: d.effectivePaymentCents, interestRate: d.interestRate })),
         locked.strategy as PlanningData["strategy"],
         locked.customOrder ?? undefined,
       ),

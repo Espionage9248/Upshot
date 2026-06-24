@@ -10,7 +10,7 @@
 import { revalidatePath } from "next/cache";
 import { action } from "@/lib/action";
 import { getDb } from "@/lib/db";
-import { simulatePayoff, solveExtraForTargetDate, toMonthlyCostCents, headroomCents, type PayoffResult } from "@upshot/core";
+import { simulatePayoff, solveExtraForTargetDate, toMonthlyCostCents, headroomCents, effectiveDebtPaymentCents, type PayoffResult } from "@upshot/core";
 import {
   DrizzleDebtRepo,
   DrizzleRecurringRepo,
@@ -35,14 +35,25 @@ export type { ScenarioInputs } from "@upshot/db";
 async function liveContext(
   db: DbClient,
 ): Promise<{ debts: PlannerDebt[]; recurring: { id: string; monthlyCents: number }[]; startMonth: string }> {
-  const debtRows = await new DrizzleDebtRepo(db).list();
-  const debts: PlannerDebt[] = debtRows.map((row) => ({
-    id: row.id,
-    currentBalanceCents: row.currentBalanceCents,
-    minimumPaymentCents: row.minimumPaymentCents ?? row.monthlyPaymentCents,
-    interestRate: row.interestRate ?? null,
-    includeInSnowball: row.includeInSnowball,
-  }));
+  const debtRepo = new DrizzleDebtRepo(db);
+  const debtRows = await debtRepo.list();
+  const latest = await debtRepo.latestPaymentCentsByDebt();
+  const debts: PlannerDebt[] = debtRows.map((row) => {
+    const actual = latest.get(row.id)?.amountCents ?? null;
+    return {
+      id: row.id,
+      currentBalanceCents: row.currentBalanceCents,
+      minimumPaymentCents: row.minimumPaymentCents ?? row.monthlyPaymentCents,
+      effectivePaymentCents: effectiveDebtPaymentCents({
+        actualPaymentCents: actual,
+        minimumPaymentCents: row.minimumPaymentCents,
+        monthlyPaymentCents: row.monthlyPaymentCents,
+      }),
+      paymentIsActual: actual !== null,
+      interestRate: row.interestRate ?? null,
+      includeInSnowball: row.includeInSnowball,
+    };
+  });
 
   const recurringRows = await new DrizzleRecurringRepo(db).list();
   const recurring = recurringRows

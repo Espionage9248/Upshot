@@ -26,6 +26,8 @@ export interface PlannerDebt {
   id: string;
   currentBalanceCents: number;
   minimumPaymentCents: number;
+  effectivePaymentCents: number;
+  paymentIsActual: boolean;
   interestRate: number | null;
   includeInSnowball: boolean;
 }
@@ -50,7 +52,8 @@ export function buildPayoffInputs(
   const expenseCents = keptRecurringCents + inputs.discretionaryCents;
 
   const included = debts.filter((d) => d.includeInSnowball);
-  const minimumsCents = included.reduce((sum, d) => sum + d.minimumPaymentCents, 0);
+  // Reserve the EFFECTIVE payment (actual-when-linked else typed fallback), not the typed minimum (spec §7).
+  const minimumsCents = included.reduce((sum, d) => sum + d.effectivePaymentCents, 0);
 
   const share = (income: number): number =>
     Math.max(0, Math.floor((headroomCents(income, expenseCents, minimumsCents) * inputs.toDebtShareBps) / 10000));
@@ -67,14 +70,14 @@ export function buildPayoffInputs(
     debts: included.map((d) => ({
       id: d.id,
       currentBalanceCents: d.currentBalanceCents,
-      minimumPaymentCents: d.minimumPaymentCents,
+      minimumPaymentCents: d.effectivePaymentCents,
       interestRate: d.interestRate,
     })),
     order: orderByStrategy(
       included.map((d) => ({
         id: d.id,
         currentBalanceCents: d.currentBalanceCents,
-        minimumPaymentCents: d.minimumPaymentCents,
+        minimumPaymentCents: d.effectivePaymentCents,
         interestRate: d.interestRate,
       })),
       inputs.strategy,

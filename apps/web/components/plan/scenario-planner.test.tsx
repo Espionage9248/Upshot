@@ -21,7 +21,7 @@ const data: PlanningData = {
   incomeBaseSeedCents: 496000,
   discretionarySeedCents: 54000,
   recurring: [{ id: "rent", name: "Rent", monthlyCents: 165000, kind: "BILL" }],
-  debts: [{ id: "d1", name: "Visa", currentBalanceCents: 200000, minimumPaymentCents: 6000, interestRate: 0.189, includeInSnowball: true }],
+  debts: [{ id: "d1", name: "Visa", currentBalanceCents: 200000, minimumPaymentCents: 6000, effectivePaymentCents: 6000, paymentIsActual: false, interestRate: 0.189, includeInSnowball: true }],
   strategy: "AVALANCHE",
   scenarios: [],
   lockedPlan: null,

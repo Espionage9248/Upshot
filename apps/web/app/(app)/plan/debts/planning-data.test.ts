@@ -52,6 +52,9 @@ describe("loadPlanningData", () => {
     const d = await loadPlanningData(db, NOW);
     expect(d.debts).toHaveLength(1);
     expect(d.debts[0]!.minimumPaymentCents).toBe(5000); // falls back to monthlyPaymentCents
+    // no payment linked → effective falls back to typed minimum; paymentIsActual = false
+    expect(d.debts[0]!.effectivePaymentCents).toBe(5000);
+    expect(d.debts[0]!.paymentIsActual).toBe(false);
   });
 
   it("never leaks the encryption key", async () => {
