@@ -24,6 +24,7 @@ function toTarget(txn: Transaction): MatchTarget {
     // evaluated in standalone preview and will simply not match. (Resolved later in C3.)
     categoryName: null,
     rawText: txn.rawText,
+    note: txn.note,
     amountCents: txn.amountCents,
     currency: txn.currency,
     foreignAmountCents: txn.foreignAmountCents,

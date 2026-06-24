@@ -13,7 +13,7 @@ export const RECURRING_STATUSES = ["ACTIVE", "PAUSED", "CANCELLED", "SUGGESTED"]
 
 export const PURCHASE_STATUSES = ["WISHLIST", "PURCHASED"] as const;
 
-export const MATCH_FIELDS = ["description", "categoryName", "rawText"] as const;
+export const MATCH_FIELDS = ["description", "categoryName", "rawText", "note"] as const;
 export const MATCH_MODES = ["contains", "startsWith", "exact", "regex"] as const;
 export const MATCH_ACTION_TYPES = [
   "RENAME", "APPLY_TAG", "SET_CATEGORY", "MARK_SALARY", "MARK_TRANSFER", "MARK_INTEREST",

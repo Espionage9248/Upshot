@@ -14,6 +14,7 @@ test("compilePatternRegex matches any comma pattern, case-insensitive, escapes s
 // ---------------------------------------------------------------------------
 const baseTx = {
   rawText: null as string | null,
+  note: null as string | null,
   currency: "AUD",
   foreignAmountCents: null as number | null,
   foreignCurrency: null as string | null,

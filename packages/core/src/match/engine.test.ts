@@ -18,7 +18,7 @@ function baseTxn(over: Partial<NewTransaction> = {}): NewTransaction {
 
 function targetFrom(t: NewTransaction, categoryName: string | null = null): MatchTarget {
   return {
-    description: t.description, categoryName, rawText: t.rawText,
+    description: t.description, categoryName, rawText: t.rawText, note: t.note,
     amountCents: t.amountCents, currency: t.currency,
     foreignAmountCents: t.foreignAmountCents, foreignCurrency: t.foreignCurrency,
   };
@@ -279,5 +279,31 @@ describe("applyRules — LinkIntent + tagIds side-effects", () => {
     expect(tagIds).toEqual(["tag-sub"]);
     expect(linkIntents).toEqual([{ kind: "RECURRING", targetId: "rec-99", transactionId: "t-multi" }]);
     expect(applied).toEqual(["APPLY_TAG", "LINK_RECURRING"]);
+  });
+});
+
+describe("evaluateCondition — note field", () => {
+  function noteTarget(note: string | null): MatchTarget {
+    return {
+      description: "Zip", categoryName: null, rawText: null, note,
+      amountCents: -3000, currency: "AUD", foreignAmountCents: null, foreignCurrency: null,
+    };
+  }
+
+  it("matches a note condition (contains) against a non-null note", () => {
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "note", mode: "contains", value: "loan repay", amountCents: null, toleranceCents: null, currency: null },
+    ], [{ id: "a", ruleId: "r", type: "RENAME", value: "Repayment", targetId: null }])];
+    const txn = baseTxn({ note: "monthly loan repayment" });
+    const out = applyRules(txn, noteTarget("monthly loan repayment"), rules);
+    expect(out.applied).toEqual(["RENAME"]);
+  });
+
+  it("never matches a note condition against a null note", () => {
+    const rules = [rule({}, [
+      { id: "c", ruleId: "r", field: "note", mode: "contains", value: "loan", amountCents: null, toleranceCents: null, currency: null },
+    ], [{ id: "a", ruleId: "r", type: "RENAME", value: "Repayment", targetId: null }])];
+    const txn = baseTxn({ note: null });
+    expect(applyRules(txn, noteTarget(null), rules).applied).toEqual([]);
   });
 });

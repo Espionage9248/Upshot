@@ -46,6 +46,7 @@ export function matchDebtPayments(
     id: string;
     description: string;
     rawText: string | null;
+    note: string | null;
     amountCents: number;
     currency: string;
     foreignAmountCents: number | null;
@@ -74,6 +75,7 @@ export function matchDebtPayments(
       const target: MatchTarget = {
         description: tx.description,
         rawText: tx.rawText,
+        note: tx.note,
         amountCents: tx.amountCents,
         currency: tx.currency,
         foreignAmountCents: tx.foreignAmountCents,
