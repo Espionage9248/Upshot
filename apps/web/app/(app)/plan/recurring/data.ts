@@ -17,6 +17,7 @@ export interface RecurringData {
   overlaps: OverlapGroup[];
   driftAlerts: { id: string; name: string; previousAmountCents: number; amountCents: number }[];
   debtPayments: { count: number; totalCents: number };
+  debtChoices: { id: string; name: string }[];
 }
 
 /**
@@ -83,5 +84,9 @@ export async function loadRecurringData(db: DbClient): Promise<RecurringData> {
     }
   }
 
-  return { active, paused, suggested, monthlyTotalCents, overlaps, driftAlerts, debtPayments: { count: debtCount, totalCents: debtTotalCents } };
+  return {
+    active, paused, suggested, monthlyTotalCents, overlaps, driftAlerts,
+    debtPayments: { count: debtCount, totalCents: debtTotalCents },
+    debtChoices: debtRows.map((d) => ({ id: d.id, name: d.name })),
+  };
 }

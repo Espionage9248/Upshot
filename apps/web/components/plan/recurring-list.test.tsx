@@ -53,6 +53,7 @@ const data: RecurringData = {
   overlaps: [{ groupKey: "category:Entertainment", itemIds: ["r1", "r2"] }],
   driftAlerts: [],
   debtPayments: { count: 0, totalCents: 0 },
+  debtChoices: [],
 };
 
 describe("RecurringList", () => {
@@ -88,6 +89,7 @@ describe("RecurringList", () => {
           overlaps: [],
           driftAlerts: [],
           debtPayments: { count: 2, totalCents: 13300 },
+          debtChoices: [],
         }}
       />,
     );
@@ -110,6 +112,7 @@ describe("RecurringList", () => {
           overlaps: [],
           driftAlerts: [],
           debtPayments: { count: 0, totalCents: 0 },
+          debtChoices: [],
         }}
       />,
     );

@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 import { toMonthlyCostCents } from "@upshot/core";
 import { acceptSuggestionAction, dismissSuggestionAction } from "@/server-actions/recurring";
 import type { RecurringRow } from "@/app/(app)/plan/recurring/data";
+import { LinkDebtPayment } from "./link-debt-payment";
 
-export function RecurringSuggestionCard({ row }: { row: RecurringRow }): ReactNode {
+export function RecurringSuggestionCard({ row, debtChoices }: { row: RecurringRow; debtChoices: { id: string; name: string }[] }): ReactNode {
   const router = useRouter();
   const [acceptPending, startAccept] = useTransition();
   const [dismissPending, startDismiss] = useTransition();
@@ -72,6 +73,14 @@ export function RecurringSuggestionCard({ row }: { row: RecurringRow }): ReactNo
               Dismiss
             </Button>
           </div>
+          {debtChoices.length > 0 && (
+            <LinkDebtPayment
+              debts={debtChoices}
+              defaultPattern={row.name}
+              suggestionId={row.id}
+              triggerLabel="This is a payment for"
+            />
+          )}
         </div>
       </CardBody>
     </Card>

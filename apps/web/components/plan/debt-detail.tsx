@@ -3,6 +3,7 @@ import { Card, CardBody, CardHeader, CardTitle, Badge, Money, UiProgress } from 
 import type { DebtDetailData } from "@/app/(app)/plan/debts/[id]/data";
 import type { MonthlyPayment } from "@upshot/core";
 import { DebtDeleteButton } from "./debt-delete-button";
+import { DebtLinkPaymentButton } from "./debt-link-payment-button";
 
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
@@ -149,6 +150,9 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
                   )}
                 </div>
               </div>
+            )}
+            {debt.matchRuleId === null && (
+              <DebtLinkPaymentButton debtId={debt.id} debtName={debt.name} />
             )}
           </div>
         </CardBody>
