@@ -133,14 +133,16 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await debtDialog.getByLabel("Current balance").fill("2500");
   await debtDialog.getByLabel("Monthly payment").fill("200");
   await debtDialog.getByRole("button", { name: "Add debt" }).click();
-  await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
 
   // --- Scenario planner: preview → save → lock → unlock (write paths) ---
   const planner = page.getByRole("region", { name: "Scenario planner" });
   await expect(planner).toBeVisible();
 
-  // Set a to-debt share so a preview computes.
-  await planner.getByRole("slider", { name: "To debt share" }).fill("60");
+  // Set a to-debt share so a preview computes (Radix slider — keyboard-driven).
+  const allocationSlider = planner.getByRole("slider", { name: "Share of spare cash toward debt" });
+  await allocationSlider.focus();
+  for (let i = 0; i < 12; i++) await allocationSlider.press("ArrowRight");
 
   // Custom strategy → author a payoff order (write path: customOrder flows into the scenario).
   // (Needs ≥1 included debt; "Visa card" was added earlier. A second debt makes reorder meaningful,
@@ -163,7 +165,7 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await expect(saved.getByText("E2E scenario")).toBeVisible({ timeout: 15000 });
 
   // Lock the current scenario as the tracked plan.
-  await planner.getByRole("button", { name: "Lock in debt plan" }).click();
+  await planner.getByRole("button", { name: "Lock in this plan" }).click();
 
   // Locked banner appears.
   const banner = page.getByRole("region", { name: "Locked debt plan" });
@@ -214,20 +216,24 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
 
   // ─── Extended write-path coverage (Task 19) ───────────────────────────────
 
-  // 10a) Strategy toggle (Task 10): Avalanche option on the Debt payoff strategy
-  // Segmented. Navigate back to debts where the dashboard now has the control.
+  // 10a) Strategy toggle (Task 10): Avalanche option on the Payoff strategy
+  // Segmented inside the Scenario planner. Navigate back to debts.
   await page.goto("/plan/debts");
   // Wait until the "Visa card" debt is visible (page is re-rendered from DB).
-  await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
-  await page
-    .getByLabel("Debt payoff strategy")
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
+  const plannerRegion = page.getByRole("region", { name: "Scenario planner" });
+  await plannerRegion
+    .getByLabel("Payoff strategy")
     .getByRole("radio", { name: "Avalanche" })
     .click();
   // The page must survive the strategy toggle — no crash.
-  await expect(page.getByLabel("Debt payoff strategy")).toBeVisible();
+  await expect(plannerRegion.getByLabel("Payoff strategy")).toBeVisible();
 
-  // 10b) What-if panel (Task 11): fill "New interest rate % p.a." and pick the
-  // refinance-target debt. The panel renders when debts.length > 0.
+  // 10b) What-if panel (Task 11): navigate to the Visa card debt detail page
+  // (the WhatIfPanel now lives per-debt in the detail view, not the dashboard).
+  // Click the "Visa card" row link in DebtSummary to navigate to the detail page.
+  await page.getByRole("link", { name: /Visa card/ }).first().click();
+  await page.waitForURL("**/plan/debts/**");
   // Fill the rate; this alone doesn't trigger recompute (needs a debt selected).
   await page.getByLabel("New interest rate % p.a.").fill("5");
   // Open the "Debt" combobox in the what-if section (Radix Select portal).
@@ -344,7 +350,7 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
 
   // 10i) Validation-error paths: open the debt dialog, submit with empty name.
   await page.goto("/plan/debts");
-  await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
   await page.getByRole("button", { name: "Add debt" }).first().click();
   const validationDebtDialog = page.getByRole("dialog");
   await expect(validationDebtDialog).toBeVisible();

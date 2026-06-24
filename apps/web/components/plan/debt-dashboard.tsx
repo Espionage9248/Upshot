@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Money } from "@upshot/ui";
+import { Money, EmptyState } from "@upshot/ui";
 import type { DebtsData } from "@/app/(app)/plan/debts/data";
 import type { PlanningData } from "@/app/(app)/plan/debts/planning-data";
 import { DebtSummary } from "./debt-summary";
+import { DebtFormDialog } from "./debt-form-dialog";
 import { LockedPlanBanner } from "./locked-plan-banner";
 import { ScenarioPlanner } from "./scenario-planner";
 import { SavedScenariosList } from "./saved-scenarios-list";
@@ -22,7 +23,14 @@ export function DebtDashboard({ data, planning }: { data: DebtsData; planning: P
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {data.debts.length > 0 && (
+      {data.debts.length === 0 ? (
+        <EmptyState
+          icon="card"
+          title="No debts tracked"
+          hint="Add a debt to start tracking your payoff progress."
+          action={<DebtFormDialog />}
+        />
+      ) : (
         <DebtSummary debts={data.debts} rollup={rollup} reflectsLocked={reflectsLocked} lockedStrategyLabel={lockedStrategyLabel} />
       )}
 
