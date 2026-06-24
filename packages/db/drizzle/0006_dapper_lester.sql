@@ -1,0 +1,1 @@
+ALTER TABLE `debts` ADD `payments_linked_at` text;
