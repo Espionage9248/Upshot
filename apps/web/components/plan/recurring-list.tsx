@@ -13,6 +13,7 @@ import type { RecurringData, RecurringRow } from "@/app/(app)/plan/recurring/dat
 import { RecurringSuggestionCard } from "./recurring-suggestion-card";
 import { RecurringKindToggle } from "./recurring-kind-toggle";
 import { RecurringDeleteButton } from "./recurring-delete-button";
+import { RecurringAddDialog } from "./recurring-add-dialog";
 
 // ---------------------------------------------------------------------------
 // Section header
@@ -109,6 +110,11 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
 
   return (
     <section aria-label="Recurring charges">
+      {/* Add button */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <RecurringAddDialog />
+      </div>
+
       {/* Monthly total summary */}
       {data.active.length > 0 && (
         <div
