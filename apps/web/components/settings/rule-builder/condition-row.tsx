@@ -10,6 +10,7 @@ const FIELD_OPTIONS = [
   { value: "description", label: "Description" },
   { value: "categoryName", label: "Category name" },
   { value: "rawText", label: "Raw text" },
+  { value: "note", label: "Note" },
 ];
 
 const MODE_OPTIONS = [
