@@ -109,6 +109,17 @@ export function seedTestDb(): TestDb {
         merchant: "Patreon",
         category: "Subscriptions",
       },
+      // A SUGGESTED debt-payment-looking item so the e2e link flow has a card to confirm.
+      {
+        id: "e2e-sugg-zip",
+        name: "ZIP PAYMENT",
+        kind: "BILL",
+        amountCents: 8000,
+        frequency: "MONTHLY",
+        status: "SUGGESTED",
+        merchant: "Zip",
+        category: "Bills",
+      },
     ])
     .run();
 

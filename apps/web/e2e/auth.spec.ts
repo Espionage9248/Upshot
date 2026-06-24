@@ -214,6 +214,18 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await kindToggle.click();
   await expect(kindToggle).toContainText("Subscription", { timeout: 15000 });
 
+  // 10a-link) Link-a-debt-payment write path (debt-payments feature). The seeded
+  // "ZIP PAYMENT" SUGGESTED item carries a debt picker (the "Visa card" debt was
+  // created earlier). Confirming creates a match_rule + dismisses the suggestion.
+  await page.goto("/plan/recurring");
+  await expect(page.getByText("ZIP PAYMENT")).toBeVisible({ timeout: 15000 });
+  // Only one SUGGESTED item is seeded ("ZIP PAYMENT"), so page-level picker is unambiguous.
+  // If a second suggestion card appears, scope these to the ZIP PAYMENT card's ancestor.
+  await page.getByLabel("Choose a debt").selectOption({ label: "Visa card" });
+  await page.getByRole("button", { name: "Link payment" }).click();
+  // After linking, the suggestion is dismissed (CANCELLED) → leaves the list.
+  await expect(page.getByText("ZIP PAYMENT")).not.toBeVisible({ timeout: 15000 });
+
   // ─── Extended write-path coverage (Task 19) ───────────────────────────────
 
   // 10a) Strategy toggle (Task 10): Avalanche option on the Payoff strategy
