@@ -7,20 +7,20 @@ const MONO = "var(--font-mono)";
 
 /** "yyyy-MM" + n months → "yyyy-MM". */
 export function addMonths(ym: string, n: number): string {
-  const [y, m] = ym.split("-").map(Number);
+  const [y = 0, m = 1] = ym.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + n, 1));
   return d.toISOString().slice(0, 7);
 }
 /** "yyyy-MM" → "Mon 'YY" (en-AU). */
 export function labelMonth(ym: string): string {
-  const [y, m] = ym.split("-").map(Number);
+  const [y = 0, m = 1] = ym.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1, 1));
   return d.toLocaleString("en-AU", { month: "short", timeZone: "UTC" }) + " '" + String(y).slice(2);
 }
 /** whole-month difference a→b ("yyyy-MM"). */
 export function diffMonths(a: string, b: string): number {
-  const [ay, am] = a.split("-").map(Number);
-  const [by, bm] = b.split("-").map(Number);
+  const [ay = 0, am = 1] = a.split("-").map(Number);
+  const [by = 0, bm = 1] = b.split("-").map(Number);
   return (by - ay) * 12 + (bm - am);
 }
 

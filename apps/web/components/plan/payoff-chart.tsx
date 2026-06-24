@@ -46,8 +46,10 @@ export function PayoffChart({
   const plotH = H - padT - padB;
 
   // horizon (months) = longest curve length, clamped.
-  const scenLen = scenario.length ? diffMonths(startMonth, scenario[scenario.length - 1].month) : 0;
-  const baseLen = baseline.length ? diffMonths(startMonth, baseline[baseline.length - 1].month) : 0;
+  const scenLast = scenario[scenario.length - 1];
+  const baseLast = baseline[baseline.length - 1];
+  const scenLen = scenLast ? diffMonths(startMonth, scenLast.month) : 0;
+  const baseLen = baseLast ? diffMonths(startMonth, baseLast.month) : 0;
   const horizon = Math.min(Math.max(scenLen, baseLen, 1) + 2, 64);
 
   const allMax = Math.max(1, ...scenario.map((p) => p.balanceCents), ...baseline.map((p) => p.balanceCents));
@@ -69,8 +71,8 @@ export function PayoffChart({
   const baseMonths = baselineDebtFreeMonth ? diffMonths(startMonth, baselineDebtFreeMonth) : null;
 
   // scenario area fill closes the path to the x-axis.
-  const scenArea = scenario.length
-    ? `${toPath(scenario)} L${X(diffMonths(startMonth, scenario[scenario.length - 1].month)).toFixed(1)} ${Y(0).toFixed(1)} L${X(0).toFixed(1)} ${Y(0).toFixed(1)} Z`
+  const scenArea = scenLast
+    ? `${toPath(scenario)} L${X(diffMonths(startMonth, scenLast.month)).toFixed(1)} ${Y(0).toFixed(1)} L${X(0).toFixed(1)} ${Y(0).toFixed(1)} Z`
     : "";
 
   const lumpScenPoint = lump && scenario.length

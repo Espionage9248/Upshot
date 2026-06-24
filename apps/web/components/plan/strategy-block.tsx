@@ -41,7 +41,9 @@ function ReorderList({ inputs, debts, onPatch }: { inputs: ScenarioInputs; debts
     const j = i + dir;
     if (j < 0 || j >= ids.length) return;
     const next = [...ids];
-    [next[i], next[j]] = [next[j], next[i]];
+    // `move` already guards j in range, so non-null assertions are safe here.
+    const a = next[i]!, b = next[j]!;
+    next[i] = b; next[j] = a;
     onPatch({ customOrder: next });
   };
   return (

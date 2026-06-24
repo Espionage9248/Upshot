@@ -19,6 +19,7 @@ export function ExpensesBlock({
   discretionarySeedCents: number;
   onPatch: (p: Partial<ScenarioInputs>) => void;
 }): ReactElement {
+  void discretionarySeedCents; // reserved for future SeedHint comparison logic
   const editOf = (id: string): Edit =>
     inputs.recurringEdits.find((e) => e.id === id) ?? { id, keep: true, monthlyCentsOverride: null };
 

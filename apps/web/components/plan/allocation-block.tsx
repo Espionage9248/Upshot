@@ -68,7 +68,7 @@ export function AllocationBlock({
             min={0}
             max={100}
             step={1}
-            onValueChange={([v]) => onPatch({ toDebtShareBps: v * 100 })}
+            onValueChange={([v]) => onPatch({ toDebtShareBps: (v ?? 0) * 100 })}
             aria-label="Share of spare cash toward debt"
           />
           <div
