@@ -41,7 +41,7 @@ export function DebtSummary({
   reflectsLocked,
   lockedStrategyLabel,
 }: {
-  debts: { row: DebtRow; utilisation: number | null }[];
+  debts: { row: DebtRow; utilisation: number | null; effectivePaymentCents: number; paymentIsActual: boolean }[];
   rollup: { remainingCents: number; activeCount: number; nextDueDate: string | null };
   reflectsLocked: boolean;
   lockedStrategyLabel: string;
@@ -67,8 +67,7 @@ export function DebtSummary({
             <DebtFormDialog />
           </div>
         </div>
-        {debts.map(({ row, utilisation }, i) => {
-          const minCents = row.minimumPaymentCents ?? row.monthlyPaymentCents;
+        {debts.map(({ row, utilisation, effectivePaymentCents, paymentIsActual }, i) => {
           return (
             <Link
               key={row.id}
@@ -82,7 +81,7 @@ export function DebtSummary({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600 }}>{row.name}</div>
                   <div className="tnum" style={{ fontSize: 11, color: "var(--text-3)", fontFamily: MONO }}>
-                    {row.interestRate != null ? (row.interestRate * 100).toFixed(1) : "—"}% APR · min ${Math.round(minCents / 100).toLocaleString()}/mo
+                    {row.interestRate != null ? (row.interestRate * 100).toFixed(1) : "—"}% APR · ${Math.round(effectivePaymentCents / 100).toLocaleString()} {paymentIsActual ? "· actual" : "· min"}/mo
                   </div>
                 </div>
                 <div style={{ width: 150, flexShrink: 0 }}>

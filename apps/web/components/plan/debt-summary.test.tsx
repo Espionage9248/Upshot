@@ -14,6 +14,8 @@ const debts = [
       interestRate: 0.189, creditLimitCents: 250000,
     } as never,
     utilisation: 0.8,
+    effectivePaymentCents: 7300, // actual last payment, overrides the 6000 typed min
+    paymentIsActual: true,
   },
   {
     row: {
@@ -22,6 +24,8 @@ const debts = [
       interestRate: 0.031, creditLimitCents: null,
     } as never,
     utilisation: null,
+    effectivePaymentCents: 19500, // no actual → typed min
+    paymentIsActual: false,
   },
 ];
 
@@ -31,6 +35,9 @@ test("renders the total, per-debt rows linking to detail, and the Add debt affor
   expect(screen.getByText(/8,240/)).toBeInTheDocument();
   expect(screen.getByText("Visa")).toBeInTheDocument();
   expect(screen.getByText(/18.9% APR/)).toBeInTheDocument();
+  // Visa shows the actual last payment ($73.00) labelled "actual"; Car shows the typed min labelled "min".
+  expect(screen.getByText(/73 · actual/)).toBeInTheDocument();
+  expect(screen.getByText(/195 · min/)).toBeInTheDocument();
   const link = screen.getByRole("link", { name: /Visa/ });
   expect(link).toHaveAttribute("href", "/plan/debts/visa");
   // DebtFormDialog default trigger

@@ -79,10 +79,12 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
                 <span style={{ fontSize: 11, color: "var(--text-3)" }}>Balance</span>
                 <Money cents={debt.currentBalanceCents} kind="expense" size={20} weight={700} />
               </div>
-              {debt.monthlyPaymentCents > 0 && (
+              {data.effectivePaymentCents > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <span style={{ fontSize: 11, color: "var(--text-3)" }}>Monthly payment</span>
-                  <Money cents={debt.monthlyPaymentCents} kind="neutral" size={16} weight={600} />
+                  <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+                    {data.paymentIsActual ? "Monthly payment · actual" : "Monthly payment · typed"}
+                  </span>
+                  <Money cents={data.effectivePaymentCents} kind="neutral" size={16} weight={600} />
                 </div>
               )}
               {debt.interestRate !== null && (

@@ -1,11 +1,13 @@
 import { DrizzleDebtRepo, tables, type DbClient } from "@upshot/db";
-import { computeSnowball, type DebtStrategy, type SnowballAnalysis, type PayoffSchedule } from "@upshot/core";
+import { computeSnowball, effectiveDebtPaymentCents, type DebtStrategy, type SnowballAnalysis, type PayoffSchedule } from "@upshot/core";
 import type { DebtRow } from "../data";
 
 export interface DebtDetailData {
   debt: DebtRow;
   schedule: PayoffSchedule | null;
   analysis: SnowballAnalysis;
+  effectivePaymentCents: number;
+  paymentIsActual: boolean;
 }
 
 function toStrategy(raw: string): DebtStrategy {
@@ -50,5 +52,14 @@ export async function loadDebtDetail(
   const analysis = computeSnowball(debtInputs, { strategy, extraPaymentCents, startMonth });
   const schedule = analysis.schedules.find((s) => s.debtId === id) ?? null;
 
-  return { debt, schedule, analysis };
+  const latest = await repo.latestPaymentCentsByDebt();
+  const actual = latest.get(id)?.amountCents ?? null;
+  const effectivePaymentCents = effectiveDebtPaymentCents({
+    actualPaymentCents: actual,
+    minimumPaymentCents: debt.minimumPaymentCents ?? null,
+    monthlyPaymentCents: debt.monthlyPaymentCents,
+  });
+  const paymentIsActual = actual !== null;
+
+  return { debt, schedule, analysis, effectivePaymentCents, paymentIsActual };
 }

@@ -14,7 +14,7 @@ import { DebtDashboard } from "./debt-dashboard";
 const data = {
   strategy: "SNOWBALL" as const,
   rollup: { remainingCents: 30000, activeCount: 1, nextDueDate: "2026-06-15" },
-  debts: [{ row: { id: "d1", name: "Visa", type: "CREDIT_CARD", currentBalanceCents: 100000, monthlyPaymentCents: 5000, minimumPaymentCents: 5000, interestRate: 0.2, creditLimitCents: 200000 } as never, utilisation: 0.5 }],
+  debts: [{ row: { id: "d1", name: "Visa", type: "CREDIT_CARD", currentBalanceCents: 100000, monthlyPaymentCents: 5000, minimumPaymentCents: 5000, interestRate: 0.2, creditLimitCents: 200000 } as never, utilisation: 0.5, effectivePaymentCents: 5000, paymentIsActual: false }],
   analysis: { strategy: "SNOWBALL", payoffOrder: ["d1"], schedules: [], debtFreeMonth: "2027-01", totalInterestPaidCents: 12345, monthsToPayoff: 7 } as never,
 };
 
