@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDbClient, applyMigrations, tables, type DbClient } from "@upshot/db";
-import { createDebt, updateDebt, deleteDebt, recordDebtPayment } from "./debts-core";
+import { eq } from "drizzle-orm";
+import { createDbClient, applyMigrations, tables, type DbClient, DrizzleDebtRepo, DrizzleRecurringRepo } from "@upshot/db";
+import { createDebt, updateDebt, deleteDebt, recordDebtPayment, linkDebtPaymentToDebt } from "./debts-core";
 import { computeWhatIf } from "@upshot/core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
@@ -322,5 +323,61 @@ describe("whatIf (computeWhatIf — pure)", () => {
 
     expect(result.monthsSaved).toBe(0);
     expect(result.interestSavedCents).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// linkDebtPaymentToDebt
+// ---------------------------------------------------------------------------
+
+describe("linkDebtPaymentToDebt", () => {
+  it("creates a description-contains rule, sets debts.matchRuleId, and dismisses the suggestion", async () => {
+    const debtRepo = new DrizzleDebtRepo(db);
+    await debtRepo.create({
+      id: "zip", name: "Zip", type: "BNPL", currentBalanceCents: 50000,
+      originalBalanceCents: null, creditLimitCents: null, monthlyPaymentCents: 8000,
+      minimumPaymentCents: 4000, interestRate: null, monthlyFeeCents: null, feeDueDay: null,
+      payoffPriority: 1, includeInSnowball: true, includeInNetWorth: true, matchRuleId: null,
+      accountNumber: null, institutionName: null, notes: null,
+    });
+    const recRepo = new DrizzleRecurringRepo(db);
+    const suggId = await recRepo.create({
+      name: "ZIP PAYMENT", kind: "BILL", amountCents: 8000, frequency: "MONTHLY",
+      status: "SUGGESTED", isAutoDetected: true, category: null, merchant: null, matchRuleId: null,
+      accountId: null, firstDetectedDate: null, lastDetectedDate: null, nextExpectedDate: null, notes: null,
+    });
+
+    const ruleId = await linkDebtPaymentToDebt(db, { debtId: "zip", debtName: "Zip", patterns: ["ZIP PAYMENT"], suggestionId: suggId });
+
+    // 1) match_rules row exists with one description-contains condition.
+    const rule = db.select().from(tables.matchRules).where(eq(tables.matchRules.id, ruleId)).get();
+    expect(rule).toBeTruthy();
+    const conds = db.select().from(tables.matchConditions).where(eq(tables.matchConditions.ruleId, ruleId)).all();
+    expect(conds).toHaveLength(1);
+    expect(conds[0]?.field).toBe("description");
+    expect(conds[0]?.mode).toBe("contains");
+    expect(conds[0]?.value).toBe("ZIP PAYMENT");
+
+    // 2) debt now points at the rule.
+    const debt = await debtRepo.getById("zip");
+    expect(debt?.matchRuleId).toBe(ruleId);
+
+    // 3) originating suggestion dismissed (CANCELLED).
+    const sugg = db.select().from(tables.recurringItems).where(eq(tables.recurringItems.id, suggId)).get();
+    expect(sugg?.status).toBe("CANCELLED");
+  });
+
+  it("works without a suggestionId (Trigger B — from debt detail)", async () => {
+    const debtRepo = new DrizzleDebtRepo(db);
+    await debtRepo.create({
+      id: "cc", name: "Visa", type: "CREDIT_CARD", currentBalanceCents: 100000,
+      originalBalanceCents: null, creditLimitCents: null, monthlyPaymentCents: 6000,
+      minimumPaymentCents: 6000, interestRate: 0.18, monthlyFeeCents: null, feeDueDay: null,
+      payoffPriority: 1, includeInSnowball: true, includeInNetWorth: true, matchRuleId: null,
+      accountNumber: null, institutionName: null, notes: null,
+    });
+    const ruleId = await linkDebtPaymentToDebt(db, { debtId: "cc", debtName: "Visa", patterns: ["VISA PAYMENT"] });
+    const debt = await debtRepo.getById("cc");
+    expect(debt?.matchRuleId).toBe(ruleId);
   });
 });
