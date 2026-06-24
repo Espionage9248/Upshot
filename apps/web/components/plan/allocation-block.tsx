@@ -43,10 +43,10 @@ export function AllocationBlock({
         value={inputs.mode}
         onValueChange={(v) => onPatch({ mode: v as ScenarioInputs["mode"] })}
         aria-label="Allocation mode"
-        className="w-full"
+        fullWidth
       />
       {inputs.mode === "FORWARD" ? (
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, minHeight: 96 }}>
           <div
             style={{
               display: "flex",
@@ -88,7 +88,7 @@ export function AllocationBlock({
           </div>
         </div>
       ) : (
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, minHeight: 96 }}>
           <div
             style={{
               display: "flex",

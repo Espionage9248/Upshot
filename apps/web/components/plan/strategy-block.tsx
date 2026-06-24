@@ -100,12 +100,18 @@ export function StrategyBlock({ inputs, debts, onPatch }: { inputs: ScenarioInpu
         value={inputs.strategy}
         onValueChange={(v) => onPatch({ strategy: v as ScenarioInputs["strategy"] })}
         aria-label="Payoff strategy"
-        className="w-full"
+        fullWidth
       />
-      <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 10, lineHeight: 1.45 }}>{DESC[inputs.strategy]}</div>
-      {inputs.strategy === "CUSTOM" ? (
-        <ReorderList inputs={inputs} debts={debts} onPatch={onPatch} />
-      ) : (
+      <div
+        style={{
+          minHeight: 80,
+          transition: "opacity var(--duration-base) var(--ease-out)",
+        }}
+      >
+        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 10, lineHeight: 1.45 }}>{DESC[inputs.strategy]}</div>
+        {inputs.strategy === "CUSTOM" ? (
+          <ReorderList inputs={inputs} debts={debts} onPatch={onPatch} />
+        ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
           {orderedIncluded(debts, inputs.strategy, inputs.customOrder).map((d, i) => (
             <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
@@ -120,6 +126,7 @@ export function StrategyBlock({ inputs, debts, onPatch }: { inputs: ScenarioInpu
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
