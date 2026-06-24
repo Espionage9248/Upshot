@@ -1,59 +1,30 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Segmented, Money } from "@upshot/ui";
+import { Money } from "@upshot/ui";
 import type { DebtsData } from "@/app/(app)/plan/debts/data";
-import { setDebtStrategyAction } from "@/server-actions/debts";
 import type { PlanningData } from "@/app/(app)/plan/debts/planning-data";
-import { DebtList } from "./debt-list";
-import { WhatIfPanel } from "./what-if-panel";
+import { DebtSummary } from "./debt-summary";
 import { LockedPlanBanner } from "./locked-plan-banner";
 import { ScenarioPlanner } from "./scenario-planner";
 import { SavedScenariosList } from "./saved-scenarios-list";
 
-const STRATEGY_OPTIONS = [
-  { value: "SNOWBALL", label: "Snowball" },
-  { value: "AVALANCHE", label: "Avalanche" },
-  { value: "CUSTOM", label: "Custom" },
-];
-
-function formatMonth(month: string | null): string {
-  if (!month) return "—";
-  return new Date(month + "-01").toLocaleDateString("en-AU", { month: "short", year: "numeric" });
-}
+const STRATEGY_LABEL: Record<string, string> = {
+  SNOWBALL: "Snowball",
+  AVALANCHE: "Avalanche",
+  CUSTOM: "Custom",
+};
 
 export function DebtDashboard({ data, planning }: { data: DebtsData; planning: PlanningData }) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
-  const { analysis, rollup } = data;
-
-  function onStrategy(value: string) {
-    startTransition(async () => {
-      await setDebtStrategyAction(value as DebtsData["strategy"]);
-      router.refresh();
-    });
-  }
+  const { rollup } = data;
+  const reflectsLocked = planning.lockedPlan != null;
+  const lockedStrategyLabel = STRATEGY_LABEL[planning.lockedPlan?.inputs?.strategy ?? planning.strategy] ?? "Snowball";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {data.debts.length > 0 && (
-        <section aria-label="Debt summary" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, padding: "14px 16px", background: "var(--surface-2)", borderRadius: "var(--radius-card)" }}>
-          <Stat label="Debt-free" value={formatMonth(analysis.debtFreeMonth)} />
-          <Stat label="Total interest" value={<Money cents={analysis.totalInterestPaidCents} kind="expense" size={15} weight={700} />} />
-          <Stat label="Payoff order" value={`${analysis.payoffOrder.length} debt${analysis.payoffOrder.length === 1 ? "" : "s"}`} />
-        </section>
+        <DebtSummary debts={data.debts} rollup={rollup} reflectsLocked={reflectsLocked} lockedStrategyLabel={lockedStrategyLabel} />
       )}
-
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Payoff strategy</span>
-        <Segmented options={STRATEGY_OPTIONS} value={data.strategy} onValueChange={onStrategy} aria-label="Debt payoff strategy" />
-      </div>
-
-      {data.debts.length > 0 && <WhatIfPanel debts={data.debts.map((d) => ({ id: d.row.id, name: d.row.name }))} />}
-
-      <DebtList data={data} />
 
       {planning.lockedPlan && <LockedPlanBanner locked={planning.lockedPlan} />}
       {data.debts.length > 0 && <ScenarioPlanner data={planning} />}
@@ -70,15 +41,6 @@ export function DebtDashboard({ data, planning }: { data: DebtsData; planning: P
           </div>
         </Link>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ fontSize: 11, color: "var(--text-3)" }}>{label}</span>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700, color: "var(--text-2)" }}>{value}</span>
     </div>
   );
 }
