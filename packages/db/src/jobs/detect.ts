@@ -48,6 +48,7 @@ export async function runDetectOnce(deps: {
         id: tables.transactions.id,
         description: tables.transactions.description,
         rawText: tables.transactions.rawText,
+        note: tables.transactions.note,
         amountCents: tables.transactions.amountCents,
         currency: tables.transactions.currency,
         foreignAmountCents: tables.transactions.foreignAmountCents,
@@ -96,6 +97,7 @@ export async function runDetectOnce(deps: {
       id: tx.id,
       description: tx.description,
       rawText: tx.rawText ?? null,
+      note: tx.note ?? null,
       amountCents: tx.amountCents,
       currency: tx.currency ?? "AUD",
       foreignAmountCents: tx.foreignAmountCents ?? null,
@@ -190,6 +192,7 @@ export async function runDetectOnce(deps: {
           description: tx.description,
           categoryName: tx.categoryName,
           rawText: tx.rawText,
+          note: tx.note,
           amountCents: tx.amountCents,
           currency: tx.currency,
           foreignAmountCents: tx.foreignAmountCents,
@@ -226,7 +229,7 @@ export async function runDetectOnce(deps: {
     const withRules = await debtRepo.listWithRule();
     const matchers = withRules
       .filter((w) => w.conditions.length > 0)
-      .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, conditions: w.conditions }));
+      .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, conditions: w.conditions, linkedAt: w.debt.paymentsLinkedAt }));
     const { payments, balanceUpdates } = matchDebtPayments(matchers, matchableTxs, linkedDebtTxIds);
     await debtRepo.applyPaymentMatches(payments, balanceUpdates);
     const debtPayments = payments.length;

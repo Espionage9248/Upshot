@@ -18,6 +18,7 @@ export const debtSchema = z.object({
   includeInSnowball: z.boolean().default(true),
   includeInNetWorth: z.boolean().default(true),
   matchRuleId: z.string().nullable(),
+  paymentsLinkedAt: z.string().nullable().default(null),
   accountNumber: z.string().nullable(),
   institutionName: z.string().nullable(),
   notes: z.string().nullable(),

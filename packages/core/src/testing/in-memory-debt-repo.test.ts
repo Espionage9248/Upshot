@@ -21,6 +21,7 @@ function makeDebt(overrides: Partial<Debt> = {}): Debt {
     includeInSnowball: true,
     includeInNetWorth: true,
     matchRuleId: null,
+    paymentsLinkedAt: null,
     accountNumber: null,
     institutionName: "ANZ",
     notes: null,

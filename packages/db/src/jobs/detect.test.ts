@@ -1,4 +1,5 @@
 import { afterEach, describe, it, expect } from "vitest";
+import { eq } from "drizzle-orm";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -262,7 +263,7 @@ describe("runDetectOnce", () => {
       value: "zip",
     }).run();
 
-    // Seed a debt with balance 20000, linked to the match rule
+    // Seed a debt with balance 20000, linked to the match rule, paymentsLinkedAt before the tx
     const debtId = "debt-zip-1";
     db.insert(tables.debts).values({
       id: debtId,
@@ -274,6 +275,7 @@ describe("runDetectOnce", () => {
       includeInSnowball: true,
       includeInNetWorth: true,
       matchRuleId: ruleId,
+      paymentsLinkedAt: "2025-01-01",
     }).run();
 
     // Seed a -3000 "ZipPay payment" transaction within the last 12 months
@@ -556,5 +558,31 @@ describe("runDetectOnce", () => {
     expect(run!.status).toBe("SUCCESS");
     // drifted must be 0: rule-driven items are skipped by the description-substring step
     expect(run!.counts).toMatchObject({ drifted: 0 });
+  });
+
+  it("DETECT step 4 records all matched payments but only decrements forward of paymentsLinkedAt", async () => {
+    const db = freshDb();
+    const jobRuns = new DrizzleJobRunRepo(db);
+    db.insert(tables.accounts).values({ id: "acc", name: "Spend", type: "TRANSACTIONAL", ownership: "INDIVIDUAL", balanceCents: 0, role: "SPENDING" }).run();
+    // a debt linked with a rule whose single condition matches "ZipPay", balance 10000, linked 2026-03-01
+    const ruleId = "rule-zip";
+    db.insert(tables.matchRules).values({ id: ruleId, name: "Zip", isActive: true, priority: 50 }).run();
+    db.insert(tables.matchConditions).values({ id: "cz", ruleId, field: "description", mode: "contains", value: "zip" }).run();
+    db.insert(tables.debts).values({
+      id: "debt-zip", name: "Zip", type: "BNPL", currentBalanceCents: 10000,
+      monthlyPaymentCents: 0, payoffPriority: 999, includeInSnowball: true, includeInNetWorth: true,
+      matchRuleId: ruleId, paymentsLinkedAt: "2026-03-01",
+    }).run();
+    db.insert(tables.transactions).values([
+      { id: "tx-pre", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -3000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2026-01-10T00:00:00Z", settledAt: "2026-01-10T00:00:00Z" },
+      { id: "tx-post", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -2000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2026-06-10T00:00:00Z", settledAt: "2026-06-10T00:00:00Z" },
+    ]).run();
+
+    await runDetectOnce({ db, jobRuns, now: () => new Date("2026-06-24T00:00:00Z"), settings: { autoDetectRecurring: false } });
+
+    const payments = db.select().from(tables.debtPayments).where(eq(tables.debtPayments.debtId, "debt-zip")).all();
+    expect(payments.map((p) => p.transactionId).sort()).toEqual(["tx-post", "tx-pre"]);
+    const debt = db.select().from(tables.debts).where(eq(tables.debts.id, "debt-zip")).get();
+    expect(debt?.currentBalanceCents).toBe(8000); // 10000 - 2000 (only the post-link payment)
   });
 });
