@@ -121,6 +121,11 @@ export class DrizzleDebtRepo implements DebtRepo {
     });
   }
 
+  /** Stamp (or clear) the date from which matched payments draw down the balance. */
+  async setPaymentsLinkedAt(id: string, iso: string | null): Promise<void> {
+    this.db.update(debts).set({ paymentsLinkedAt: iso }).where(eq(debts.id, id)).run();
+  }
+
   /** Point this entity at a matching rule (or clear it with null). */
   async setMatchRule(id: string, ruleId: string | null): Promise<void> {
     this.db.update(debts).set({ matchRuleId: ruleId }).where(eq(debts.id, id)).run();

@@ -422,6 +422,21 @@ describe("DrizzleDebtRepo", () => {
     expect(await repo.listPayments(id)).toHaveLength(0);
   });
 
+  it("setPaymentsLinkedAt stamps and clears the column", async () => {
+    const db = freshDb();
+    const repo = new DrizzleDebtRepo(db);
+    const id = await repo.create({
+      id: "debt-linked-at", name: "Zip", type: "BNPL", currentBalanceCents: 10000, originalBalanceCents: null,
+      creditLimitCents: null, monthlyPaymentCents: 0, minimumPaymentCents: null, interestRate: null,
+      monthlyFeeCents: null, feeDueDay: null, payoffPriority: 999, includeInSnowball: true,
+      includeInNetWorth: true, matchRuleId: null, accountNumber: null, institutionName: null, notes: null,
+    });
+    await repo.setPaymentsLinkedAt(id, "2026-06-25");
+    expect((await repo.getById(id))?.paymentsLinkedAt).toBe("2026-06-25");
+    await repo.setPaymentsLinkedAt(id, null);
+    expect((await repo.getById(id))?.paymentsLinkedAt).toBeNull();
+  });
+
   describe("latestPaymentCentsByDebt", () => {
     it("returns the latest payment per debt (max paymentDate) and omits debts with no payments", async () => {
       const db = freshDb();

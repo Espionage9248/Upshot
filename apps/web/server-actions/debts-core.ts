@@ -8,7 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { DrizzleDebtRepo, DrizzleRecurringRepo, tables, type DbClient } from "@upshot/db";
+import { DrizzleDebtRepo, tables, type DbClient } from "@upshot/db";
 import type { NewDebt, RecordDebtPayment } from "@upshot/core";
 
 /** Create input: id is optional (auto-generated when absent). */
@@ -46,12 +46,9 @@ export type DebtRow = Awaited<ReturnType<DrizzleDebtRepo["list"]>>[number];
 // upsertDebtPaymentRule
 // ---------------------------------------------------------------------------
 
-/**
- * Insert a match_rules row + one match_conditions row per pattern, then
- * update the debt's matchRuleId. Returns the new ruleId.
- *
- * Column shape mirrors packages/db/src/seed.ts db.insert(matchRules) lines ~14-20.
- */
+// NOTE: retained only for the createDebt/updateDebt `paymentPatterns` convenience input.
+// It sets matchRuleId directly and does NOT stamp paymentsLinkedAt (stays null → conservative
+// no-decrement). The canonical debt-payment link path is the RuleEditor → saveRule (Task 7).
 export function upsertDebtPaymentRule(
   db: DbClient,
   debtId: string,
@@ -156,32 +153,3 @@ export async function recordDebtPayment(
   );
 }
 
-// ---------------------------------------------------------------------------
-// linkDebtPaymentToDebt (one-time confirm: "this is a payment for [debt]")
-// ---------------------------------------------------------------------------
-
-/**
- * One-time link: build a description-contains match rule for the debt (which
- * sets debts.matchRuleId), then dismiss the originating generic suggestion when
- * one triggered the flow. Detect-job Step 4 matches the transactions thereafter.
- * Returns the new ruleId.
- */
-export async function linkDebtPaymentToDebt(
-  db: DbClient,
-  args: { debtId: string; debtName: string; patterns: string[]; suggestionId?: string },
-): Promise<string> {
-  const ruleId = upsertDebtPaymentRule(db, args.debtId, args.debtName, args.patterns);
-
-  if (args.suggestionId) {
-    // Dismiss the generic suggestion (status CANCELLED — keeps it out of knownPatterns re-suggestion).
-    await new DrizzleRecurringRepo(db).setStatus(args.suggestionId, "CANCELLED");
-  }
-
-  logEvent(db, "link_debt_payment", args.debtId, `Linked payment rule for debt: ${args.debtName}`, {
-    ruleId,
-    patterns: args.patterns,
-    suggestionId: args.suggestionId ?? null,
-  });
-
-  return ruleId;
-}

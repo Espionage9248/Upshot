@@ -55,7 +55,11 @@ export async function listRules(db: DbClient): Promise<LoadedRule[]> {
  * update the rule. A bad target is returned as a typed result and NOTHING is
  * written.
  */
-export async function saveRule(db: DbClient, rule: LoadedRule): Promise<SaveRuleResult> {
+export async function saveRule(
+  db: DbClient,
+  rule: LoadedRule,
+  now: () => Date = () => new Date(),
+): Promise<SaveRuleResult> {
   const ids = new Set((await new DrizzleCategoryRepo(db).list()).map((c) => c.id));
   const v = validateRuleTargets(rule, ids);
   if (!v.ok) return { ok: false, badCategoryId: v.badId };
@@ -81,16 +85,26 @@ export async function saveRule(db: DbClient, rule: LoadedRule): Promise<SaveRule
   const targetsFor = (actions: LoadedRule["actions"], type: string): Set<string> =>
     new Set(actions.filter((a) => a.type === type && a.targetId !== null).map((a) => a.targetId as string));
 
+  const linkedAt = now().toISOString().slice(0, 10);
+  const debtRepo = new DrizzleDebtRepo(db);
+
   for (const { type, setMatchRule } of linkPlan) {
     const oldTargets = targetsFor(exists?.actions ?? [], type);
     const newTargets = targetsFor(rule.actions, type);
     // Unlink only the targets this rule previously linked and no longer does.
     for (const id of oldTargets) {
-      if (!newTargets.has(id)) await setMatchRule(id, null);
+      if (!newTargets.has(id)) {
+        await setMatchRule(id, null);
+        if (type === "LINK_DEBT") await debtRepo.setPaymentsLinkedAt(id, null);
+      }
     }
     // Link the current targets.
     for (const id of newTargets) {
       await setMatchRule(id, rule.rule.id);
+      // Forward-only cutoff: stamp the link date only for newly-linked debts.
+      if (type === "LINK_DEBT" && !oldTargets.has(id)) {
+        await debtRepo.setPaymentsLinkedAt(id, linkedAt);
+      }
     }
   }
 
