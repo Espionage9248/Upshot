@@ -229,20 +229,13 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // The page must survive the strategy toggle — no crash.
   await expect(plannerRegion.getByLabel("Payoff strategy")).toBeVisible();
 
-  // 10b) What-if panel (Task 11): navigate to the Visa card debt detail page
-  // (the WhatIfPanel now lives per-debt in the detail view, not the dashboard).
-  // Click the "Visa card" row link in DebtSummary to navigate to the detail page.
+  // 10b) Debt detail: navigate to the Visa card detail page and confirm it renders.
+  // (WhatIfPanel was removed in the UAT pass; the detail view now shows the
+  // overview + payoff timeline + the new Delete-debt control. We assert the
+  // control is present but do NOT delete — later steps still need the debt.)
   await page.getByRole("link", { name: /Visa card/ }).first().click();
   await page.waitForURL("**/plan/debts/**");
-  // Fill the rate; this alone doesn't trigger recompute (needs a debt selected).
-  await page.getByLabel("New interest rate % p.a.").fill("5");
-  // Open the "Debt" combobox in the what-if section (Radix Select portal).
-  // role="combobox" with name "Debt" — the UiSelect render.
-  await page.getByRole("combobox", { name: "Debt" }).click();
-  // Wait for the Radix Select portal to open and the option to appear.
-  await expect(page.getByRole("option", { name: "Visa card" })).toBeVisible({ timeout: 5000 });
-  await page.getByRole("option", { name: "Visa card" }).click();
-  // The input change triggers recompute; assert no page error.
+  await expect(page.getByRole("button", { name: "Delete debt" })).toBeVisible({ timeout: 15000 });
 
   // 10c) BNPL Path B (Task 15): Add BNPL plan with merchant/amount/count.
   await page.goto("/plan/installments");
