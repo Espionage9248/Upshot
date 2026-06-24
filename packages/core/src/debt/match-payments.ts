@@ -5,6 +5,7 @@ export interface DebtMatcher {
   debtId: string;
   currentBalanceCents: number;
   conditions: MatchCondition[];
+  linkedAt: string | null;
 }
 
 export interface DebtPaymentMatch {
@@ -86,13 +87,18 @@ export function matchDebtPayments(
       if (!matcher.conditions.every((c) => evaluateCondition(c, target))) continue;
 
       const abs = Math.abs(tx.amountCents);
+      const paidAt = tx.settledAt ?? tx.createdAt;
       matcherPayments.push({
         debtId: matcher.debtId,
         transactionId: tx.id,
         amountCents: abs,
-        paidAt: tx.settledAt ?? tx.createdAt,
+        paidAt,
       });
-      balanceCents = Math.max(0, balanceCents - abs);
+      // Forward-only: only payments dated on/after the link date draw down the typed balance.
+      // History (matcherPayments) is always recorded; a null linkedAt never decrements.
+      if (matcher.linkedAt !== null && paidAt.slice(0, 10) >= matcher.linkedAt) {
+        balanceCents = Math.max(0, balanceCents - abs);
+      }
     }
 
     if (matcherPayments.length > 0) {
