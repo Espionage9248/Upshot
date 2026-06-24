@@ -1,7 +1,8 @@
-import { DrizzleRecurringRepo, type DbClient } from "@upshot/db";
+import { DrizzleRecurringRepo, DrizzleDebtRepo, type DbClient } from "@upshot/db";
 import {
   toMonthlyCostCents,
   findOverlaps,
+  effectiveDebtPaymentCents,
   type OverlapGroup,
 } from "@upshot/core";
 
@@ -15,6 +16,7 @@ export interface RecurringData {
   monthlyTotalCents: number;
   overlaps: OverlapGroup[];
   driftAlerts: { id: string; name: string; previousAmountCents: number; amountCents: number }[];
+  debtPayments: { count: number; totalCents: number };
 }
 
 /**
@@ -62,5 +64,24 @@ export async function loadRecurringData(db: DbClient): Promise<RecurringData> {
       amountCents: row.amountCents,
     }));
 
-  return { active, paused, suggested, monthlyTotalCents, overlaps, driftAlerts };
+  // Debt payments are owned by their debt (Approach A): summarise read-only here.
+  const debtRepo = new DrizzleDebtRepo(db);
+  const debtRows = await debtRepo.list();
+  const latest = await debtRepo.latestPaymentCentsByDebt();
+  let debtCount = 0;
+  let debtTotalCents = 0;
+  for (const row of debtRows) {
+    const actual = latest.get(row.id)?.amountCents ?? null;
+    const eff = effectiveDebtPaymentCents({
+      actualPaymentCents: actual,
+      minimumPaymentCents: row.minimumPaymentCents ?? null,
+      monthlyPaymentCents: row.monthlyPaymentCents,
+    });
+    if (eff > 0) {
+      debtCount++;
+      debtTotalCents += eff;
+    }
+  }
+
+  return { active, paused, suggested, monthlyTotalCents, overlaps, driftAlerts, debtPayments: { count: debtCount, totalCents: debtTotalCents } };
 }

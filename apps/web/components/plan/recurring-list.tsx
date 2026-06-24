@@ -102,7 +102,7 @@ function CardGrid({ children }: { children: ReactNode }): ReactNode {
 
 export function RecurringList({ data }: { data: RecurringData }): ReactNode {
   const hasAny =
-    data.active.length > 0 || data.paused.length > 0 || data.suggested.length > 0;
+    data.active.length > 0 || data.paused.length > 0 || data.suggested.length > 0 || data.debtPayments.count > 0;
 
   const nameById = new Map(
     [...data.active, ...data.paused].map((r) => [r.id, r.name]),
@@ -132,6 +132,31 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
             Monthly total
           </span>
           <Money cents={data.monthlyTotalCents} kind="expense" size={16} weight={700} />
+        </div>
+      )}
+
+      {/* Debt payments — read-only group (Approach A: owned by each debt, managed there) */}
+      {data.debtPayments.count > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionLabel>Debt payments</SectionLabel>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 14px",
+              borderRadius: "var(--radius-data)",
+              border: "1px solid var(--line)",
+              background: "color-mix(in oklch, var(--debt) 8%, transparent)",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 11, color: "var(--text-3)" }}>
+                {data.debtPayments.count} debt{data.debtPayments.count === 1 ? "" : "s"} · Managed on each debt
+              </div>
+            </div>
+            <Money cents={data.debtPayments.totalCents} kind="expense" size={16} weight={700} />
+          </div>
         </div>
       )}
 
