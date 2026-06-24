@@ -20,6 +20,7 @@ import {
   Home,
   Layers,
   Link,
+  Lock,
   Moon,
   Pause,
   Percent,
@@ -30,6 +31,8 @@ import {
   Search,
   Settings,
   Shield,
+  ShoppingBag,
+  Sparkles,
   Sun,
   Tag,
   TrendingUp,
@@ -79,6 +82,9 @@ export const UICON_KEYS = [
   "scale",
   "command",
   "building",
+  "lock",
+  "sparkle",
+  "bnpl",
 ] as const;
 
 export type UIconKey = (typeof UICON_KEYS)[number];
@@ -126,4 +132,7 @@ export const ICON_REGISTRY: Record<UIconKey, AnyIconComponent> = {
   scale: Scale,
   command: Command,
   building: Building2,
+  lock: Lock,
+  sparkle: Sparkles,
+  bnpl: ShoppingBag,
 } satisfies Record<UIconKey, AnyIconComponent>;

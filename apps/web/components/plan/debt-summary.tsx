@@ -12,6 +12,7 @@ const MONO = "var(--font-mono)";
 function typeIcon(type: string | null | undefined): UIconKey {
   if (type === "CREDIT_CARD") return "card";
   if (type === "CAR") return "flame";
+  if (type === "BNPL") return "bnpl";
   return "scale";
 }
 
@@ -22,7 +23,7 @@ function utilColour(u: number): string {
 function Utilisation({ pct, limitCents }: { pct: number; limitCents: number }): ReactElement {
   const clamped = Math.min(1, Math.max(0, pct));
   return (
-    <div style={{ width: 150 }}>
+    <div>
       <div style={{ height: 5, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden", position: "relative" }}>
         <div style={{ width: clamped * 100 + "%", height: "100%", borderRadius: 999, background: utilColour(clamped) }} />
         <div style={{ position: "absolute", top: -1.5, bottom: -1.5, left: "80%", width: 1.5, background: "var(--text-3)", opacity: 0.5 }} />
@@ -60,7 +61,7 @@ export function DebtSummary({
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {reflectsLocked && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: "var(--coral-text)" }}>
-                <UIcon name="shield" size={13} /> Clearing by {lockedStrategyLabel}
+                <UIcon name="lock" size={13} /> Clearing by {lockedStrategyLabel}
               </span>
             )}
             <DebtFormDialog />
@@ -84,9 +85,11 @@ export function DebtSummary({
                     {row.interestRate != null ? (row.interestRate * 100).toFixed(1) : "—"}% APR · min ${Math.round(minCents / 100).toLocaleString()}/mo
                   </div>
                 </div>
-                {row.creditLimitCents != null && utilisation != null && (
-                  <Utilisation pct={utilisation} limitCents={row.creditLimitCents} />
-                )}
+                <div style={{ width: 150, flexShrink: 0 }}>
+                  {row.creditLimitCents != null && utilisation != null && (
+                    <Utilisation pct={utilisation} limitCents={row.creditLimitCents} />
+                  )}
+                </div>
                 <div className="tnum" style={{ fontSize: 15, fontWeight: 700, fontFamily: MONO, minWidth: 70, textAlign: "right" }}>
                   <Money cents={row.currentBalanceCents} />
                 </div>

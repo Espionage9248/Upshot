@@ -55,7 +55,7 @@ export function PlannerLabel({ children, style }: { children: ReactNode; style?:
 export function SeedHint({ children }: { children: ReactNode }): ReactElement {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontStyle: "italic", color: "var(--text-3)" }}>
-      <UIcon name="flag" size={11} /> {children}
+      <UIcon name="sparkle" size={11} /> {children}
     </span>
   );
 }

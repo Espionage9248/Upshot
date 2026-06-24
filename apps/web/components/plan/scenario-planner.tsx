@@ -138,7 +138,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis" }: { data: PlanningD
         <RealityHeader mode={mode} name={mode === "hypothesis" ? "Untitled scenario" : "Tracked plan"} dirty />
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <Button variant="ghost" leadingIcon="tag" onClick={onSave}>Save as scenario</Button>
-          <Button variant="primary" leadingIcon="shield" onClick={onLock}>
+          <Button variant="primary" leadingIcon="lock" onClick={onLock}>
             {mode === "hypothesis" ? "Lock in this plan" : "Update locked plan"}
           </Button>
         </div>

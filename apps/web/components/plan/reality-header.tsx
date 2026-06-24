@@ -30,7 +30,7 @@ export function RealityHeader({
             fontWeight: 700,
           }}
         >
-          <UIcon name="flag" size={14} /> What-if · not committed
+          <UIcon name="sparkle" size={14} /> What-if · not committed
         </span>
       ) : (
         <span
@@ -46,7 +46,7 @@ export function RealityHeader({
             fontWeight: 700,
           }}
         >
-          <UIcon name="shield" size={14} active /> Editing your tracked plan
+          <UIcon name="lock" size={14} active /> Editing your tracked plan
         </span>
       )}
       <div style={{ minWidth: 0 }}>
