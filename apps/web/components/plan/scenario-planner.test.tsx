@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, it, test, expect, beforeEach } from "vitest";
 import type { ScenarioInputs } from "@upshot/db";
+import * as UI from "@upshot/ui";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
@@ -56,8 +57,8 @@ beforeEach(() => {
       overHeadroom: false,
     },
   });
-  savePlanningScenarioAction.mockResolvedValue("id1");
-  lockPayoffPlanAction.mockResolvedValue(undefined);
+  savePlanningScenarioAction.mockResolvedValue({ ok: true, data: "id1" });
+  lockPayoffPlanAction.mockResolvedValue({ ok: true, data: undefined });
 });
 
 test("renders the planner region with the hypothesis frame and composes children", async () => {
@@ -80,18 +81,84 @@ test("locked-edit mode shows the tracked-plan pill and Update primary", () => {
   expect(screen.getByRole("button", { name: /Update locked plan/ })).toBeInTheDocument();
 });
 
-test("Save invokes savePlanningScenarioAction; Lock invokes lockPayoffPlanAction", async () => {
+test("Save invokes savePlanningScenarioAction", async () => {
   vi.spyOn(window, "prompt").mockReturnValue("My scenario");
   render(<ScenarioPlanner data={data} />);
   fireEvent.click(screen.getByRole("button", { name: /Save as scenario/ }));
   await waitFor(() => expect(savePlanningScenarioAction).toHaveBeenCalledWith({ name: "My scenario", inputs: expect.anything() }));
-  fireEvent.click(screen.getByRole("button", { name: /Lock in this plan/ }));
-  await waitFor(() => expect(lockPayoffPlanAction).toHaveBeenCalled());
 });
 
 function planningFixture(): PlanningData {
   return { ...data };
 }
+
+it("opens the lock confirm dialog before locking", async () => {
+  render(<ScenarioPlanner data={planningFixture()} />);
+  fireEvent.click(screen.getByRole("button", { name: /Lock in this plan/i }));
+  expect(await screen.findByText("Lock in this plan?")).toBeInTheDocument();
+});
+
+it("calls lockPayoffPlanAction and shows a success toast after confirming lock", async () => {
+  const mockToast = vi.spyOn(UI, "toast");
+  render(<ScenarioPlanner data={planningFixture()} />);
+  fireEvent.click(screen.getByRole("button", { name: /Lock in this plan/i }));
+  fireEvent.click(await screen.findByRole("button", { name: /Lock it in/i }));
+  await waitFor(() => expect(lockPayoffPlanAction).toHaveBeenCalled());
+  await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Plan locked" })));
+  mockToast.mockRestore();
+});
+
+it("shows a success toast after saving a scenario", async () => {
+  const mockToast = vi.spyOn(UI, "toast");
+  vi.spyOn(window, "prompt").mockReturnValue("My scenario");
+  render(<ScenarioPlanner data={planningFixture()} />);
+  fireEvent.click(screen.getByRole("button", { name: /Save as scenario/i }));
+  await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Scenario saved" })));
+  mockToast.mockRestore();
+});
+
+it("shows a warn toast and does NOT open confirm when target date is unreachable", async () => {
+  previewScenarioAction.mockResolvedValue({
+    ok: true,
+    data: {
+      scenario: {
+        debtFreeMonth: "2029-08",
+        monthsToPayoff: 38,
+        totalInterestCents: 214000,
+        curve: [{ month: "2026-06", balanceCents: 1304000 }, { month: "2029-08", balanceCents: 0 }],
+        perDebt: [],
+      },
+      baseline: {
+        debtFreeMonth: "2029-08",
+        monthsToPayoff: 38,
+        totalInterestCents: 214000,
+        curve: [{ month: "2026-06", balanceCents: 1304000 }, { month: "2029-08", balanceCents: 0 }],
+        perDebt: [],
+      },
+      extraPaymentCents: 0,
+      achievable: false,
+      headroomCents: 0,
+      overHeadroom: false,
+    },
+  });
+  const mockToast = vi.spyOn(UI, "toast");
+  render(<ScenarioPlanner data={planningFixture()} />);
+  // wait for preview to arrive so achievable is set
+  await waitFor(() => expect(previewScenarioAction).toHaveBeenCalled(), { timeout: 1500 });
+  fireEvent.click(screen.getByRole("button", { name: /Lock in this plan/i }));
+  expect(screen.queryByText("Lock in this plan?")).not.toBeInTheDocument();
+  await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Couldn't reach that date" })));
+  mockToast.mockRestore();
+});
+
+it("calls lockPayoffPlanAction directly in locked-edit mode without a confirm dialog", async () => {
+  const mockToast = vi.spyOn(UI, "toast");
+  render(<ScenarioPlanner data={planningFixture()} mode="locked-edit" onExitLockedEdit={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: /Update locked plan/i }));
+  await waitFor(() => expect(lockPayoffPlanAction).toHaveBeenCalled());
+  await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Plan updated" })));
+  mockToast.mockRestore();
+});
 
 it("initialises from seedInputs when provided", () => {
   const seed: ScenarioInputs = {

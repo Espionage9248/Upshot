@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@upshot/ui";
+import { Button, toast } from "@upshot/ui";
 import type { PlanningData } from "@/app/(app)/plan/debts/planning-data";
 import type { ScenarioInputs } from "@upshot/db";
 import {
@@ -10,6 +10,8 @@ import {
   savePlanningScenarioAction,
   lockPayoffPlanAction,
 } from "@/server-actions/planner";
+import { toastResult } from "@/lib/toast-result";
+import { ConfirmDialog } from "./confirm-dialog";
 import { PayoffChart } from "./payoff-chart";
 import { RealityHeader } from "./reality-header";
 import { OutputsBlock } from "./outputs-block";
@@ -119,18 +121,42 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
   const [open, setOpen] = useState<{ income: boolean; expenses: boolean; lumps: boolean }>({ income: false, expenses: false, lumps: false });
   const toggle = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
+  const [lockOpen, setLockOpen] = useState(false);
+  const [lockPending, startLockTransition] = useTransition();
+
   function onSave() {
     const name = window.prompt("Name this scenario");
     if (!name) return;
     startTransition(async () => {
-      await savePlanningScenarioAction({ name, inputs });
+      const res = await savePlanningScenarioAction({ name, inputs });
+      toastResult(res, { tone: "success", title: "Scenario saved", body: name }, { tone: "warn", title: "Couldn't save" });
       router.refresh();
     });
   }
-  function onLock() {
-    startTransition(async () => {
-      await lockPayoffPlanAction(inputs);
+
+  function handleLockClick() {
+    if (preview && preview.achievable === false) {
+      toast({ tone: "warn", title: "Couldn't reach that date", body: "Pick a later month or add more to the monthly amount." });
+      return;
+    }
+    setLockOpen(true);
+  }
+
+  function doLock() {
+    startLockTransition(async () => {
+      const res = await lockPayoffPlanAction(inputs);
+      toastResult(res, { tone: "locked", title: "Plan locked", body: "Now tracking against this curve." }, { tone: "warn", title: "Couldn't lock the plan" });
+      setLockOpen(false);
       router.refresh();
+    });
+  }
+
+  function onUpdate() {
+    startTransition(async () => {
+      const res = await lockPayoffPlanAction(inputs);
+      toastResult(res, { tone: "locked", title: "Plan updated" }, { tone: "warn", title: "Couldn't update the plan" });
+      router.refresh();
+      onExitLockedEdit?.();
     });
   }
 
@@ -156,7 +182,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
             <Button variant="ghost" onClick={onExitLockedEdit}>Stop editing</Button>
           )}
           <Button variant="ghost" leadingIcon="tag" onClick={onSave}>Save as scenario</Button>
-          <Button variant="primary" leadingIcon="lock" onClick={onLock}>
+          <Button variant="primary" leadingIcon="lock" onClick={mode === "hypothesis" ? handleLockClick : onUpdate}>
             {mode === "hypothesis" ? "Lock in this plan" : "Update locked plan"}
           </Button>
         </div>
@@ -216,6 +242,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
           </Disclosure>
         </div>
       </div>
+      <ConfirmDialog kind="lock" open={lockOpen} onOpenChange={setLockOpen} onConfirm={doLock} pending={lockPending} />
     </section>
   );
 }
