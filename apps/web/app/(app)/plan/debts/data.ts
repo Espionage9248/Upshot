@@ -3,6 +3,7 @@ import {
   bnplRollup,
   computeSnowball,
   effectiveDebtPaymentCents,
+  planProgress,
   utilisation,
   type DebtStrategy,
   type SnowballAnalysis,
@@ -11,10 +12,22 @@ import {
 /** Debt row as returned by the repo — avoids a direct @upshot/contracts dep in apps/web. */
 export type DebtRow = Awaited<ReturnType<DrizzleDebtRepo["list"]>>[number];
 
+/** Compact active-BNPL-plan view for the debts-surface summary card. */
+export interface BnplPlanView {
+  id: string;
+  merchant: string;
+  remainingCents: number;
+  percentComplete: number;
+  installmentsPaid: number;
+  totalInstallments: number;
+  nextDueDate: string | null;
+}
+
 export interface DebtsData {
   debts: { row: DebtRow; utilisation: number | null; effectivePaymentCents: number; paymentIsActual: boolean }[];
   analysis: SnowballAnalysis;
   rollup: { remainingCents: number; activeCount: number; nextDueDate: string | null };
+  bnplPlans: BnplPlanView[];
 }
 
 /** Maps the raw app_settings string to a typed DebtStrategy. */
@@ -77,6 +90,20 @@ export async function loadDebtsData(db: DbClient, now: Date = new Date()): Promi
 
   const installments = await new DrizzleInstallmentRepo(db).list();
   const rollup = bnplRollup(installments);
+  const bnplPlans: BnplPlanView[] = installments
+    .filter((p) => p.status !== "COMPLETE")
+    .map((p) => {
+      const prog = planProgress(p);
+      return {
+        id: p.id,
+        merchant: p.merchant,
+        remainingCents: prog.remainingCents,
+        percentComplete: prog.percentComplete,
+        installmentsPaid: p.installmentsPaid,
+        totalInstallments: p.totalInstallments,
+        nextDueDate: p.nextDueDate,
+      };
+    });
 
-  return { debts, analysis, rollup };
+  return { debts, analysis, rollup, bnplPlans };
 }

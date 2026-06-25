@@ -3,7 +3,7 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { Money, UIcon, Card, type UIconKey } from "@upshot/ui";
-import type { DebtRow } from "@/app/(app)/plan/debts/data";
+import type { DebtRow, BnplPlanView } from "@/app/(app)/plan/debts/data";
 import { PlannerLabel } from "./planner-atoms";
 import { DebtFormDialog } from "./debt-form-dialog";
 
@@ -35,14 +35,36 @@ function Utilisation({ pct, limitCents }: { pct: number; limitCents: number }): 
   );
 }
 
+function BnplRow({ plan, last }: { plan: BnplPlanView; last: boolean }): ReactElement {
+  const pct = Math.min(100, Math.max(0, plan.percentComplete));
+  return (
+    <div style={{ padding: "11px 18px", borderBottom: last ? "none" : "1px solid var(--line-soft)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {plan.merchant}
+        </span>
+        <Money cents={plan.remainingCents} kind="expense" size={14} weight={700} />
+      </div>
+      <div style={{ height: 4, borderRadius: 999, background: "var(--surface-3)", overflow: "hidden", marginTop: 7 }}>
+        <div style={{ width: pct + "%", height: "100%", borderRadius: 999, background: "var(--coral)" }} />
+      </div>
+      <div className="tnum" style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 5, fontFamily: MONO }}>
+        {plan.installmentsPaid}/{plan.totalInstallments} installments{plan.nextDueDate ? ` · due ${plan.nextDueDate}` : ""}
+      </div>
+    </div>
+  );
+}
+
 export function DebtSummary({
   debts,
   rollup,
+  bnplPlans,
   reflectsLocked,
   lockedStrategyLabel,
 }: {
   debts: { row: DebtRow; utilisation: number | null; effectivePaymentCents: number; paymentIsActual: boolean }[];
   rollup: { remainingCents: number; activeCount: number; nextDueDate: string | null };
+  bnplPlans: BnplPlanView[];
   reflectsLocked: boolean;
   lockedStrategyLabel: string;
 }): ReactElement {
@@ -99,23 +121,28 @@ export function DebtSummary({
       </Card>
 
       <Card className="p-0">
-        <div style={{ padding: "15px 18px 13px", borderBottom: "1px solid var(--line)" }}>
-          <PlannerLabel>Buy now, pay later</PlannerLabel>
-          <div className="tnum" style={{ fontSize: 22, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>
-            <Money cents={rollup.remainingCents} />
-            <span style={{ fontSize: 13, color: "var(--text-3)", fontWeight: 400 }}> remaining</span>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "15px 18px 13px", borderBottom: "1px solid var(--line)" }}>
+          <div>
+            <PlannerLabel>Buy now, pay later</PlannerLabel>
+            <div className="tnum" style={{ fontSize: 22, fontWeight: 700, fontFamily: MONO, marginTop: 4 }}>
+              <Money cents={rollup.remainingCents} />
+              <span style={{ fontSize: 13, color: "var(--text-3)", fontWeight: 400 }}> remaining</span>
+            </div>
           </div>
-        </div>
-        <div style={{ padding: "13px 18px", fontSize: 11.5, color: "var(--text-3)" }}>
-          {rollup.activeCount > 0 ? (
-            <span>
-              {rollup.activeCount} active plan{rollup.activeCount === 1 ? "" : "s"}
-              {rollup.nextDueDate ? ` · next due ${rollup.nextDueDate}` : ""}
-            </span>
-          ) : (
-            <span>No BNPL plans tracked.</span>
+          {bnplPlans.length > 0 && (
+            <Link
+              href="/plan/installments"
+              style={{ fontSize: 11.5, fontWeight: 600, color: "var(--coral-text)", textDecoration: "none", whiteSpace: "nowrap", marginTop: 2 }}
+            >
+              Manage all →
+            </Link>
           )}
         </div>
+        {bnplPlans.length > 0 ? (
+          bnplPlans.map((plan, i) => <BnplRow key={plan.id} plan={plan} last={i === bnplPlans.length - 1} />)
+        ) : (
+          <div style={{ padding: "13px 18px", fontSize: 11.5, color: "var(--text-3)" }}>No BNPL plans tracked.</div>
+        )}
       </Card>
     </div>
   );

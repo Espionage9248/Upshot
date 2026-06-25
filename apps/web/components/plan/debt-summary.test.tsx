@@ -30,7 +30,7 @@ const debts = [
 ];
 
 test("renders the total, per-debt rows linking to detail, and the Add debt affordance", () => {
-  render(<DebtSummary debts={debts} rollup={{ remainingCents: 14600, activeCount: 2, nextDueDate: "2026-07-06" }} reflectsLocked={false} lockedStrategyLabel="Avalanche" />);
+  render(<DebtSummary debts={debts} rollup={{ remainingCents: 14600, activeCount: 2, nextDueDate: "2026-07-06" }} bnplPlans={[]} reflectsLocked={false} lockedStrategyLabel="Avalanche" />);
   // total $8,240
   expect(screen.getByText(/8,240/)).toBeInTheDocument();
   expect(screen.getByText("Visa")).toBeInTheDocument();
@@ -47,14 +47,14 @@ test("renders the total, per-debt rows linking to detail, and the Add debt affor
 });
 
 test("shows the Clearing-by label only when reflectsLocked", () => {
-  const { rerender } = render(<DebtSummary debts={debts} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} reflectsLocked={false} lockedStrategyLabel="Snowball" />);
+  const { rerender } = render(<DebtSummary debts={debts} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} bnplPlans={[]} reflectsLocked={false} lockedStrategyLabel="Snowball" />);
   expect(screen.queryByText(/Clearing by/)).not.toBeInTheDocument();
-  rerender(<DebtSummary debts={debts} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} reflectsLocked lockedStrategyLabel="Snowball" />);
+  rerender(<DebtSummary debts={debts} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} bnplPlans={[]} reflectsLocked lockedStrategyLabel="Snowball" />);
   expect(screen.getByText("Clearing by Snowball")).toBeInTheDocument();
 });
 
 test("renders utilisation bar only for debts with a credit limit", () => {
-  render(<DebtSummary debts={debts} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} reflectsLocked={false} lockedStrategyLabel="Avalanche" />);
+  render(<DebtSummary debts={debts} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} bnplPlans={[]} reflectsLocked={false} lockedStrategyLabel="Avalanche" />);
   // Visa has creditLimitCents → bar text "80% of $2,500"
   expect(screen.getByText(/80% of \$2,500/)).toBeInTheDocument();
   // Car loan has no creditLimitCents → no "% of" text for car
@@ -62,9 +62,30 @@ test("renders utilisation bar only for debts with a credit limit", () => {
   expect(bars).toHaveLength(1);
 });
 
-test("renders BNPL rollup summary", () => {
-  render(<DebtSummary debts={[]} rollup={{ remainingCents: 45000, activeCount: 3, nextDueDate: "2026-08-01" }} reflectsLocked={false} lockedStrategyLabel="Avalanche" />);
+test("renders compacted BNPL plan rows with a Manage-all link", () => {
+  render(
+    <DebtSummary
+      debts={[]}
+      rollup={{ remainingCents: 45000, activeCount: 1, nextDueDate: "2026-08-01" }}
+      bnplPlans={[
+        { id: "p1", merchant: "Afterpay – ACME", remainingCents: 30000, percentComplete: 25, installmentsPaid: 1, totalInstallments: 4, nextDueDate: "2026-08-01" },
+      ]}
+      reflectsLocked={false}
+      lockedStrategyLabel="Avalanche"
+    />,
+  );
+  // total remaining $450 in the header
   expect(screen.getByText(/450/)).toBeInTheDocument();
-  expect(screen.getByText(/3 active plans/)).toBeInTheDocument();
-  expect(screen.getByText(/next due 2026-08-01/)).toBeInTheDocument();
+  // compact row: merchant, remaining $300, installments + next due
+  expect(screen.getByText("Afterpay – ACME")).toBeInTheDocument();
+  expect(screen.getByText(/300/)).toBeInTheDocument();
+  expect(screen.getByText(/1\/4 installments · due 2026-08-01/)).toBeInTheDocument();
+  const manage = screen.getByRole("link", { name: /Manage all/ });
+  expect(manage).toHaveAttribute("href", "/plan/installments");
+});
+
+test("shows the empty BNPL hint when there are no plans", () => {
+  render(<DebtSummary debts={[]} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} bnplPlans={[]} reflectsLocked={false} lockedStrategyLabel="Avalanche" />);
+  expect(screen.getByText("No BNPL plans tracked.")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /Manage all/ })).not.toBeInTheDocument();
 });

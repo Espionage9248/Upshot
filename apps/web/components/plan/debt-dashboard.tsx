@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Money, EmptyState, Toaster } from "@upshot/ui";
+import { EmptyState, Toaster } from "@upshot/ui";
 import type { DebtsData } from "@/app/(app)/plan/debts/data";
 import type { PlanningData } from "@/app/(app)/plan/debts/planning-data";
 import type { ScenarioInputs } from "@upshot/db";
@@ -41,7 +40,7 @@ export function DebtDashboard({ data, planning }: { data: DebtsData; planning: P
           action={<DebtFormDialog />}
         />
       ) : (
-        <DebtSummary debts={data.debts} rollup={rollup} reflectsLocked={reflectsLocked} lockedStrategyLabel={lockedStrategyLabel} />
+        <DebtSummary debts={data.debts} rollup={rollup} bnplPlans={data.bnplPlans} reflectsLocked={reflectsLocked} lockedStrategyLabel={lockedStrategyLabel} />
       )}
 
       {planning.lockedPlan && <LockedPlanBanner locked={planning.lockedPlan} onRemodel={remodel} />}
@@ -56,18 +55,6 @@ export function DebtDashboard({ data, planning }: { data: DebtsData; planning: P
         />
       )}
       <SavedScenariosList scenarios={planning.scenarios} lockedPlan={planning.lockedPlan} onOpen={openScenario} />
-
-      {rollup.activeCount > 0 && (
-        <Link href="/plan/installments" style={{ textDecoration: "none" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderRadius: "var(--radius-card)", border: "1px dashed var(--line)", background: "var(--surface)" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>BNPL (managed)</span>
-              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{rollup.activeCount} active plan{rollup.activeCount === 1 ? "" : "s"} · managed by BNPL tracking →</span>
-            </div>
-            <Money cents={rollup.remainingCents} kind="expense" size={16} weight={700} />
-          </div>
-        </Link>
-      )}
       <Toaster />
     </div>
   );

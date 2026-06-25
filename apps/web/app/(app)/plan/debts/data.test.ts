@@ -234,5 +234,29 @@ describe("loadDebtsData", () => {
     expect(result.rollup.activeCount).toBe(1);
     expect(result.rollup.remainingCents).toBe(30000); // (4 - 1) × 10000
     expect(result.rollup.nextDueDate).toBe("2026-06-15");
+    // Compact per-plan views drive the debts-surface BNPL card.
+    expect(result.bnplPlans).toEqual([
+      {
+        id: "p1",
+        merchant: "Afterpay – ACME",
+        remainingCents: 30000,
+        percentComplete: 25, // 1 of 4 paid
+        installmentsPaid: 1,
+        totalInstallments: 4,
+        nextDueDate: "2026-06-15",
+      },
+    ]);
+  });
+
+  it("excludes COMPLETE plans from bnplPlans", async () => {
+    const db = freshDb();
+    await new DrizzleInstallmentRepo(db).create({
+      id: "done", merchant: "Zip – Paid", totalCents: 20000, installmentCents: 10000,
+      totalInstallments: 2, installmentsPaid: 2, frequencyDays: 14,
+      firstDueDate: "2026-05-01", nextDueDate: "2026-05-15", status: "COMPLETE",
+      matchRuleId: null, notes: null,
+    });
+    const result = await loadDebtsData(db, NOW);
+    expect(result.bnplPlans).toEqual([]);
   });
 });

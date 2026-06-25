@@ -14,6 +14,7 @@ import { DebtDashboard } from "./debt-dashboard";
 const data = {
   strategy: "SNOWBALL" as const,
   rollup: { remainingCents: 30000, activeCount: 1, nextDueDate: "2026-06-15" },
+  bnplPlans: [{ id: "p1", merchant: "Afterpay – ACME", remainingCents: 30000, percentComplete: 25, installmentsPaid: 1, totalInstallments: 4, nextDueDate: "2026-06-15" }],
   debts: [{ row: { id: "d1", name: "Visa", type: "CREDIT_CARD", currentBalanceCents: 100000, monthlyPaymentCents: 5000, minimumPaymentCents: 5000, interestRate: 0.2, creditLimitCents: 200000 } as never, utilisation: 0.5, effectivePaymentCents: 5000, paymentIsActual: false }],
   analysis: { strategy: "SNOWBALL", payoffOrder: ["d1"], schedules: [], debtFreeMonth: "2027-01", totalInterestPaidCents: 12345, monthsToPayoff: 7 } as never,
 };
@@ -35,8 +36,10 @@ test("renders DebtSummary and no longer renders the global strategy control", ()
   expect(screen.getByText("What you owe")).toBeInTheDocument();
   // The global "Debt payoff strategy" Segmented is gone.
   expect(screen.queryByLabelText("Debt payoff strategy")).not.toBeInTheDocument();
-  // BNPL management link kept.
-  expect(screen.getByText(/BNPL \(managed\)/)).toBeInTheDocument();
+  // The standalone bottom "BNPL (managed)" line is gone (superseded by the summary card).
+  expect(screen.queryByText(/BNPL \(managed\)/)).not.toBeInTheDocument();
+  // BNPL is surfaced via the compacted plan row in the summary card instead.
+  expect(screen.getByText("Afterpay – ACME")).toBeInTheDocument();
 });
 
 test("mounts a polite toast status region", () => {
