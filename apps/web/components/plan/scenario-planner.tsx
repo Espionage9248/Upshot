@@ -258,6 +258,31 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
           />
         )}
       </div>
+      {!isDesktop && (
+        <div
+          role="group"
+          aria-label="Plan actions"
+          style={{
+            position: "sticky",
+            bottom: 0,
+            marginTop: 16,
+            marginInline: -22,
+            marginBottom: -22,
+            padding: "12px 16px",
+            display: "flex",
+            gap: 9,
+            background: "var(--surface)",
+            borderTop: "1px solid var(--line)",
+            boxShadow: "var(--elev-1)",
+            zIndex: 2,
+          }}
+        >
+          <Button variant="ghost" leadingIcon="tag" onClick={onSave} style={{ flex: 1 }}>Save</Button>
+          <Button variant="primary" leadingIcon="lock" onClick={mode === "hypothesis" ? handleLockClick : onUpdate} style={{ flex: 1 }}>
+            {mode === "hypothesis" ? "Lock in" : "Update"}
+          </Button>
+        </div>
+      )}
       <ConfirmDialog kind="lock" open={lockOpen} onOpenChange={setLockOpen} onConfirm={doLock} pending={lockPending} />
     </section>
   );

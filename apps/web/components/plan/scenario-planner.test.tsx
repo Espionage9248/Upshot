@@ -214,4 +214,11 @@ describe("Stepped (narrow <640px)", () => {
     render(<ScenarioPlanner data={planningFixture()} />);
     expect(await screen.findByRole("button", { name: /How much, by when/i })).toBeInTheDocument();
   });
+
+  it("pins a sticky Save/Lock action bar on mobile", () => {
+    render(<ScenarioPlanner data={planningFixture()} />);
+    const bar = screen.getByRole("group", { name: "Plan actions" });
+    expect(bar).toBeInTheDocument();
+    expect(bar.querySelector("button")).toBeTruthy();
+  });
 });
