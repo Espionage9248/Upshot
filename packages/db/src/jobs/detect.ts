@@ -108,6 +108,42 @@ export async function runDetectOnce(deps: {
       isTransfer: tx.isTransfer,
     }));
 
+    // Debt-payment matching (Step 4) records the FULL transaction history so the
+    // debt-detail payments surface is a complete accounting — not just the last
+    // 12 months. The balance decrement is kept scoped to the recent window via
+    // `decrementSince` below, so widening the record set never widens the decrement.
+    const debtTxRows = deps.db
+      .select({
+        id: tables.transactions.id,
+        description: tables.transactions.description,
+        rawText: tables.transactions.rawText,
+        note: tables.transactions.note,
+        amountCents: tables.transactions.amountCents,
+        currency: tables.transactions.currency,
+        foreignAmountCents: tables.transactions.foreignAmountCents,
+        foreignCurrency: tables.transactions.foreignCurrency,
+        categoryId: tables.transactions.categoryId,
+        isTransfer: tables.transactions.isTransfer,
+        settledAt: tables.transactions.settledAt,
+        createdAt: tables.transactions.createdAt,
+      })
+      .from(tables.transactions)
+      .all();
+    const debtMatchableTxs = debtTxRows.map((tx) => ({
+      id: tx.id,
+      description: tx.description,
+      rawText: tx.rawText ?? null,
+      note: tx.note ?? null,
+      amountCents: tx.amountCents,
+      currency: tx.currency ?? "AUD",
+      foreignAmountCents: tx.foreignAmountCents ?? null,
+      foreignCurrency: tx.foreignCurrency ?? null,
+      categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
+      createdAt: tx.createdAt,
+      settledAt: tx.settledAt ?? null,
+      isTransfer: tx.isTransfer,
+    }));
+
     const recurringRepo = new DrizzleRecurringRepo(deps.db);
     const installmentRepo = new DrizzleInstallmentRepo(deps.db);
 
@@ -225,12 +261,15 @@ export async function runDetectOnce(deps: {
       recurringLinked++;
     }
 
-    // Step 4: Debt payment matching (Zip et al.) — reuses the matchableTxs already built above.
+    // Step 4: Debt payment matching (Zip et al.) — scans the FULL history
+    // (debtMatchableTxs) so every matched payment is recorded for the debt-detail
+    // surface. `decrementSince = cutoffISO` keeps the balance decrement scoped to
+    // the same recent window as before: pre-window payments record but don't draw down.
     const withRules = await debtRepo.listWithRule();
     const matchers = withRules
       .filter((w) => w.conditions.length > 0)
       .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, conditions: w.conditions, linkedAt: w.debt.paymentsLinkedAt }));
-    const { payments, balanceUpdates } = matchDebtPayments(matchers, matchableTxs, linkedDebtTxIds);
+    const { payments, balanceUpdates } = matchDebtPayments(matchers, debtMatchableTxs, linkedDebtTxIds, cutoffISO.slice(0, 10));
     await debtRepo.applyPaymentMatches(payments, balanceUpdates);
     const debtPayments = payments.length;
 

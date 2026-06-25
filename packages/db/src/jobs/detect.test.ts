@@ -585,4 +585,34 @@ describe("runDetectOnce", () => {
     const debt = db.select().from(tables.debts).where(eq(tables.debts.id, "debt-zip")).get();
     expect(debt?.currentBalanceCents).toBe(8000); // 10000 - 2000 (only the post-link payment)
   });
+
+  it("DETECT step 4 records payments older than the 12-month window but never decrements for them", async () => {
+    const db = freshDb();
+    const jobRuns = new DrizzleJobRunRepo(db);
+    db.insert(tables.accounts).values({ id: "acc", name: "Spend", type: "TRANSACTIONAL", ownership: "INDIVIDUAL", balanceCents: 0, role: "SPENDING" }).run();
+    const ruleId = "rule-zip";
+    db.insert(tables.matchRules).values({ id: ruleId, name: "Zip", isActive: true, priority: 50 }).run();
+    db.insert(tables.matchConditions).values({ id: "cz", ruleId, field: "description", mode: "contains", value: "zip" }).run();
+    // linkedAt deliberately ancient: the linkedAt gate alone would decrement the old payment,
+    // so the only thing protecting the balance is the recent-window decrement floor.
+    db.insert(tables.debts).values({
+      id: "debt-zip", name: "Zip", type: "BNPL", currentBalanceCents: 10000,
+      monthlyPaymentCents: 0, payoffPriority: 999, includeInSnowball: true, includeInNetWorth: true,
+      matchRuleId: ruleId, paymentsLinkedAt: "2020-01-01",
+    }).run();
+    // now = 2026-06-24 → 12-month cutoff = 2025-06-24. tx-old (2024) is pre-cutoff; tx-recent is in-window.
+    db.insert(tables.transactions).values([
+      { id: "tx-old", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -3000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2024-01-10T00:00:00Z", settledAt: "2024-01-10T00:00:00Z" },
+      { id: "tx-recent", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -2000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2026-06-10T00:00:00Z", settledAt: "2026-06-10T00:00:00Z" },
+    ]).run();
+
+    await runDetectOnce({ db, jobRuns, now: () => new Date("2026-06-24T00:00:00Z"), settings: { autoDetectRecurring: false } });
+
+    // Full-history recording: BOTH payments recorded (the old one would be excluded by the 12-month window).
+    const payments = db.select().from(tables.debtPayments).where(eq(tables.debtPayments.debtId, "debt-zip")).all();
+    expect(payments.map((p) => p.transactionId).sort()).toEqual(["tx-old", "tx-recent"]);
+    // Decrement stays window-scoped: only tx-recent draws down. 10000 - 2000 = 8000 (tx-old recorded, not decremented).
+    const debt = db.select().from(tables.debts).where(eq(tables.debts.id, "debt-zip")).get();
+    expect(debt?.currentBalanceCents).toBe(8000);
+  });
 });

@@ -40,6 +40,13 @@ export function compilePatternRegex(patterns: string[]): RegExp {
  * - Integer cents only — no parseFloat.
  * - Balance is reduced to a minimum of 0 (never negative).
  * - Emits one DebtBalanceUpdate per matcher that got ≥1 payment.
+ *
+ * `decrementSince` (YYYY-MM-DD, optional) is an extra floor on the BALANCE
+ * DECREMENT only — payments dated before it are still recorded as history but
+ * never draw down the balance. This lets a caller record the full transaction
+ * history (for a complete payments surface) while keeping the decrement scoped
+ * to a recent window, so widening the record set never widens the decrement.
+ * Omit (or pass null) for no extra cap.
  */
 export function matchDebtPayments(
   matchers: DebtMatcher[],
@@ -58,6 +65,7 @@ export function matchDebtPayments(
     isTransfer: boolean;
   }[],
   alreadyLinkedTxIds: Set<string>,
+  decrementSince: string | null = null,
 ): { payments: DebtPaymentMatch[]; balanceUpdates: DebtBalanceUpdate[] } {
   const payments: DebtPaymentMatch[] = [];
   const balanceUpdates: DebtBalanceUpdate[] = [];
@@ -96,7 +104,14 @@ export function matchDebtPayments(
       });
       // Forward-only: only payments dated on/after the link date draw down the typed balance.
       // History (matcherPayments) is always recorded; a null linkedAt never decrements.
-      if (matcher.linkedAt !== null && paidAt.slice(0, 10) >= matcher.linkedAt) {
+      // `decrementSince` is an additional recent-window floor so recording full history
+      // never widens the decrement (payments before it are recorded but don't draw down).
+      const paidDate = paidAt.slice(0, 10);
+      if (
+        matcher.linkedAt !== null &&
+        paidDate >= matcher.linkedAt &&
+        (decrementSince === null || paidDate >= decrementSince)
+      ) {
         balanceCents = Math.max(0, balanceCents - abs);
       }
     }

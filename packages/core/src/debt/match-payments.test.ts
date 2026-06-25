@@ -124,3 +124,26 @@ test("forward-only: linkedAt null records all but decrements nothing", () => {
   expect(r.payments.map((p) => p.transactionId)).toEqual(["p1", "p2"]);
   expect(r.balanceUpdates).toEqual([{ debtId: "d1", newBalanceCents: 10000 }]);
 });
+
+// ---------------------------------------------------------------------------
+// decrementSince: full-history recording, but decrement stays in a recent window
+// ---------------------------------------------------------------------------
+
+// linkedAt far in the past so the linkedAt gate alone would decrement BOTH;
+// decrementSince is the real floor that keeps the old payment out of the decrement.
+test("decrementSince: records a pre-window payment but only decrements within the window", () => {
+  const matchers = [{ debtId: "d1", currentBalanceCents: 10000, conditions: zipCond, linkedAt: "2020-01-01" }];
+  // p1 (2026-01-10) is before decrementSince; p2 (2026-06-10) is on/after it.
+  const r = matchDebtPayments(matchers, fwdTxs, new Set(), "2026-03-01");
+  // both still recorded for the full-history surface
+  expect(r.payments.map((p) => p.transactionId)).toEqual(["p1", "p2"]);
+  // only p2 decrements (>= decrementSince): 10000 - 2000 = 8000; p1 recorded but not decremented
+  expect(r.balanceUpdates).toEqual([{ debtId: "d1", newBalanceCents: 8000 }]);
+});
+
+test("decrementSince omitted preserves prior behaviour (linkedAt-only gate)", () => {
+  const matchers = [{ debtId: "d1", currentBalanceCents: 10000, conditions: zipCond, linkedAt: "2020-01-01" }];
+  const r = matchDebtPayments(matchers, fwdTxs, new Set());
+  // no extra floor → both decrement: 10000 - 3000 - 2000 = 5000
+  expect(r.balanceUpdates).toEqual([{ debtId: "d1", newBalanceCents: 5000 }]);
+});
