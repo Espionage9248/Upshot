@@ -44,7 +44,7 @@ export function buildPayoffInputs(
   debts: PlannerDebt[],
   recurring: { id: string; monthlyCents: number }[],
   startMonth: string,
-): { payoffInputs: PayoffInputs; expenseCents: number; minimumsCents: number; preExtraCents: number } {
+): { payoffInputs: PayoffInputs; expenseCents: number; minimumsCents: number; preExtraCents: number; raisedExtraCents: number } {
   const recurringById = new Map(recurring.map((r) => [r.id, r.monthlyCents]));
   const keptRecurringCents = inputs.recurringEdits
     .filter((e) => e.keep)
@@ -59,10 +59,16 @@ export function buildPayoffInputs(
     Math.max(0, Math.floor((headroomCents(income, expenseCents, minimumsCents) * inputs.toDebtShareBps) / 10000));
 
   const preExtraCents = share(inputs.baseIncomeCents);
-  const extraSchedule = inputs.raise
+  const raise = inputs.raise;
+  const raisedExtraCents = raise
+    ? raise.toDebtBps === undefined
+      ? share(raise.toCents)
+      : preExtraCents + Math.floor((Math.max(0, raise.toCents - inputs.baseIncomeCents) * raise.toDebtBps) / 10000)
+    : preExtraCents;
+  const extraSchedule = raise
     ? [
         { fromMonth: startMonth, extraCents: preExtraCents },
-        { fromMonth: inputs.raise.fromMonth, extraCents: share(inputs.raise.toCents) },
+        { fromMonth: raise.fromMonth, extraCents: raisedExtraCents },
       ]
     : [{ fromMonth: startMonth, extraCents: preExtraCents }];
 
@@ -88,7 +94,7 @@ export function buildPayoffInputs(
     lumpSums: inputs.lumpSums,
   };
 
-  return { payoffInputs, expenseCents, minimumsCents, preExtraCents };
+  return { payoffInputs, expenseCents, minimumsCents, preExtraCents, raisedExtraCents };
 }
 
 export async function lockPayoffPlan(db: DbClient, row: PayoffPlanRow): Promise<void> {

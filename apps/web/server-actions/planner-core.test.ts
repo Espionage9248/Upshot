@@ -97,6 +97,47 @@ describe("buildPayoffInputs", () => {
     const r = buildPayoffInputs(custom, twoIncluded, recurring, "2026-07");
     expect(r.payoffInputs.order).toEqual(["d3", "d1"]);
   });
+
+  it("legacy raise (no toDebtBps) keeps the old share(toCents) step", () => {
+    const r = buildPayoffInputs(
+      { ...inputs, raise: { toCents: 600000, fromMonth: "2027-01" } },
+      debts, recurring, "2026-07",
+    );
+    // share(600000) = floor((600000-70000-5000)*0.5) = 262500
+    expect(r.raisedExtraCents).toBe(262500);
+    expect(r.payoffInputs.extraSchedule[1]!.extraCents).toBe(262500);
+  });
+
+  it("toDebtBps=10000 throws the whole raise at debt", () => {
+    const r = buildPayoffInputs(
+      { ...inputs, raise: { toCents: 600000, fromMonth: "2027-01", toDebtBps: 10000 } },
+      debts, recurring, "2026-07",
+    );
+    // preExtra 212500 + raiseDelta 100000 = 312500
+    expect(r.raisedExtraCents).toBe(312500);
+  });
+
+  it("toDebtBps=0 sends none of the raise to debt", () => {
+    const r = buildPayoffInputs(
+      { ...inputs, raise: { toCents: 600000, fromMonth: "2027-01", toDebtBps: 0 } },
+      debts, recurring, "2026-07",
+    );
+    expect(r.raisedExtraCents).toBe(212500); // == preExtra
+  });
+
+  it("toDebtBps == global share reproduces the legacy step (continuity)", () => {
+    const r = buildPayoffInputs(
+      { ...inputs, raise: { toCents: 600000, fromMonth: "2027-01", toDebtBps: 5000 } },
+      debts, recurring, "2026-07",
+    );
+    // 212500 + floor(100000*5000/10000)=262500 == share(600000)
+    expect(r.raisedExtraCents).toBe(262500);
+  });
+
+  it("no raise → raisedExtraCents equals preExtraCents", () => {
+    const r = buildPayoffInputs(inputs, debts, recurring, "2026-07");
+    expect(r.raisedExtraCents).toBe(r.preExtraCents);
+  });
 });
 
 describe("scenario + plan writes log events", () => {
