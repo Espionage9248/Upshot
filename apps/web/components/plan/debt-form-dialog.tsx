@@ -70,7 +70,7 @@ export function DebtFormDialog({ trigger, initialValues }: DebtFormDialogProps) 
   const [limit, setLimit] = useState(centsToDollars(initialValues?.creditLimitCents ?? null));
   const [payment, setPayment] = useState(centsToDollars(initialValues?.monthlyPaymentCents ?? null));
   const [rate, setRate] = useState(
-    initialValues?.interestRate != null ? (initialValues.interestRate * 100).toString() : "",
+    initialValues?.interestRate != null ? (Math.round(initialValues.interestRate * 10000) / 100).toString() : "",
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentPatterns, setPaymentPatterns] = useState("");
@@ -83,7 +83,7 @@ export function DebtFormDialog({ trigger, initialValues }: DebtFormDialogProps) 
     setBalance(centsToDollars(initialValues?.currentBalanceCents ?? null));
     setLimit(centsToDollars(initialValues?.creditLimitCents ?? null));
     setPayment(centsToDollars(initialValues?.monthlyPaymentCents ?? null));
-    setRate(initialValues?.interestRate != null ? (initialValues.interestRate * 100).toString() : "");
+    setRate(initialValues?.interestRate != null ? (Math.round(initialValues.interestRate * 10000) / 100).toString() : "");
     setPaymentPatterns("");
     setErrors({});
   }
@@ -210,13 +210,15 @@ export function DebtFormDialog({ trigger, initialValues }: DebtFormDialogProps) 
             onChange={(e) => setRate(e.target.value)}
             placeholder="e.g. 19.99"
           />
-          <Input
-            label="Payment match pattern(s)"
-            value={paymentPatterns}
-            onChange={(e) => setPaymentPatterns(e.target.value)}
-            placeholder="e.g. ZipMoney, ZipPay, Zip"
-            hint="Comma-separated names — debit transactions matching these are auto-linked as payments."
-          />
+          {!isEdit && (
+            <Input
+              label="Payment match pattern(s)"
+              value={paymentPatterns}
+              onChange={(e) => setPaymentPatterns(e.target.value)}
+              placeholder="e.g. ZipMoney, ZipPay, Zip"
+              hint="Comma-separated names — debit transactions matching these are auto-linked as payments."
+            />
+          )}
           {errors.form && (
             <span style={{ color: "var(--expense)", fontSize: "11.5px" }}>{errors.form}</span>
           )}
