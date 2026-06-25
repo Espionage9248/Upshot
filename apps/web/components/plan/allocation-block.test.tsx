@@ -45,6 +45,21 @@ test("target mode: stepper patches targetMonth; required payment = minimums + ex
   expect(onPatch).toHaveBeenCalledWith({ targetMonth: "2027-05" });
 });
 
+test("forward mode with a raise shows a stacked $X → $Y/mo step", () => {
+  const withRaise: PlannerPreview = { ...preview, raisedExtraPaymentCents: 64000 };
+  render(<AllocationBlock inputs={baseInputs} preview={withRaise} minimumsCents={39000} startMonth="2026-06" onPatch={vi.fn()} />);
+  // pre-raise 43000c → $430, post-raise 64000c → $640
+  expect(screen.getByText(/430/)).toBeInTheDocument();
+  expect(screen.getByText(/640/)).toBeInTheDocument();
+  expect(screen.getByText(/steps up at your pay rise/i)).toBeInTheDocument();
+});
+
+test("forward mode without a raise shows a single extra/mo (no step caption)", () => {
+  render(<AllocationBlock inputs={baseInputs} preview={preview} minimumsCents={39000} startMonth="2026-06" onPatch={vi.fn()} />);
+  expect(screen.getByText(/430/)).toBeInTheDocument();
+  expect(screen.queryByText(/steps up at your pay rise/i)).toBeNull();
+});
+
 test("target mode unreachable shows the warning when overHeadroom", () => {
   const inputs: ScenarioInputs = { ...baseInputs, mode: "TARGET_DATE", targetMonth: "2026-09" };
   const over: PlannerPreview = { ...preview, achievable: false, overHeadroom: true, extraPaymentCents: 120000 };

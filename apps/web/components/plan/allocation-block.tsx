@@ -29,6 +29,7 @@ export function AllocationBlock({
   const pct = Math.round(inputs.toDebtShareBps / 100);
   const extraCents = preview?.extraPaymentCents ?? 0;
   const headroomCents = preview?.headroomCents ?? 0;
+  const raisedExtraCents = preview?.raisedExtraPaymentCents ?? null;
   const unreachable =
     inputs.mode === "TARGET_DATE" &&
     preview != null &&
@@ -59,7 +60,15 @@ export function AllocationBlock({
               Extra toward debts
             </span>
             <span style={{ display: "inline-flex", alignItems: "baseline", gap: 7 }}>
-              <Money cents={extraCents} kind="neutral" size={17} weight={700} showCents={false} />
+              {raisedExtraCents != null ? (
+                <>
+                  <Money cents={extraCents} kind="neutral" size={14} weight={600} showCents={false} />
+                  <span style={{ color: "var(--text-3)" }}>→</span>
+                  <Money cents={raisedExtraCents} kind="neutral" size={17} weight={700} showCents={false} />
+                </>
+              ) : (
+                <Money cents={extraCents} kind="neutral" size={17} weight={700} showCents={false} />
+              )}
               <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>/mo</span>
             </span>
           </div>
@@ -86,6 +95,11 @@ export function AllocationBlock({
               ${Math.round(headroomCents / 100).toLocaleString()} spare / mo
             </span>
           </div>
+          {raisedExtraCents != null && (
+            <div style={{ marginTop: 7, fontSize: 11, color: "var(--coral-text)", fontWeight: 600 }}>
+              ↑ steps up at your pay rise
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ marginTop: 16, minHeight: 96 }}>
