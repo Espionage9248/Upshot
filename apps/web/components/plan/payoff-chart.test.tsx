@@ -127,3 +127,31 @@ test("draws you-are-here dot when youAreHere is provided with lockedCurve", () =
   );
   expect(screen.getByText("you are here")).toBeInTheDocument();
 });
+
+test("renders a pay-rise notch when raise prop is provided", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={scenario}
+      baseline={baseline}
+      scenarioDebtFreeMonth="2028-02"
+      baselineDebtFreeMonth="2029-08"
+      raise={{ fromMonth: "2026-12" }}
+    />,
+  );
+  expect(screen.getByText(/pay rise/i)).toBeInTheDocument();
+});
+
+test("no notch when raise is null", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={scenario}
+      baseline={baseline}
+      scenarioDebtFreeMonth="2028-02"
+      baselineDebtFreeMonth="2029-08"
+      raise={null}
+    />,
+  );
+  expect(screen.queryByText(/pay rise/i)).toBeNull();
+});

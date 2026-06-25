@@ -206,6 +206,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
               scenarioDebtFreeMonth={preview?.scenarioDebtFree ?? null}
               baselineDebtFreeMonth={preview?.baselineDebtFree ?? null}
               lump={lump}
+              raise={inputs.raise}
               height={320}
               loading={preview === null}
               lockedCurve={mode === "locked-edit" ? (data.lockedPlan?.projectedCurve ?? null) : null}

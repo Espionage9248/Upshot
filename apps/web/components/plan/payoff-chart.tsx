@@ -18,6 +18,7 @@ interface PayoffChartProps {
   scenarioDebtFreeMonth: string | null;
   baselineDebtFreeMonth: string | null;
   lump?: { monthIndex: number; amountCents: number } | null;
+  raise?: { fromMonth: string } | null;
   height?: number;
   loading?: boolean;
   lockedCurve?: Point[] | null;
@@ -38,6 +39,7 @@ export function PayoffChart({
   scenarioDebtFreeMonth,
   baselineDebtFreeMonth,
   lump = null,
+  raise = null,
   height = 320,
   loading = false,
   lockedCurve = null,
@@ -279,6 +281,24 @@ export function PayoffChart({
           </text>
         </g>
       )}
+      {/* pay-rise notch */}
+      {raise && scenario.length > 0 && (() => {
+        const ri = diffMonths(startMonth, raise.fromMonth);
+        if (ri <= 0 || ri > horizon) return null;
+        const rp = scenario.reduce((best, p) =>
+          Math.abs(diffMonths(startMonth, p.month) - ri) < Math.abs(diffMonths(startMonth, best.month) - ri) ? p : best,
+        );
+        const ry = Y(rp.balanceCents);
+        return (
+          <g>
+            <line x1={X(ri)} x2={X(ri)} y1={ry - 4} y2={ry + 18} stroke="var(--coral)" strokeWidth={1.5} />
+            <circle cx={X(ri)} cy={ry} r={3.5} fill="var(--coral)" stroke="var(--surface)" strokeWidth={1.5} />
+            <text x={X(ri)} y={ry + 31} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="var(--coral-text)" style={{ fontFamily: "var(--font-sans)" }}>
+              ↑ pay rise
+            </text>
+          </g>
+        );
+      })()}
       {/* baseline debt-free marker (open) */}
       {baseMonths != null && baseMonths <= horizon && (
         <g>
