@@ -160,20 +160,48 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   page.once("dialog", (d) => d.accept("E2E scenario"));
   await planner.getByRole("button", { name: "Save as scenario" }).click();
 
-  // Saved list shows it.
-  const saved = page.getByRole("region", { name: "Saved scenarios" });
-  await expect(saved.getByText("E2E scenario")).toBeVisible({ timeout: 15000 });
+  // Saved list shows it. SavedScenariosList renders a <div>, not a <section>,
+  // so we locate the card by its name text directly.
+  await expect(page.getByText("E2E scenario").first()).toBeVisible({ timeout: 15000 });
 
-  // Lock the current scenario as the tracked plan.
+  // 1) Lock (with confirm): click "Lock in this plan" → confirm dialog → "Lock it in".
   await planner.getByRole("button", { name: "Lock in this plan" }).click();
+  const lockDialog = page.getByRole("dialog");
+  await expect(lockDialog.getByRole("button", { name: "Lock it in" })).toBeVisible({ timeout: 15000 });
+  await lockDialog.getByRole("button", { name: "Lock it in" }).click();
 
-  // Locked banner appears.
+  // Locked banner appears; eyebrow reads "Your tracked plan".
   const banner = page.getByRole("region", { name: "Locked debt plan" });
   await expect(banner).toBeVisible({ timeout: 15000 });
+  await expect(banner.getByText("Your tracked plan", { exact: false })).toBeVisible();
 
-  // Unlock to restore the unlocked state.
-  await banner.getByRole("button", { name: "Re-model / unlock" }).click();
+  // 2) Re-model → locked-edit → Stop editing.
+  await banner.getByRole("button", { name: "Re-model" }).click();
+  // Planner switches to locked-edit mode — header reads "Editing your tracked plan".
+  await expect(planner.getByText("Editing your tracked plan", { exact: false })).toBeVisible({ timeout: 15000 });
+  await planner.getByRole("button", { name: "Stop editing" }).click();
+  // Banner re-asserts visible (locked-edit exits back to hypothesis mode, banner persists).
+  await expect(banner).toBeVisible({ timeout: 15000 });
+
+  // 3) Promote a what-if: click "Promote to locked plan" on the E2E scenario card.
+  // SavedScenariosList renders cards with icon-only buttons using aria-label.
+  await page.getByRole("button", { name: "Promote to locked plan" }).first().click();
+  const promoteDialog = page.getByRole("dialog");
+  await expect(promoteDialog.getByRole("button", { name: "Promote & lock" })).toBeVisible({ timeout: 15000 });
+  await promoteDialog.getByRole("button", { name: "Promote & lock" }).click();
+  // After promote, the locked banner reappears (new plan is now tracked).
+  await expect(banner).toBeVisible({ timeout: 15000 });
+
+  // 4) Unlock (danger confirm): click banner "Unlock" → confirm → banner hidden.
+  await banner.getByRole("button", { name: "Unlock" }).click();
+  const unlockDialog = page.getByRole("dialog");
+  await expect(unlockDialog.getByRole("button", { name: "Unlock" })).toBeVisible({ timeout: 15000 });
+  await unlockDialog.getByRole("button", { name: "Unlock" }).click();
   await expect(banner).toBeHidden({ timeout: 15000 });
+
+  // 5) Delete a what-if: the saved scenarios list now has at least one card;
+  //    use .first() since promote/unlock may shift the set.
+  await page.getByRole("button", { name: "Delete scenario" }).first().click();
 
   // 9) /plan/installments route smoke: navigates, renders empty state (no plans seeded).
   // The BNPL list was rebuilt in the Phase-5 rebuild: the button is "Add BNPL plan"
