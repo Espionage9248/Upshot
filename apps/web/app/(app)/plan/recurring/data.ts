@@ -99,7 +99,9 @@ export async function loadRecurringData(db: DbClient): Promise<RecurringData> {
   const installmentOptions = (await new DrizzleInstallmentRepo(db).list()).map((p) => ({ value: p.id, label: p.merchant }));
 
   return {
-    active, paused, suggested, monthlyTotalCents, overlaps, driftAlerts,
+    active, paused, suggested,
+    monthlyTotalCents: monthlyTotalCents + debtTotalCents,
+    overlaps, driftAlerts,
     debtPayments: { count: debtCount, totalCents: debtTotalCents },
     debtChoices: debtRows.map((d) => ({ id: d.id, name: d.name })),
     ruleOptions: { categoryOptions, tagOptions, debtOptions, recurringOptions, installmentOptions },

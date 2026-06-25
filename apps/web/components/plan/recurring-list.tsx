@@ -115,23 +115,24 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
         <RecurringAddDialog />
       </div>
 
-      {/* Monthly total summary */}
-      {data.active.length > 0 && (
+      {/* Monthly total summary — includes debt payments */}
+      {(data.active.length > 0 || data.debtPayments.count > 0) && (
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
             marginBottom: 16,
-            padding: "10px 14px",
+            padding: "14px 16px",
             borderRadius: "var(--radius-data)",
             background: "var(--surface-2)",
+            border: "1px solid var(--line)",
           }}
         >
-          <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <span style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Monthly total
           </span>
-          <Money cents={data.monthlyTotalCents} kind="expense" size={16} weight={700} />
+          <Money cents={data.monthlyTotalCents} kind="expense" size={20} weight={700} />
         </div>
       )}
 

@@ -6,6 +6,7 @@ import {
   createDbClient,
   applyMigrations,
   DrizzleRecurringRepo,
+  tables,
   type DbClient,
 } from "@upshot/db";
 import { loadRecurringData } from "./data";
@@ -263,5 +264,24 @@ describe("loadRecurringData", () => {
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain(KEY);
     expect(serialized).not.toContain("DB_ENCRYPTION_KEY");
+  });
+
+  it("includes debt payments in the monthly total", async () => {
+    const db = freshDb();
+    db.insert(tables.recurringItems).values({
+      id: "rec-1", name: "Phone", kind: "BILL", amountCents: 4500, frequency: "MONTHLY", status: "ACTIVE",
+    }).run();
+    db.insert(tables.debts).values({
+      id: "debt-1", name: "Zip", type: "BNPL", currentBalanceCents: 10000, monthlyPaymentCents: 0,
+      payoffPriority: 999, includeInSnowball: true, includeInNetWorth: true,
+    }).run();
+    db.insert(tables.debtPayments).values({
+      id: "pay-1", debtId: "debt-1", amountCents: 3000, paymentDate: "2026-06-20",
+    }).run();
+
+    const data = await loadRecurringData(db);
+    // recurring 4500 + debt effective payment 3000 = 7500
+    expect(data.debtPayments.totalCents).toBe(3000);
+    expect(data.monthlyTotalCents).toBe(7500);
   });
 });
