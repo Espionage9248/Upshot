@@ -180,6 +180,11 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
               baselineDebtFreeMonth={preview?.baselineDebtFree ?? null}
               lump={lump}
               height={320}
+              loading={preview === null}
+              lockedCurve={mode === "locked-edit" ? (data.lockedPlan?.projectedCurve ?? null) : null}
+              {...(mode === "locked-edit" && data.lockedPlan
+                ? { youAreHere: { month: data.startMonth, balanceCents: data.lockedPlan.currentBalanceCents } }
+                : {})}
             />
           </div>
           <PayoffMilestones orderedDebts={orderedDebts} perDebt={preview?.perDebt ?? []} strategyLabel={STRATEGY_LABEL[inputs.strategy]} />

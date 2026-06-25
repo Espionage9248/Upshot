@@ -56,5 +56,74 @@ test("empty curves do not crash", () => {
       baselineDebtFreeMonth={null}
     />,
   );
-  expect(screen.getByLabelText("Projected debt balance over time")).toBeInTheDocument();
+  // empty → well, not SVG
+  expect(screen.getByText("Your payoff curve will appear here")).toBeInTheDocument();
+});
+
+test("shows the recomputing caption while loading", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={[]}
+      baseline={[]}
+      scenarioDebtFreeMonth={null}
+      baselineDebtFreeMonth={null}
+      loading
+    />,
+  );
+  expect(screen.getByText(/Recomputing against your current debts/i)).toBeInTheDocument();
+});
+
+test("shows an empty well when there is no data and not loading", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={[]}
+      baseline={[]}
+      scenarioDebtFreeMonth={null}
+      baselineDebtFreeMonth={null}
+    />,
+  );
+  expect(screen.getByText("Your payoff curve will appear here")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      /Add an extra amount toward your debts/i,
+    ),
+  ).toBeInTheDocument();
+});
+
+test("draws the locked reference curve when provided", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={[{ month: "2026-06", balanceCents: 900000 }]}
+      baseline={[]}
+      scenarioDebtFreeMonth={null}
+      baselineDebtFreeMonth={null}
+      lockedCurve={[
+        { month: "2026-06", balanceCents: 1000000 },
+        { month: "2026-12", balanceCents: 500000 },
+      ]}
+    />,
+  );
+  // scenario path + locked reference path = at least 2 paths in SVG
+  expect(document.querySelectorAll("path").length).toBeGreaterThan(1);
+});
+
+test("draws you-are-here dot when youAreHere is provided with lockedCurve", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={[{ month: "2026-06", balanceCents: 900000 }]}
+      baseline={[]}
+      scenarioDebtFreeMonth={null}
+      baselineDebtFreeMonth={null}
+      lockedCurve={[
+        { month: "2026-06", balanceCents: 1000000 },
+        { month: "2026-12", balanceCents: 500000 },
+      ]}
+      youAreHere={{ month: "2026-06", balanceCents: 1000000 }}
+    />,
+  );
+  expect(screen.getByText("you are here")).toBeInTheDocument();
 });

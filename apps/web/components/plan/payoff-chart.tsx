@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { Skeleton, UIcon } from "@upshot/ui";
 import { labelMonth, diffMonths, addMonths } from "./planner-atoms";
 
 const MONO = "var(--font-mono)";
@@ -18,6 +19,9 @@ interface PayoffChartProps {
   baselineDebtFreeMonth: string | null;
   lump?: { monthIndex: number; amountCents: number } | null;
   height?: number;
+  loading?: boolean;
+  lockedCurve?: Point[] | null;
+  youAreHere?: { month: string; balanceCents: number } | null;
 }
 
 /** smallest nice ceiling ≥ v (cents). */
@@ -35,7 +39,110 @@ export function PayoffChart({
   baselineDebtFreeMonth,
   lump = null,
   height = 320,
+  loading = false,
+  lockedCurve = null,
+  youAreHere = null,
 }: PayoffChartProps): ReactElement {
+  // --- Loading state ---
+  if (loading) {
+    return (
+      <div
+        style={{
+          height,
+          borderRadius: "var(--radius-card)",
+          border: "1px solid var(--line)",
+          background: "var(--surface)",
+          padding: 20,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          gap: 0,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <Skeleton
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 0,
+            background: undefined,
+          }}
+          aria-hidden="true"
+        />
+        <svg
+          width="100%"
+          height={height - 40}
+          viewBox="0 0 1000 300"
+          preserveAspectRatio="none"
+          style={{ opacity: 0.5, position: "relative" }}
+          aria-hidden="true"
+        >
+          <path d="M0 60 C200 80 380 150 520 200 S820 280 1000 290" fill="none" stroke="var(--surface-3)" strokeWidth="3" strokeLinecap="round" />
+          <path d="M0 90 C220 150 420 230 560 260 S860 295 1000 298" fill="none" stroke="var(--surface-3)" strokeWidth="3" strokeDasharray="4 5" strokeLinecap="round" opacity={0.7} />
+        </svg>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-3)", fontSize: 12, fontWeight: 600, position: "relative" }}>
+          <span
+            style={{
+              width: 13,
+              height: 13,
+              borderRadius: 999,
+              border: "2px solid var(--text-3)",
+              borderTopColor: "transparent",
+              display: "inline-block",
+              animation: "spin 0.9s linear infinite",
+            }}
+            aria-hidden="true"
+          />
+          {" "}Recomputing against your current debts…
+        </div>
+      </div>
+    );
+  }
+
+  // --- Empty state ---
+  if (scenario.length === 0 && baseline.length === 0) {
+    return (
+      <div
+        style={{
+          height,
+          borderRadius: "var(--radius-card)",
+          border: "1px dashed var(--line)",
+          background:
+            "repeating-linear-gradient(135deg, transparent, transparent 9px, color-mix(in oklch, var(--text-3) 4%, transparent) 9px, color-mix(in oklch, var(--text-3) 4%, transparent) 10px)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: 13,
+            background: "var(--surface-2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--text-3)",
+          }}
+        >
+          <UIcon name="trend" size={24} />
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-2)" }}>
+          Your payoff curve will appear here
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--text-3)", maxWidth: 300, lineHeight: 1.45 }}>
+          Add an extra amount toward your debts and we'll plot when you'd be debt-free against doing nothing.
+        </div>
+      </div>
+    );
+  }
+
   const W = 1000;
   const H = height;
   const padL = 52;
@@ -48,11 +155,18 @@ export function PayoffChart({
   // horizon (months) = longest curve length, clamped.
   const scenLast = scenario[scenario.length - 1];
   const baseLast = baseline[baseline.length - 1];
+  const lockedLast = lockedCurve && lockedCurve.length > 0 ? lockedCurve[lockedCurve.length - 1] : null;
   const scenLen = scenLast ? diffMonths(startMonth, scenLast.month) : 0;
   const baseLen = baseLast ? diffMonths(startMonth, baseLast.month) : 0;
-  const horizon = Math.min(Math.max(scenLen, baseLen, 1) + 2, 64);
+  const lockedLen = lockedLast ? diffMonths(startMonth, lockedLast.month) : 0;
+  const horizon = Math.min(Math.max(scenLen, baseLen, lockedLen, 1) + 2, 64);
 
-  const allMax = Math.max(1, ...scenario.map((p) => p.balanceCents), ...baseline.map((p) => p.balanceCents));
+  const allMax = Math.max(
+    1,
+    ...scenario.map((p) => p.balanceCents),
+    ...baseline.map((p) => p.balanceCents),
+    ...(lockedCurve ? lockedCurve.map((p) => p.balanceCents) : []),
+  );
   const yMax = niceMaxCents(allMax);
 
   const X = (m: number): number => padL + (m / horizon) * plotW;
@@ -119,6 +233,38 @@ export function PayoffChart({
       </text>
       {/* scenario area fill */}
       {scenArea && <path d={scenArea} fill="var(--coral)" opacity={0.1} stroke="none" />}
+      {/* locked reference curve (behind scenario) */}
+      {lockedCurve && lockedCurve.length > 0 && (
+        <path
+          d={toPath(lockedCurve)}
+          fill="none"
+          stroke="var(--text-3)"
+          strokeWidth={1.5}
+          strokeDasharray="1 4"
+          strokeLinecap="round"
+          opacity={0.6}
+        />
+      )}
+      {/* you-are-here marker on locked curve */}
+      {youAreHere && lockedCurve && lockedCurve.length > 0 && (() => {
+        const cx = X(diffMonths(startMonth, youAreHere.month));
+        const cy = Y(youAreHere.balanceCents);
+        return (
+          <g>
+            <circle cx={cx} cy={cy} r={5} fill="var(--coral)" />
+            <text
+              x={cx + 8}
+              y={cy - 6}
+              fontSize={10}
+              fontWeight={600}
+              fill="var(--coral)"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              you are here
+            </text>
+          </g>
+        );
+      })()}
       {/* baseline dashed */}
       {baseline.length > 0 && <path d={toPath(baseline)} fill="none" stroke="var(--proj)" strokeWidth={2} strokeDasharray="3 4" strokeLinecap="round" />}
       {/* scenario solid */}
