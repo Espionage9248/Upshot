@@ -21,6 +21,7 @@ import {
   Layers,
   Link,
   Lock,
+  LockOpen,
   Moon,
   Pause,
   Percent,
@@ -83,6 +84,7 @@ export const UICON_KEYS = [
   "command",
   "building",
   "lock",
+  "unlock",
   "sparkle",
   "bnpl",
 ] as const;
@@ -133,6 +135,7 @@ export const ICON_REGISTRY: Record<UIconKey, AnyIconComponent> = {
   command: Command,
   building: Building2,
   lock: Lock,
+  unlock: LockOpen,
   sparkle: Sparkles,
   bnpl: ShoppingBag,
 } satisfies Record<UIconKey, AnyIconComponent>;
