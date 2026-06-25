@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Money, EmptyState } from "@upshot/ui";
+import { Money, EmptyState, Toaster } from "@upshot/ui";
 import type { DebtsData } from "@/app/(app)/plan/debts/data";
 import type { PlanningData } from "@/app/(app)/plan/debts/planning-data";
 import { DebtSummary } from "./debt-summary";
@@ -49,6 +49,7 @@ export function DebtDashboard({ data, planning }: { data: DebtsData; planning: P
           </div>
         </Link>
       )}
+      <Toaster />
     </div>
   );
 }

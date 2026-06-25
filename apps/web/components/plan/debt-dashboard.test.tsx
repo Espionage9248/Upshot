@@ -38,3 +38,8 @@ test("renders DebtSummary and no longer renders the global strategy control", ()
   // BNPL management link kept.
   expect(screen.getByText(/BNPL \(managed\)/)).toBeInTheDocument();
 });
+
+test("mounts a polite toast status region", () => {
+  render(<DebtDashboard data={data} planning={planning} />);
+  expect(screen.getByRole("status")).toBeInTheDocument();
+});
