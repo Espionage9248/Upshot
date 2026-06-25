@@ -12,7 +12,8 @@ import {
   Input,
   UiSelect,
 } from "@upshot/ui";
-import { createDebtAction } from "@/server-actions/debts";
+import { createDebtAction, updateDebtAction } from "@/server-actions/debts";
+import type { DebtRow } from "@/app/(app)/plan/debts/data";
 
 const DEBT_TYPE_OPTIONS = [
   { value: "CREDIT_CARD", label: "Credit card" },
@@ -43,34 +44,46 @@ function parseRate(value: string): number | null {
   return n / 100;
 }
 
+/** Display integer cents as a dollar string (e.g. 10000 → "100.00"). */
+function centsToDollars(cents: number | null): string {
+  return cents == null ? "" : (cents / 100).toFixed(2);
+}
+
 export interface DebtFormDialogProps {
   trigger?: React.ReactNode;
+  initialValues?: DebtRow;
 }
 
 /**
- * Dialog for creating a new debt entry. Client component — receives serializable
- * props only, never imports @upshot/db. Calls createDebtAction then router.refresh().
+ * Dialog for creating or editing a debt entry. Client component — receives
+ * serializable props only, never imports @upshot/db. Calls createDebtAction
+ * (add mode) or updateDebtAction (edit mode) then router.refresh().
+ * When `initialValues` is provided, the dialog pre-populates fields, the title
+ * becomes "Edit debt", and the submit button reads "Save".
  */
-export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
+export function DebtFormDialog({ trigger, initialValues }: DebtFormDialogProps) {
+  const isEdit = initialValues !== undefined;
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [type, setType] = useState<DebtTypeValue>("CREDIT_CARD");
-  const [balance, setBalance] = useState("");
-  const [limit, setLimit] = useState("");
-  const [payment, setPayment] = useState("");
-  const [rate, setRate] = useState("");
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const [type, setType] = useState<DebtTypeValue>((initialValues?.type as DebtTypeValue) ?? "CREDIT_CARD");
+  const [balance, setBalance] = useState(centsToDollars(initialValues?.currentBalanceCents ?? null));
+  const [limit, setLimit] = useState(centsToDollars(initialValues?.creditLimitCents ?? null));
+  const [payment, setPayment] = useState(centsToDollars(initialValues?.monthlyPaymentCents ?? null));
+  const [rate, setRate] = useState(
+    initialValues?.interestRate != null ? (initialValues.interestRate * 100).toString() : "",
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentPatterns, setPaymentPatterns] = useState("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
   function reset() {
-    setName("");
-    setType("CREDIT_CARD");
-    setBalance("");
-    setLimit("");
-    setPayment("");
-    setRate("");
+    setName(initialValues?.name ?? "");
+    setType((initialValues?.type as DebtTypeValue) ?? "CREDIT_CARD");
+    setBalance(centsToDollars(initialValues?.currentBalanceCents ?? null));
+    setLimit(centsToDollars(initialValues?.creditLimitCents ?? null));
+    setPayment(centsToDollars(initialValues?.monthlyPaymentCents ?? null));
+    setRate(initialValues?.interestRate != null ? (initialValues.interestRate * 100).toString() : "");
     setPaymentPatterns("");
     setErrors({});
   }
@@ -90,6 +103,24 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
     const interestRate = parseRate(rate);
 
     startTransition(async () => {
+      if (isEdit && initialValues) {
+        const res = await updateDebtAction({
+          ...initialValues,
+          name: name.trim(),
+          type,
+          currentBalanceCents: balanceCents!,
+          creditLimitCents: creditLimitCents ?? null,
+          monthlyPaymentCents: paymentCents!,
+          interestRate,
+        });
+        if (!res.ok) {
+          setErrors({ form: res.error.message });
+          return;
+        }
+        setOpen(false);
+        router.refresh();
+        return;
+      }
       const res = await createDebtAction({
         name: name.trim(),
         type,
@@ -123,12 +154,12 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
-        {trigger ?? <Button size="sm">Add debt</Button>}
+        {trigger ?? <Button size="sm">{isEdit ? "Edit debt" : "Add debt"}</Button>}
       </DialogTrigger>
       <DialogContent>
-        <DialogTitle>Add a debt</DialogTitle>
+        <DialogTitle>{isEdit ? "Edit debt" : "Add a debt"}</DialogTitle>
         <DialogDescription>
-          Track a new debt — credit card, loan, or other liability.
+          {isEdit ? "Update the details for this debt." : "Track a new debt — credit card, loan, or other liability."}
         </DialogDescription>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Input
@@ -194,7 +225,7 @@ export function DebtFormDialog({ trigger }: DebtFormDialogProps) {
               Cancel
             </Button>
             <Button size="md" onClick={submit} loading={pending}>
-              Add debt
+              {isEdit ? "Save" : "Add debt"}
             </Button>
           </div>
         </div>

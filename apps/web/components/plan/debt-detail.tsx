@@ -4,6 +4,7 @@ import type { DebtDetailData } from "@/app/(app)/plan/debts/[id]/data";
 import type { MonthlyPayment } from "@upshot/core";
 import { DebtDeleteButton } from "./debt-delete-button";
 import { DebtRuleLinkDialog } from "./debt-rule-link-dialog";
+import { DebtFormDialog } from "./debt-form-dialog";
 
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
@@ -71,6 +72,7 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
           <Badge tone="neutral">
             {debt.type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
           </Badge>
+          <DebtFormDialog initialValues={debt} trigger={<Button variant="ghost" size="sm">Edit</Button>} />
           <DebtDeleteButton debtId={debt.id} debtName={debt.name} />
         </CardHeader>
         <CardBody>
