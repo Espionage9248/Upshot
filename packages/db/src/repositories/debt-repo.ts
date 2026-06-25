@@ -126,6 +126,18 @@ export class DrizzleDebtRepo implements DebtRepo {
     this.db.update(debts).set({ paymentsLinkedAt: iso }).where(eq(debts.id, id)).run();
   }
 
+  /**
+   * Wipe a debt's matched payments and unlink its rule: delete debt_payments rows,
+   * null matchRuleId + paymentsLinkedAt. The match_rule row is intentionally LEFT
+   * for reuse under /settings/rules (decision: FK-only clear).
+   */
+  async clearMatchedPayments(debtId: string): Promise<void> {
+    this.db.transaction((tx) => {
+      tx.delete(debtPayments).where(eq(debtPayments.debtId, debtId)).run();
+      tx.update(debts).set({ matchRuleId: null, paymentsLinkedAt: null }).where(eq(debts.id, debtId)).run();
+    });
+  }
+
   /** Point this entity at a matching rule (or clear it with null). */
   async setMatchRule(id: string, ruleId: string | null): Promise<void> {
     this.db.update(debts).set({ matchRuleId: ruleId }).where(eq(debts.id, id)).run();

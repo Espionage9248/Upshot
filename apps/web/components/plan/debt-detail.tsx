@@ -5,6 +5,7 @@ import type { MonthlyPayment } from "@upshot/core";
 import { DebtDeleteButton } from "./debt-delete-button";
 import { DebtRuleLinkDialog } from "./debt-rule-link-dialog";
 import { DebtFormDialog } from "./debt-form-dialog";
+import { DebtUnlinkButton } from "./debt-unlink-button";
 
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
@@ -165,6 +166,9 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
                 installmentOptions={data.ruleOptions.installmentOptions}
                 trigger={<Button variant="ghost" size="sm">Link this debt&apos;s payment</Button>}
               />
+            )}
+            {debt.matchRuleId !== null && (
+              <DebtUnlinkButton debtId={debt.id} debtName={debt.name} />
             )}
           </div>
         </CardBody>

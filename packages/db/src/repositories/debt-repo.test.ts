@@ -2,9 +2,11 @@ import { afterEach, describe, it, expect } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { eq } from "drizzle-orm";
 import { createDbClient, type DbClient } from "../client";
 import { applyMigrations } from "../migrate";
 import { DrizzleDebtRepo } from "./debt-repo";
+import { matchRules } from "../schema";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -435,6 +437,30 @@ describe("DrizzleDebtRepo", () => {
     expect((await repo.getById(id))?.paymentsLinkedAt).toBe("2026-06-25");
     await repo.setPaymentsLinkedAt(id, null);
     expect((await repo.getById(id))?.paymentsLinkedAt).toBeNull();
+  });
+
+  it("clearMatchedPayments deletes payment rows and clears the FK + linkedAt (rule kept)", async () => {
+    const db = freshDb();
+    const repo = new DrizzleDebtRepo(db);
+    db.insert(matchRules).values({ id: "r1", name: "Zip", isActive: true, priority: 50 }).run();
+    const id = await repo.create({
+      id: "debt-clear-1",
+      name: "Zip", type: "BNPL", currentBalanceCents: 10000, originalBalanceCents: null,
+      creditLimitCents: null, monthlyPaymentCents: 0, minimumPaymentCents: null, interestRate: null,
+      monthlyFeeCents: null, feeDueDay: null, payoffPriority: 999, includeInSnowball: true,
+      includeInNetWorth: true, matchRuleId: "r1", accountNumber: null, institutionName: null, notes: null,
+    });
+    await repo.setPaymentsLinkedAt(id, "2026-06-25");
+    await repo.recordPayment({ debtId: id, amountCents: 3000, paymentDate: "2026-06-20" });
+
+    await repo.clearMatchedPayments(id);
+
+    expect(await repo.listPayments(id)).toHaveLength(0);
+    const debt = await repo.getById(id);
+    expect(debt?.matchRuleId).toBeNull();
+    expect(debt?.paymentsLinkedAt).toBeNull();
+    // rule row is preserved for reuse
+    expect(db.select().from(matchRules).where(eq(matchRules.id, "r1")).get()).toBeTruthy();
   });
 
   describe("latestPaymentCentsByDebt", () => {

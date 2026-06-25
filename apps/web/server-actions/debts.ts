@@ -16,7 +16,7 @@ import { action } from "@/lib/action";
 import { getDb } from "@/lib/db";
 import { computeWhatIf } from "@upshot/core";
 import { DrizzleDebtRepo, tables } from "@upshot/db";
-import { createDebt, updateDebt, deleteDebt, recordDebtPayment } from "./debts-core";
+import { createDebt, updateDebt, deleteDebt, recordDebtPayment, clearDebtMatchedPayments } from "./debts-core";
 import type { DebtRow, CreateDebtInput } from "./debts-core";
 import type { RecordDebtPayment } from "@upshot/core";
 import type { SnowballAnalysis, DebtStrategy } from "@upshot/core";
@@ -128,6 +128,16 @@ export const whatIfAction = action(
       monthsSaved: result.monthsSaved,
       interestSavedCents: result.interestSavedCents,
     };
+  },
+);
+
+/** Action: wipe a debt's matched payments + unlink its rule (FK-only clear). */
+export const clearDebtMatchedPaymentsAction = action(
+  async (_session, debtId: string): Promise<void> => {
+    const { db } = getDb();
+    await clearDebtMatchedPayments(db, debtId);
+    revalidatePath("/plan/debts");
+    revalidatePath("/plan");
   },
 );
 

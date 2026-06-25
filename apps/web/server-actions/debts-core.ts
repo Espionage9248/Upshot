@@ -153,3 +153,13 @@ export async function recordDebtPayment(
   );
 }
 
+// ---------------------------------------------------------------------------
+// clearDebtMatchedPayments
+// ---------------------------------------------------------------------------
+
+/** Wipe a debt's matched payments + unlink its rule (FK-only clear). */
+export async function clearDebtMatchedPayments(db: DbClient, debtId: string): Promise<void> {
+  await new DrizzleDebtRepo(db).clearMatchedPayments(debtId);
+  logEvent(db, "clear_matched_payments", debtId, `Cleared matched payments + unlinked rule for debt ${debtId}`, { debtId });
+}
+
