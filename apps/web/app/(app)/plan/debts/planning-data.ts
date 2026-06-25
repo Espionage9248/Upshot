@@ -18,7 +18,7 @@ export interface PlanningData {
   recurring: { id: string; name: string; monthlyCents: number; kind: string }[];
   debts: { id: string; name: string; currentBalanceCents: number; minimumPaymentCents: number; effectivePaymentCents: number; paymentIsActual: boolean; interestRate: number | null; includeInSnowball: boolean }[];
   strategy: "SNOWBALL" | "AVALANCHE" | "CUSTOM";
-  scenarios: { id: string; name: string; debtFreeMonth: string | null; extraPaymentCents: number; interestSavedCents: number; monthsSaved: number }[];
+  scenarios: { id: string; name: string; debtFreeMonth: string | null; extraPaymentCents: number; interestSavedCents: number; monthsSaved: number; inputs: ScenarioInputs }[];
   lockedPlan: {
     lockedAt: string;
     extraPaymentCents: number;
@@ -136,6 +136,7 @@ export async function loadPlanningData(db: DbClient, now: Date = new Date()): Pr
       extraPaymentCents: built.preExtraCents,
       interestSavedCents: Math.max(0, baseline.totalInterestCents - result.totalInterestCents),
       monthsSaved: Math.max(0, baseline.monthsToPayoff - result.monthsToPayoff),
+      inputs: s.inputs,
     };
   });
 

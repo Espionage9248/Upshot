@@ -84,6 +84,27 @@ describe("loadPlanningData", () => {
     expect(d.scenarios[0]!.monthsSaved).toBeGreaterThanOrEqual(0);
   });
 
+  it("surfaces each scenario's inputs for Open", async () => {
+    await new DrizzleDebtRepo(db).create({
+      id: "d1", name: "Visa", type: "CREDIT_CARD", currentBalanceCents: 200000,
+      monthlyPaymentCents: 4000, minimumPaymentCents: 4000, interestRate: 0.2,
+      payoffPriority: 1, includeInSnowball: true, includeInNetWorth: true,
+      originalBalanceCents: null, creditLimitCents: null, monthlyFeeCents: null,
+      feeDueDay: null, matchRuleId: null, accountNumber: null, institutionName: null, notes: null,
+    });
+    await new DrizzlePlanningScenarioRepo(db).create({
+      name: "Extra $300",
+      inputs: {
+        mode: "FORWARD", baseIncomeCents: 600000, raise: null, discretionaryCents: 50000,
+        recurringEdits: [], toDebtShareBps: 5000, strategy: "AVALANCHE",
+        customOrder: null, lumpSums: [], targetMonth: null,
+      },
+    });
+    const data = await loadPlanningData(db, new Date("2026-06-15"));
+    expect(data.scenarios[0]!.inputs).toBeDefined();
+    expect(data.scenarios[0]!.inputs.strategy).toBeDefined();
+  });
+
   it("exposes locked balance, frozen curve, and source inputs", async () => {
     const lockedInputs = {
       mode: "FORWARD", baseIncomeCents: 600000, raise: null, discretionaryCents: 50000,

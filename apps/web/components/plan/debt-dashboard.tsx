@@ -31,9 +31,6 @@ export function DebtDashboard({ data, planning }: { data: DebtsData; planning: P
   const openScenario = (seed: ScenarioInputs, scenarioName: string) => setEditor((e) => ({ mode: "hypothesis", seed, name: scenarioName, key: e.key + 1 }));
   const exitLockedEdit = () => setEditor((e) => ({ mode: "hypothesis", seed: null, name: "Untitled scenario", key: e.key + 1 }));
 
-  // openScenario is wired to SavedScenariosList in Task 6.
-  void openScenario;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {data.debts.length === 0 ? (
@@ -58,7 +55,7 @@ export function DebtDashboard({ data, planning }: { data: DebtsData; planning: P
           onExitLockedEdit={exitLockedEdit}
         />
       )}
-      <SavedScenariosList scenarios={planning.scenarios} />
+      <SavedScenariosList scenarios={planning.scenarios} lockedPlan={planning.lockedPlan} onOpen={openScenario} />
 
       {rollup.activeCount > 0 && (
         <Link href="/plan/installments" style={{ textDecoration: "none" }}>
