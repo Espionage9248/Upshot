@@ -5,6 +5,7 @@ export interface PlannerPreview {
   scenarioDebtFree: string | null;
   baselineDebtFree: string | null;
   extraPaymentCents: number;
+  raisedExtraPaymentCents: number | null;
   achievable: boolean;
   headroomCents: number;
   overHeadroom: boolean;

@@ -19,7 +19,7 @@ const baseInputs: ScenarioInputs = {
 const preview: PlannerPreview = {
   scenario: [], baseline: [], perDebt: [],
   scenarioDebtFree: "2028-02", baselineDebtFree: "2029-08",
-  extraPaymentCents: 43000, achievable: true, headroomCents: 80000,
+  extraPaymentCents: 43000, raisedExtraPaymentCents: null, achievable: true, headroomCents: 80000,
   overHeadroom: false, interestSavedCents: 0, monthsSaved: 0,
 };
 
