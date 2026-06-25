@@ -215,15 +215,19 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await expect(kindToggle).toContainText("Subscription", { timeout: 15000 });
 
   // 10a-link) Link-a-debt-payment write path (debt-payments feature). The seeded
-  // "ZIP PAYMENT" SUGGESTED item carries a debt picker (the "Visa card" debt was
-  // created earlier). Confirming creates a match_rule + dismisses the suggestion.
+  // "ZIP PAYMENT" SUGGESTED item carries a "This is a payment for a debt…" trigger
+  // (DebtRuleLinkDialog — quick-link was replaced by the seeded RuleEditor in Tasks 6-7).
+  // Saving creates a LINK_DEBT match_rule + sets Visa card's matchRuleId + dismisses.
   await page.goto("/plan/recurring");
   await expect(page.getByText("ZIP PAYMENT")).toBeVisible({ timeout: 15000 });
-  // Only one SUGGESTED item is seeded ("ZIP PAYMENT"), so page-level picker is unambiguous.
-  // If a second suggestion card appears, scope these to the ZIP PAYMENT card's ancestor.
-  await page.getByLabel("Choose a debt").selectOption({ label: "Visa card" });
-  await page.getByRole("button", { name: "Link payment" }).click();
-  // After linking, the suggestion is dismissed (CANCELLED) → leaves the list.
+  // The trigger has aria-label "Link ZIP PAYMENT to a debt" (set on the Button).
+  await page.getByRole("button", { name: "Link ZIP PAYMENT to a debt" }).click();
+  const zipLinkDialog = page.getByRole("dialog").filter({ has: page.getByLabel("Rule name") });
+  await expect(zipLinkDialog).toBeVisible();
+  // Condition value is pre-seeded with the suggestion name ("ZIP PAYMENT"); just save.
+  await zipLinkDialog.getByRole("button", { name: "Save" }).click();
+  await expect(zipLinkDialog).not.toBeVisible({ timeout: 15000 });
+  // After saving, the suggestion is dismissed (CANCELLED) → leaves the list.
   await expect(page.getByText("ZIP PAYMENT")).not.toBeVisible({ timeout: 15000 });
 
   // ─── Extended write-path coverage (Task 19) ───────────────────────────────
@@ -248,6 +252,37 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await page.getByRole("link", { name: /Visa card/ }).first().click();
   await page.waitForURL("**/plan/debts/**");
   await expect(page.getByRole("button", { name: "Delete debt" })).toBeVisible({ timeout: 15000 });
+
+  // 10b-edit) Edit-debt write path (UAT-2): open Edit → change the balance → Save → persists.
+  // Drives the real updateDebtAction against the prod build.
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  const editDialog = page.getByRole("dialog");
+  await expect(editDialog).toBeVisible();
+  const editBalance = editDialog.getByLabel("Current balance");
+  await editBalance.fill("1234.00");
+  await editDialog.getByRole("button", { name: "Save" }).click();
+  await expect(editDialog).not.toBeVisible({ timeout: 15000 });
+  // The detail overview reflects the edited balance ($1,234.00).
+  await expect(page.getByText("$1,234", { exact: false }).first()).toBeVisible({ timeout: 15000 });
+
+  // 10b-link) Link-via-rule-editor write path (UAT-2). At this point Visa card's
+  // matchRuleId is already set (from 10a-link above), so "Unlink & clear payments"
+  // is visible. Unlink first (window.confirm accepted), then re-link via the seeded
+  // RuleEditor to verify the full link flow against the prod build.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Unlink & clear payments" }).click();
+  // After clearing, matchRuleId → null → "Link this debt's payment" reappears.
+  await expect(page.getByRole("button", { name: "Link this debt's payment" })).toBeVisible({ timeout: 15000 });
+  // Open the seeded RuleEditor (DebtRuleLinkDialog), confirm its condition, then save.
+  await page.getByRole("button", { name: "Link this debt's payment" }).click();
+  const linkDialog = page.getByRole("dialog").filter({ has: page.getByLabel("Rule name") });
+  await expect(linkDialog).toBeVisible();
+  // Condition value is pre-seeded with the debt name ("Visa card"); refine to "Visa" and save.
+  await linkDialog.getByLabel("Condition value").first().fill("Visa");
+  await linkDialog.getByRole("button", { name: "Save" }).click();
+  await expect(linkDialog).not.toBeVisible({ timeout: 15000 });
+  // After linking, the "Unlink & clear payments" affordance reappears (matchRuleId set).
+  await expect(page.getByRole("button", { name: "Unlink & clear payments" })).toBeVisible({ timeout: 15000 });
 
   // 10c) BNPL Path B (Task 15): Add BNPL plan with merchant/amount/count.
   await page.goto("/plan/installments");
