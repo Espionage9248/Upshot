@@ -83,6 +83,7 @@ export function PayoffChart({
         </svg>
         <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-3)", fontSize: 12, fontWeight: 600, position: "relative" }}>
           <span
+            className="animate-spin motion-reduce:animate-none"
             style={{
               width: 13,
               height: 13,
@@ -90,7 +91,6 @@ export function PayoffChart({
               border: "2px solid var(--text-3)",
               borderTopColor: "transparent",
               display: "inline-block",
-              animation: "spin 0.9s linear infinite",
             }}
             aria-hidden="true"
           />

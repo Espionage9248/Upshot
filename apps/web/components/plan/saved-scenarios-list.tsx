@@ -49,7 +49,7 @@ export function SavedScenariosList({
 
   if (isEmpty) {
     return (
-      <div>
+      <section aria-label="Saved scenarios">
         <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           Saved scenarios
         </div>
@@ -84,7 +84,7 @@ export function SavedScenariosList({
             Tune the planner above and hit <b>Save as scenario</b> to keep a budget you can come back to and compare.
           </div>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -109,7 +109,7 @@ export function SavedScenariosList({
   ) : null;
 
   return (
-    <div>
+    <section aria-label="Saved scenarios">
       <div
         style={{
           display: "flex",
@@ -159,7 +159,7 @@ export function SavedScenariosList({
         onConfirm={handleConfirmPromote}
         pending={pending}
       />
-    </div>
+    </section>
   );
 }
 
