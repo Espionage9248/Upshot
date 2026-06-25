@@ -16,6 +16,8 @@ export interface DebtDetailData {
     recurringOptions: UiSelectOption[];
     installmentOptions: UiSelectOption[];
   };
+  payments: { paymentDate: string; amountCents: number }[];
+  totalPaidCents: number;
 }
 
 function toStrategy(raw: string): DebtStrategy {
@@ -75,5 +77,11 @@ export async function loadDebtDetail(
   const recurringOptions = (await new DrizzleRecurringRepo(db).list()).map((i) => ({ value: i.id, label: i.name }));
   const installmentOptions = (await new DrizzleInstallmentRepo(db).list()).map((p) => ({ value: p.id, label: p.merchant }));
 
-  return { debt, schedule, analysis, effectivePaymentCents, paymentIsActual, ruleOptions: { categoryOptions, tagOptions, debtOptions, recurringOptions, installmentOptions } };
+  const rawPayments = await repo.listPayments(id);
+  const payments = rawPayments
+    .map((p) => ({ paymentDate: p.paymentDate, amountCents: p.amountCents }))
+    .sort((a, b) => (a.paymentDate < b.paymentDate ? 1 : -1)); // most-recent first
+  const totalPaidCents = payments.reduce((sum, p) => sum + p.amountCents, 0);
+
+  return { debt, schedule, analysis, effectivePaymentCents, paymentIsActual, ruleOptions: { categoryOptions, tagOptions, debtOptions, recurringOptions, installmentOptions }, payments, totalPaidCents };
 }

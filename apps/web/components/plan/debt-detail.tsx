@@ -7,6 +7,11 @@ import { DebtRuleLinkDialog } from "./debt-rule-link-dialog";
 import { DebtFormDialog } from "./debt-form-dialog";
 import { DebtUnlinkButton } from "./debt-unlink-button";
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
   return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-AU", {
@@ -220,6 +225,32 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
                   Showing first 24 of {totalMonths} months
                 </div>
               )}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+      {/* Matched payments */}
+      {data.payments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Matched payments</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+              <span style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+                Total paid
+              </span>
+              <Money cents={data.totalPaidCents} kind="expense" size={16} weight={700} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {data.payments.map((p, i) => (
+                <div key={`${p.paymentDate}-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ fontSize: 12, color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>
+                    {formatDate(p.paymentDate)}
+                  </span>
+                  <Money cents={p.amountCents} kind="expense" size={12} />
+                </div>
+              ))}
             </div>
           </CardBody>
         </Card>
