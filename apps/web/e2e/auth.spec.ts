@@ -144,6 +144,14 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await allocationSlider.focus();
   for (let i = 0; i < 12; i++) await allocationSlider.press("ArrowRight");
 
+  // Model a pay rise: open Income, toggle it on, nudge the month, push share to debt.
+  await planner.getByRole("button", { name: "Income" }).click();
+  await planner.getByRole("switch", { name: "Model a pay rise" }).click();
+  await planner.getByRole("button", { name: "Later raise month" }).click();
+  const raiseSlider = planner.getByRole("slider", { name: "Share of pay rise toward debt" });
+  await raiseSlider.focus();
+  for (let i = 0; i < 10; i++) await raiseSlider.press("ArrowRight");
+
   // Custom strategy → author a payoff order (write path: customOrder flows into the scenario).
   // (Needs ≥1 included debt; "Visa card" was added earlier. A second debt makes reorder meaningful,
   //  but with one debt the Custom list still renders and selecting Custom must not error.)
