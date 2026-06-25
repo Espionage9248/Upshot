@@ -33,6 +33,7 @@ import {
   Settings,
   Shield,
   ShoppingBag,
+  SlidersHorizontal,
   Sparkles,
   Sun,
   Tag,
@@ -85,6 +86,7 @@ export const UICON_KEYS = [
   "building",
   "lock",
   "unlock",
+  "sliders",
   "sparkle",
   "bnpl",
 ] as const;
@@ -136,6 +138,7 @@ export const ICON_REGISTRY: Record<UIconKey, AnyIconComponent> = {
   building: Building2,
   lock: Lock,
   unlock: LockOpen,
+  sliders: SlidersHorizontal,
   sparkle: Sparkles,
   bnpl: ShoppingBag,
 } satisfies Record<UIconKey, AnyIconComponent>;
