@@ -1,4 +1,4 @@
-import { DrizzleDebtRepo, DrizzleInstallmentRepo, tables, type DbClient } from "@upshot/db";
+import { DrizzleDebtRepo, DrizzleInstallmentRepo, DrizzlePayoffPlanRepo, type DbClient } from "@upshot/db";
 import {
   bnplRollup,
   computeSnowball,
@@ -14,7 +14,6 @@ export type DebtRow = Awaited<ReturnType<DrizzleDebtRepo["list"]>>[number];
 export interface DebtsData {
   debts: { row: DebtRow; utilisation: number | null; effectivePaymentCents: number; paymentIsActual: boolean }[];
   analysis: SnowballAnalysis;
-  strategy: DebtStrategy;
   rollup: { remainingCents: number; activeCount: number; nextDueDate: string | null };
 }
 
@@ -36,14 +35,10 @@ function monthOf(d: Date): string {
 export async function loadDebtsData(db: DbClient, now: Date = new Date()): Promise<DebtsData> {
   const startMonth = monthOf(now);
 
-  // Read app_settings for debt strategy + extra payment.
-  const settings = db.select({
-    debtStrategy: tables.appSettings.debtStrategy,
-    extraPaymentCents: tables.appSettings.extraPaymentCents,
-  }).from(tables.appSettings).get();
-
-  const strategy = toStrategy(settings?.debtStrategy ?? "SNOWBALL");
-  const extraPaymentCents = settings?.extraPaymentCents ?? 0;
+  const lockedPlan = await new DrizzlePayoffPlanRepo(db).get();
+  const strategy = lockedPlan ? toStrategy(lockedPlan.strategy) : "SNOWBALL";
+  const extraPaymentCents = lockedPlan?.extraPaymentCents ?? 0;
+  const customOrder = lockedPlan?.customOrder ?? undefined;
 
   const repo = new DrizzleDebtRepo(db);
   const rows = await repo.list();
@@ -77,10 +72,11 @@ export async function loadDebtsData(db: DbClient, now: Date = new Date()): Promi
     strategy,
     extraPaymentCents,
     startMonth,
+    ...(customOrder ? { customOrder } : {}),
   });
 
   const installments = await new DrizzleInstallmentRepo(db).list();
   const rollup = bnplRollup(installments);
 
-  return { debts, analysis, strategy, rollup };
+  return { debts, analysis, rollup };
 }

@@ -7,6 +7,7 @@ import {
   applyMigrations,
   DrizzleDebtRepo,
   DrizzleInstallmentRepo,
+  DrizzlePayoffPlanRepo,
   tables,
   type DbClient,
 } from "@upshot/db";
@@ -28,6 +29,41 @@ afterEach(() => {
 });
 
 const NOW = new Date("2026-06-20T10:00:00.000Z");
+
+/** Seed one personal loan: $5,000 balance, $300/month, 8% APR. */
+async function seedDebt(db: DbClient, id = "debt-a") {
+  await new DrizzleDebtRepo(db).create({
+    id,
+    name: "Personal Loan",
+    type: "PERSONAL_LOAN",
+    currentBalanceCents: 500000,
+    originalBalanceCents: null,
+    creditLimitCents: null,
+    monthlyPaymentCents: 30000,
+    minimumPaymentCents: 30000,
+    interestRate: 0.08,
+    monthlyFeeCents: null,
+    feeDueDay: null,
+    payoffPriority: 1,
+    includeInSnowball: true,
+    includeInNetWorth: true,
+    matchRuleId: null,
+    accountNumber: null,
+    institutionName: null,
+    notes: null,
+  });
+}
+
+/** Write stale appSettings that must NOT influence the loader after the repoint. */
+function setStaleSettings(db: DbClient) {
+  db.insert(tables.appSettings)
+    .values({ id: "default", debtStrategy: "AVALANCHE", extraPaymentCents: 99999 })
+    .onConflictDoUpdate({
+      target: tables.appSettings.id,
+      set: { debtStrategy: "AVALANCHE", extraPaymentCents: 99999 },
+    })
+    .run();
+}
 
 describe("loadDebtsData", () => {
   it("returns empty debts and empty analysis when no debts exist", async () => {
@@ -134,78 +170,48 @@ describe("loadDebtsData", () => {
     expect(result.analysis.schedules[0]!.debtId).toBe("debt-1");
   });
 
-  it("reads debtStrategy and extraPaymentCents from app_settings (SNOWBALL default)", async () => {
+  it("locked plan drives analysis — stale appSettings are ignored", async () => {
     const db = freshDb();
-    const repo = new DrizzleDebtRepo(db);
-    await repo.create({
-      id: "debt-a",
-      name: "A",
-      type: "CREDIT_CARD",
-      currentBalanceCents: 100000,
-      originalBalanceCents: null,
-      creditLimitCents: 500000,
-      monthlyPaymentCents: 10000,
-      minimumPaymentCents: 2500,
-      interestRate: 0.20,
-      monthlyFeeCents: null,
-      feeDueDay: null,
-      payoffPriority: 1,
-      includeInSnowball: true,
-      includeInNetWorth: true,
-      matchRuleId: null,
-      accountNumber: null,
-      institutionName: null,
-      notes: null,
+    await seedDebt(db);
+    // Set stale appSettings (AVALANCHE + huge extra) that MUST be ignored.
+    setStaleSettings(db);
+    // Lock a plan with SNOWBALL + $200/month extra (20000 cents).
+    await new DrizzlePayoffPlanRepo(db).upsert({
+      id: "default",
+      strategy: "SNOWBALL",
+      extraPaymentCents: 20000,
+      customOrder: null,
+      lumpSums: [],
+      lockedAt: "2026-06-20T00:00:00.000Z",
+      projectedDebtFreeMonth: null,
+      projectedCurve: [],
+      totalInterestProjectedCents: 0,
+      inputs: null,
     });
 
     const result = await loadDebtsData(db, NOW);
-    // Default strategy from app_settings is SNOWBALL
+
+    // With $300/month minimum + $200 extra = $500/month on a $5,000 balance at 8% APR,
+    // the debt-free month should reflect the $20,000-cent extra (not the stale 99,999-cent extra).
+    // Real captured value: 2027-04 (mirrors [id]/data.test.ts locked-plan test at same NOW/debt).
+    expect(result.analysis.debtFreeMonth).toBe("2027-04");
+    // Analysis strategy must come from the locked plan.
     expect(result.analysis.strategy).toBe("SNOWBALL");
   });
 
-  it("uses AVALANCHE strategy when app_settings.debtStrategy is AVALANCHE", async () => {
+  it("unlocked baseline — no locked plan falls back to SNOWBALL/0 (minimums-only)", async () => {
     const db = freshDb();
-    // Insert/update app_settings to AVALANCHE
-    db.insert(tables.appSettings)
-      .values({ id: "default", debtStrategy: "AVALANCHE" })
-      .onConflictDoUpdate({ target: tables.appSettings.id, set: { debtStrategy: "AVALANCHE" } })
-      .run();
-    const repo = new DrizzleDebtRepo(db);
-    await repo.create({
-      id: "debt-b",
-      name: "B",
-      type: "PERSONAL_LOAN",
-      currentBalanceCents: 200000,
-      originalBalanceCents: null,
-      creditLimitCents: null,
-      monthlyPaymentCents: 15000,
-      minimumPaymentCents: 15000,
-      interestRate: 0.12,
-      monthlyFeeCents: null,
-      feeDueDay: null,
-      payoffPriority: 1,
-      includeInSnowball: true,
-      includeInNetWorth: true,
-      matchRuleId: null,
-      accountNumber: null,
-      institutionName: null,
-      notes: null,
-    });
+    await seedDebt(db);
+    // Stale appSettings set — must be ignored (no locked plan → minimums only).
+    setStaleSettings(db);
+    // Do NOT lock any plan.
 
     const result = await loadDebtsData(db, NOW);
-    expect(result.analysis.strategy).toBe("AVALANCHE");
-  });
 
-  it("maps unknown debtStrategy values to CUSTOM", async () => {
-    const db = freshDb();
-    // Insert an app_settings row with a non-standard strategy value.
-    db.insert(tables.appSettings)
-      .values({ id: "default", debtStrategy: "SOMETHING_ELSE" })
-      .onConflictDoUpdate({ target: tables.appSettings.id, set: { debtStrategy: "SOMETHING_ELSE" } })
-      .run();
-
-    const result = await loadDebtsData(db, NOW);
-    expect(result.analysis.strategy).toBe("CUSTOM");
+    // Minimums-only: $300/month on $5,000 at 8% APR.
+    // Real captured value: mirrors [id]/data.test.ts baseline (same debt/NOW): 2027-11.
+    expect(result.analysis.debtFreeMonth).toBe("2027-11");
+    expect(result.analysis.strategy).toBe("SNOWBALL");
   });
 
   it("never leaks the encryption key in the returned data", async () => {
@@ -216,7 +222,7 @@ describe("loadDebtsData", () => {
     expect(serialized).not.toContain("DB_ENCRYPTION_KEY");
   });
 
-  it("returns BNPL rollup from ACTIVE installment plans + the persisted strategy", async () => {
+  it("returns BNPL rollup from ACTIVE installment plans", async () => {
     const db = freshDb();
     await new DrizzleInstallmentRepo(db).create({
       id: "p1", merchant: "Afterpay – ACME", totalCents: 40000, installmentCents: 10000,
@@ -228,6 +234,5 @@ describe("loadDebtsData", () => {
     expect(result.rollup.activeCount).toBe(1);
     expect(result.rollup.remainingCents).toBe(30000); // (4 - 1) × 10000
     expect(result.rollup.nextDueDate).toBe("2026-06-15");
-    expect(result.strategy).toBe("SNOWBALL"); // app_settings default
   });
 });
