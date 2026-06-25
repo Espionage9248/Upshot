@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { test, expect } from "vitest";
 import { PayoffChart } from "./payoff-chart";
 
@@ -154,6 +154,32 @@ test("no notch when raise is null", () => {
     />,
   );
   expect(screen.queryByText(/pay rise/i)).toBeNull();
+});
+
+test("shows a floating readout on hover when interactive", () => {
+  const { container } = render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={[{ month: "2026-06", balanceCents: 300000 }, { month: "2026-07", balanceCents: 250000 }, { month: "2026-08", balanceCents: 0 }]}
+      baseline={[{ month: "2026-06", balanceCents: 300000 }, { month: "2026-07", balanceCents: 280000 }, { month: "2026-08", balanceCents: 260000 }]}
+      scenarioDebtFreeMonth="2026-08"
+      baselineDebtFreeMonth={null}
+      height={320}
+      interactive
+    />,
+  );
+  const svg = container.querySelector("svg")!;
+  svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1000, height: 320, right: 1000, bottom: 320, x: 0, y: 0, toJSON: () => {} }) as DOMRect;
+  // jsdom@25 has no PointerEvent; use MouseEvent with type "pointermove" and
+  // inject clientX + pointerType via Object.defineProperty so React sees them.
+  // Wrap in act() so the setHoverM state update flushes before we assert.
+  act(() => {
+    const event = new MouseEvent("pointermove", { bubbles: true, cancelable: true, clientX: 500, clientY: 150 });
+    Object.defineProperty(event, "pointerType", { value: "mouse", configurable: true });
+    svg.dispatchEvent(event);
+  });
+  // readout card surfaces a month label and at least one balance.
+  expect(screen.getByRole("status", { name: /payoff readout/i })).toBeInTheDocument();
 });
 
 test("renders a rows-below legend in compact mode", () => {

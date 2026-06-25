@@ -60,6 +60,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
   const router = useRouter();
   const [, startTransition] = useTransition();
   const isDesktop = useMediaQuery("(min-width: 640px)", true);
+  const canHover = useMediaQuery("(hover: hover) and (pointer: fine)", true);
 
   const [inputs, setInputs] = useState<ScenarioInputs>(() => seedInputs ?? buildLiveSeed(data));
 
@@ -212,6 +213,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
               raise={inputs.raise}
               height={isDesktop ? 320 : 190}
               compact={!isDesktop}
+              interactive={canHover && isDesktop}
               loading={preview === null}
               lockedCurve={mode === "locked-edit" ? (data.lockedPlan?.projectedCurve ?? null) : null}
               {...(mode === "locked-edit" && data.lockedPlan

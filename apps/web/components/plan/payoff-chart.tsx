@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { useRef, useState } from "react";
 import { Skeleton, UIcon } from "@upshot/ui";
 import { labelMonth, diffMonths, addMonths } from "./planner-atoms";
 
@@ -24,6 +25,7 @@ interface PayoffChartProps {
   lockedCurve?: Point[] | null;
   youAreHere?: { month: string; balanceCents: number } | null;
   compact?: boolean;
+  interactive?: boolean;
 }
 
 /** smallest nice ceiling ≥ v (cents). */
@@ -46,7 +48,12 @@ export function PayoffChart({
   lockedCurve = null,
   youAreHere = null,
   compact = false,
+  interactive = false,
 }: PayoffChartProps): ReactElement {
+  // RULES OF HOOKS: declare all hooks above early returns.
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [hoverM, setHoverM] = useState<number | null>(null);
+
   // --- Loading state ---
   if (loading) {
     return (
@@ -176,6 +183,28 @@ export function PayoffChart({
   const X = (m: number): number => padL + (m / horizon) * plotW;
   const Y = (cents: number): number => padT + (1 - cents / yMax) * plotH;
 
+  // Hover helpers (defined here so X/padL/plotW/horizon are in scope).
+  const onMove = (e: React.PointerEvent<SVGSVGElement>): void => {
+    if (e.pointerType === "touch") return;
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const w = rect.width || W; // fallback to viewBox width if layout not computed (jsdom)
+    const vbX = ((e.clientX - rect.left) / w) * W;
+    const m = Math.round(((vbX - padL) / plotW) * horizon);
+    if (!Number.isFinite(m)) return;
+    setHoverM(Math.max(0, Math.min(horizon, m)));
+  };
+  const onLeave = (): void => setHoverM(null);
+
+  const balAt = (pts: Point[], m: number): number | null => {
+    if (!pts.length) return null;
+    const best = pts.reduce((b, p) =>
+      Math.abs(diffMonths(startMonth, p.month) - m) < Math.abs(diffMonths(startMonth, b.month) - m) ? p : b,
+    );
+    return best.balanceCents;
+  };
+
   const toPath = (pts: Point[]): string =>
     pts
       .map((p, i) => `${i ? "L" : "M"}${X(diffMonths(startMonth, p.month)).toFixed(1)} ${Y(p.balanceCents).toFixed(1)}`)
@@ -203,14 +232,18 @@ export function PayoffChart({
     : null;
   const lumpY = lumpScenPoint ? Y(lumpScenPoint.balanceCents) : 0;
 
+  const showHover = interactive && !compact && hoverM != null;
+
   const chartSvg = (
     <svg
+      ref={svgRef}
       width="100%"
       viewBox={`0 0 ${W} ${H}`}
       role="img"
       aria-label="Projected debt balance over time"
       style={{ display: "block", overflow: "visible", fontFamily: MONO }}
       preserveAspectRatio="none"
+      {...(interactive && !compact ? { onPointerMove: onMove, onPointerLeave: onLeave } : {})}
     >
       {/* y gridlines + labels */}
       {yTicks.map((v, i) => (
@@ -326,10 +359,55 @@ export function PayoffChart({
           </text>
         </g>
       )}
+      {/* hover crosshair + dots */}
+      {showHover && (() => {
+        const cx = X(hoverM!);
+        const sb = balAt(scenario, hoverM!);
+        const bb = balAt(baseline, hoverM!);
+        return (
+          <g aria-hidden="true">
+            <line x1={cx} x2={cx} y1={padT} y2={padT + plotH} stroke="var(--text-3)" strokeWidth={1} opacity={0.5} />
+            {sb != null && <circle cx={cx} cy={Y(sb)} r={4} fill="var(--coral)" stroke="var(--bg)" strokeWidth={1.5} />}
+            {bb != null && <circle cx={cx} cy={Y(bb)} r={3.5} fill="var(--bg)" stroke="var(--proj)" strokeWidth={2} />}
+          </g>
+        );
+      })()}
     </svg>
   );
 
-  if (!compact) return chartSvg;
+  if (!compact) {
+    if (!interactive) return chartSvg;
+    // interactive non-compact: wrap in a relative div and layer the readout card.
+    return (
+      <div style={{ position: "relative" }}>
+        {chartSvg}
+        {showHover && (() => {
+          const sb = balAt(scenario, hoverM!);
+          const bb = balAt(baseline, hoverM!);
+          const leftPct = (X(hoverM!) / W) * 100;
+          const flip = leftPct > 70;
+          return (
+            <div
+              role="status"
+              aria-label="payoff readout"
+              style={{
+                position: "absolute", top: 8,
+                left: `${leftPct}%`,
+                transform: flip ? "translateX(calc(-100% - 12px))" : "translateX(12px)",
+                background: "var(--surface)", boxShadow: "var(--elev-pop)",
+                borderRadius: "var(--radius-data)", padding: "8px 10px", pointerEvents: "none",
+                fontSize: 11.5, whiteSpace: "nowrap", zIndex: 3,
+              }}
+            >
+              <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{labelMonth(addMonths(startMonth, hoverM!))}</div>
+              {sb != null && <div style={{ color: "var(--coral-text)" }} className="tnum">Your plan ${Math.round(sb / 100).toLocaleString()}</div>}
+              {bb != null && <div style={{ color: "var(--text-3)" }} className="tnum">Doing nothing ${Math.round(bb / 100).toLocaleString()}</div>}
+            </div>
+          );
+        })()}
+      </div>
+    );
+  }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {chartSvg}
