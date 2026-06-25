@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useMediaQuery } from "@/lib/use-media-query";
+import { SteppedControls } from "./stepped-controls";
 import { useRouter } from "next/navigation";
 import { Button, toast } from "@upshot/ui";
 import type { PlanningData } from "@/app/(app)/plan/debts/planning-data";
@@ -57,6 +59,7 @@ function buildLiveSeed(data: PlanningData): ScenarioInputs {
 export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, name, onExitLockedEdit }: ScenarioPlannerProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const isDesktop = useMediaQuery("(min-width: 640px)", true);
 
   const [inputs, setInputs] = useState<ScenarioInputs>(() => seedInputs ?? buildLiveSeed(data));
 
@@ -189,7 +192,7 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.32fr 1fr", gap: 22, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1.32fr 1fr" : "1fr", gap: 22, alignItems: "start" }}>
         {/* LEFT — result + chart */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <OutputsBlock
@@ -218,31 +221,42 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
           <PayoffMilestones orderedDebts={orderedDebts} perDebt={preview?.perDebt ?? []} strategyLabel={STRATEGY_LABEL[inputs.strategy]} />
         </div>
 
-        {/* RIGHT — controls */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ padding: 16, borderRadius: "var(--radius-data)", border: "1px solid var(--line)", background: "var(--surface)" }}>
-            <PlannerLabel style={{ marginBottom: 12 }}>Allocation</PlannerLabel>
-            <AllocationBlock inputs={inputs} preview={preview} minimumsCents={minimumsCents} startMonth={data.startMonth} onPatch={patch} />
+        {/* RIGHT — controls (Workspace on desktop, Stepped on mobile) */}
+        {isDesktop ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ padding: 16, borderRadius: "var(--radius-data)", border: "1px solid var(--line)", background: "var(--surface)" }}>
+              <PlannerLabel style={{ marginBottom: 12 }}>Allocation</PlannerLabel>
+              <AllocationBlock inputs={inputs} preview={preview} minimumsCents={minimumsCents} startMonth={data.startMonth} onPatch={patch} />
+            </div>
+            <div style={{ padding: 16, borderRadius: "var(--radius-data)", border: "1px solid var(--line)", background: "var(--surface)" }}>
+              <PlannerLabel style={{ marginBottom: 12 }}>Payoff order</PlannerLabel>
+              <StrategyBlock inputs={inputs} debts={debtsWithFields} onPatch={patch} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 2px" }}>
+              <PlannerLabel style={{ margin: 0 }}>Budget assumptions</PlannerLabel>
+              <span style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
+            </div>
+            <DebtPaymentsLine debts={data.debts} />
+            <Disclosure icon="wallet" title="Income" summary={incSummary} open={open.income} onToggle={() => toggle("income")}>
+              <IncomeBlock inputs={inputs} incomeSeedCents={data.incomeBaseSeedCents} startMonth={data.startMonth} onPatch={patch} />
+            </Disclosure>
+            <Disclosure icon="ledger" title="Expenses to keep or cut" summary={expSummary} open={open.expenses} onToggle={() => toggle("expenses")}>
+              <ExpensesBlock inputs={inputs} recurring={data.recurring} discretionarySeedCents={data.discretionarySeedCents} onPatch={patch} />
+            </Disclosure>
+            <Disclosure icon="flame" title="One-off payments" summary={lumpSummary} open={open.lumps} onToggle={() => toggle("lumps")}>
+              <LumpsBlock inputs={inputs} startMonth={data.startMonth} onPatch={patch} />
+            </Disclosure>
           </div>
-          <div style={{ padding: 16, borderRadius: "var(--radius-data)", border: "1px solid var(--line)", background: "var(--surface)" }}>
-            <PlannerLabel style={{ marginBottom: 12 }}>Payoff order</PlannerLabel>
-            <StrategyBlock inputs={inputs} debts={debtsWithFields} onPatch={patch} />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 2px" }}>
-            <PlannerLabel style={{ margin: 0 }}>Budget assumptions</PlannerLabel>
-            <span style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-          </div>
-          <DebtPaymentsLine debts={data.debts} />
-          <Disclosure icon="wallet" title="Income" summary={incSummary} open={open.income} onToggle={() => toggle("income")}>
-            <IncomeBlock inputs={inputs} incomeSeedCents={data.incomeBaseSeedCents} startMonth={data.startMonth} onPatch={patch} />
-          </Disclosure>
-          <Disclosure icon="ledger" title="Expenses to keep or cut" summary={expSummary} open={open.expenses} onToggle={() => toggle("expenses")}>
-            <ExpensesBlock inputs={inputs} recurring={data.recurring} discretionarySeedCents={data.discretionarySeedCents} onPatch={patch} />
-          </Disclosure>
-          <Disclosure icon="flame" title="One-off payments" summary={lumpSummary} open={open.lumps} onToggle={() => toggle("lumps")}>
-            <LumpsBlock inputs={inputs} startMonth={data.startMonth} onPatch={patch} />
-          </Disclosure>
-        </div>
+        ) : (
+          <SteppedControls
+            inputs={inputs}
+            preview={preview}
+            data={data}
+            minimumsCents={minimumsCents}
+            debts={debtsWithFields}
+            onPatch={patch}
+          />
+        )}
       </div>
       <ConfirmDialog kind="lock" open={lockOpen} onOpenChange={setLockOpen} onConfirm={doLock} pending={lockPending} />
     </section>
