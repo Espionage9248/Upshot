@@ -37,6 +37,7 @@ import {
   Sparkles,
   Sun,
   Tag,
+  Trash2,
   TrendingUp,
   Wallet,
   X,
@@ -89,6 +90,7 @@ export const UICON_KEYS = [
   "sliders",
   "sparkle",
   "bnpl",
+  "trash",
 ] as const;
 
 export type UIconKey = (typeof UICON_KEYS)[number];
@@ -141,4 +143,5 @@ export const ICON_REGISTRY: Record<UIconKey, AnyIconComponent> = {
   sliders: SlidersHorizontal,
   sparkle: Sparkles,
   bnpl: ShoppingBag,
+  trash: Trash2,
 } satisfies Record<UIconKey, AnyIconComponent>;

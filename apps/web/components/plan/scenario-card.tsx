@@ -211,7 +211,7 @@ export function ScenarioCard({
           <Button
             size="sm"
             variant="ghost"
-            leadingIcon="x"
+            leadingIcon="trash"
             onClick={onDelete}
             disabled={pending}
             aria-label="Delete scenario"
