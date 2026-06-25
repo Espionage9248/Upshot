@@ -89,7 +89,7 @@ export function DebtSummary({
                     <Utilisation pct={utilisation} limitCents={row.creditLimitCents} />
                   )}
                 </div>
-                <div className="tnum" style={{ fontSize: 15, fontWeight: 700, fontFamily: MONO, minWidth: 70, textAlign: "right" }}>
+                <div className="tnum" style={{ fontSize: 15, fontWeight: 700, fontFamily: MONO, width: 104, flexShrink: 0, textAlign: "right" }}>
                   <Money cents={row.currentBalanceCents} />
                 </div>
               </div>
