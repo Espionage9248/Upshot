@@ -8,7 +8,7 @@ import { planningScenarios } from "../schema";
 export interface ScenarioInputs {
   mode: "FORWARD" | "TARGET_DATE";
   baseIncomeCents: number;
-  raise: { toCents: number; fromMonth: string } | null;
+  raise: { toCents: number; fromMonth: string; toDebtBps?: number } | null;
   discretionaryCents: number;
   recurringEdits: { id: string; keep: boolean; monthlyCentsOverride: number | null }[];
   toDebtShareBps: number; // 0..10000

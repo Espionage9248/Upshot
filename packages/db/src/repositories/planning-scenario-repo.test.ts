@@ -67,4 +67,23 @@ describe("DrizzlePlanningScenarioRepo", () => {
     await repo.delete(id);
     expect(await repo.list()).toHaveLength(0);
   });
+
+  it("round-trips a raise with toDebtBps", async () => {
+    const repo = new DrizzlePlanningScenarioRepo(db);
+    const withBps: ScenarioInputs = { ...inputs };
+    withBps.raise = { toCents: 700000, fromMonth: "2027-01", toDebtBps: 7000 };
+    const id = await repo.create({ name: "bps", inputs: withBps });
+    const got = await repo.getById(id);
+    expect(got!.inputs.raise).toEqual({ toCents: 700000, fromMonth: "2027-01", toDebtBps: 7000 });
+  });
+
+  it("round-trips a legacy raise without toDebtBps (field stays absent)", async () => {
+    const repo = new DrizzlePlanningScenarioRepo(db);
+    const legacy: ScenarioInputs = { ...inputs };
+    legacy.raise = { toCents: 700000, fromMonth: "2027-01" };
+    const id = await repo.create({ name: "legacy", inputs: legacy });
+    const got = await repo.getById(id);
+    expect(got!.inputs.raise).toEqual({ toCents: 700000, fromMonth: "2027-01" });
+    expect(got!.inputs.raise!.toDebtBps).toBeUndefined();
+  });
 });
