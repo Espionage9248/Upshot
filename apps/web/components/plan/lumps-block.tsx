@@ -2,8 +2,8 @@
 
 import type { ReactElement } from "react";
 import type { ScenarioInputs } from "@upshot/db";
-import { Segmented, UIcon } from "@upshot/ui";
-import { MoneyInput, addMonths, labelMonth } from "./planner-atoms";
+import { Button, UIcon } from "@upshot/ui";
+import { MoneyInput, addMonths, diffMonths, labelMonth } from "./planner-atoms";
 
 type Lump = ScenarioInputs["lumpSums"][number];
 
@@ -17,10 +17,8 @@ export function LumpsBlock({
   onPatch: (p: Partial<ScenarioInputs>) => void;
 }): ReactElement {
   const lumps = inputs.lumpSums;
-  const monthOpts = [3, 6, 9, 12].map((n) => {
-    const ym = addMonths(startMonth, n);
-    return { value: ym, label: labelMonth(ym) };
-  });
+  const minMonth = addMonths(startMonth, 1);
+  const maxMonth = addMonths(startMonth, 12);
 
   const add = (): void => onPatch({ lumpSums: [...lumps, { amountCents: 100000, month: addMonths(startMonth, 6), targetDebtId: null }] });
   const remove = (i: number): void => onPatch({ lumpSums: lumps.filter((_, j) => j !== i) });
@@ -38,7 +36,30 @@ export function LumpsBlock({
           </span>
           <MoneyInput valueCents={l.amountCents} onCents={(c) => patchAt(i, { amountCents: c })} width={104} size="sm" aria-label="One-off payment amount" />
           <span style={{ fontSize: 12, color: "var(--text-3)" }}>in</span>
-          <Segmented value={l.month} onValueChange={(v) => patchAt(i, { month: v })} options={monthOpts} aria-label="One-off payment month" />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Button
+              size="sm"
+              variant="secondary"
+              aria-label="Earlier one-off payment month"
+              disabled={diffMonths(minMonth, l.month) <= 0}
+              onClick={() => patchAt(i, { month: addMonths(l.month, -1) })}
+              style={{ width: 30, padding: 0 }}
+            >
+              −
+            </Button>
+            <span className="tnum" style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 700, minWidth: 58, textAlign: "center" }}>
+              {labelMonth(l.month)}
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              leadingIcon="plus"
+              aria-label="Later one-off payment month"
+              disabled={diffMonths(l.month, maxMonth) <= 0}
+              onClick={() => patchAt(i, { month: addMonths(l.month, 1) })}
+              style={{ width: 30, padding: 0 }}
+            />
+          </span>
           <div style={{ flex: 1 }} />
           <button type="button" onClick={() => remove(i)} aria-label="Remove one-off payment" style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", padding: 4, display: "flex" }}>
             <UIcon name="x" size={15} />
