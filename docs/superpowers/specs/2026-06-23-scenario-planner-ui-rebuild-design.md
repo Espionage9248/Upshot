@@ -166,6 +166,28 @@ The interactive heart (handoff Screens §2, §4, §5, §6; shots 01/04/07). Repl
   "Recomputing against your current debts…"); the locked read (scenario vs frozen locked +
   "you are here").
 
+### 7.1 Fold-in — debt-detail Payoff timeline → locked plan as source-of-truth
+(Phase-1 UAT deferred follow-up #2; included in Phase 2 as delimited **tail** tasks — owner
+decision 2026-06-25. Shares the "locked plan = source of truth" concept.)
+- **Repoint** `apps/web/app/(app)/plan/debts/[id]/data.ts` (`loadDebtDetail`): the Payoff
+  timeline must read **strategy / extraPaymentCents / customOrder from the locked
+  `payoff_plan`** (`DrizzlePayoffPlanRepo.get()`), not the orphaned
+  `appSettings.debtStrategy` / `appSettings.extraPaymentCents` (Phase 1 removed the control
+  that set them, so they are stale). Feed those into the existing `computeSnowball`.
+- **No-lock fallback (owner decision):** when no plan is locked, compute the **baseline
+  minimums-only** schedule — `strategy = SNOWBALL`, `extraPaymentCents = 0` — so the table
+  always shows a real "if you keep paying minimums" projection (snowball cascade of freed-up
+  minimums). Never crash; never read the stale settings.
+- **Dead-read cleanup:** the main `apps/web/app/(app)/plan/debts/data.ts` already prefers
+  `lockedPlan.inputs.strategy` for its displayed label (debt-dashboard), so its
+  `appSettings.debtStrategy` / `extraPaymentCents` reads (+ the `analysis`/`strategy` it
+  derives from them) are now effectively dead. **Remove only** the orphaned reads and the
+  fields that become unused as a direct result — no unrelated refactor.
+- **Out of scope (still deferred):** real "debts-changed-since-lock" detection (needs a
+  migration) — unchanged from §12.
+- Tests: `[id]/data.ts` loader picks up a locked plan's strategy/extra; null-safe baseline
+  when unlocked; existing debt-detail tests stay green.
+
 ## 8. Phase 3 — Mobile & polish
 
 (Handoff §3, §10; shots 05/12.)
