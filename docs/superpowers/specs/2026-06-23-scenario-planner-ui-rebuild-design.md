@@ -178,11 +178,15 @@ decision 2026-06-25. Shares the "locked plan = source of truth" concept.)
   minimums-only** schedule — `strategy = SNOWBALL`, `extraPaymentCents = 0` — so the table
   always shows a real "if you keep paying minimums" projection (snowball cascade of freed-up
   minimums). Never crash; never read the stale settings.
-- **Dead-read cleanup:** the main `apps/web/app/(app)/plan/debts/data.ts` already prefers
-  `lockedPlan.inputs.strategy` for its displayed label (debt-dashboard), so its
-  `appSettings.debtStrategy` / `extraPaymentCents` reads (+ the `analysis`/`strategy` it
-  derives from them) are now effectively dead. **Remove only** the orphaned reads and the
-  fields that become unused as a direct result — no unrelated refactor.
+- **Repoint the main loader too (revised 2026-06-25):** `apps/web/app/(app)/plan/debts/data.ts`
+  (`loadDebtsData`) was *also* reading the stale `appSettings.debtStrategy` / `extraPaymentCents`
+  to compute its `analysis`. The original intent here was "delete dead reads," but a pre-flight
+  check during execution found `analysis` is **not** dead: the `/plan` hub
+  (`apps/web/app/(app)/plan/data.ts`) renders `analysis.debtFreeMonth`. So the main loader is
+  **repointed** onto the locked `payoff_plan` (same as `loadDebtDetail`), with the same
+  minimums-only fallback — the `analysis` field is retained (its source changes). The genuinely
+  dead `DebtsData.strategy` field (no live consumer; the debug-only `debt-list.tsx` is never
+  imported) is dropped, and the now-unused `tables` import removed. No unrelated refactor.
 - **Out of scope (still deferred):** real "debts-changed-since-lock" detection (needs a
   migration) — unchanged from §12.
 - Tests: `[id]/data.ts` loader picks up a locked plan's strategy/extra; null-safe baseline
