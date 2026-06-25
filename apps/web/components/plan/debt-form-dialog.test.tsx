@@ -4,7 +4,7 @@ import type { DebtRow } from "@/app/(app)/plan/debts/data";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
-const updateMock = vi.fn<[unknown], Promise<{ ok: true; data: undefined }>>(
+const updateMock = vi.fn<(input: unknown) => Promise<{ ok: true; data: undefined }>>(
   async () => ({ ok: true as const, data: undefined }),
 );
 vi.mock("@/server-actions/debts", () => ({
