@@ -29,11 +29,16 @@ const STRATEGY_LABEL: Record<ScenarioInputs["strategy"], string> = {
   CUSTOM: "Custom",
 };
 
-export function ScenarioPlanner({ data, mode = "hypothesis" }: { data: PlanningData; mode?: "hypothesis" | "locked-edit" }) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
+interface ScenarioPlannerProps {
+  data: PlanningData;
+  mode?: "hypothesis" | "locked-edit";
+  seedInputs?: ScenarioInputs | null;
+  name?: string;
+  onExitLockedEdit?: () => void;
+}
 
-  const [inputs, setInputs] = useState<ScenarioInputs>(() => ({
+function buildLiveSeed(data: PlanningData): ScenarioInputs {
+  return {
     mode: "FORWARD",
     baseIncomeCents: data.incomeBaseSeedCents,
     raise: null,
@@ -44,7 +49,16 @@ export function ScenarioPlanner({ data, mode = "hypothesis" }: { data: PlanningD
     customOrder: null,
     lumpSums: [],
     targetMonth: null,
-  }));
+  };
+}
+
+export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, name, onExitLockedEdit }: ScenarioPlannerProps) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  const [inputs, setInputs] = useState<ScenarioInputs>(() => seedInputs ?? buildLiveSeed(data));
+
+  const headerName = name ?? (mode === "hypothesis" ? "Untitled scenario" : "Tracked plan");
 
   const [preview, setPreview] = useState<PlannerPreview | null>(null);
 
@@ -136,8 +150,11 @@ export function ScenarioPlanner({ data, mode = "hypothesis" }: { data: PlanningD
   return (
     <section aria-label="Scenario planner" style={{ background: "var(--surface)", borderRadius: "var(--radius-card)", padding: 22, ...frameStyle }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 18, flexWrap: "wrap" }}>
-        <RealityHeader mode={mode} name={mode === "hypothesis" ? "Untitled scenario" : "Tracked plan"} dirty />
+        <RealityHeader mode={mode} name={headerName} dirty />
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          {mode === "locked-edit" && onExitLockedEdit && (
+            <Button variant="ghost" onClick={onExitLockedEdit}>Stop editing</Button>
+          )}
           <Button variant="ghost" leadingIcon="tag" onClick={onSave}>Save as scenario</Button>
           <Button variant="primary" leadingIcon="lock" onClick={onLock}>
             {mode === "hypothesis" ? "Lock in this plan" : "Update locked plan"}

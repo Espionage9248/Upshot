@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { vi, test, expect, beforeEach } from "vitest";
+import { vi, it, test, expect, beforeEach } from "vitest";
+import type { ScenarioInputs } from "@upshot/db";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
@@ -86,4 +87,28 @@ test("Save invokes savePlanningScenarioAction; Lock invokes lockPayoffPlanAction
   await waitFor(() => expect(savePlanningScenarioAction).toHaveBeenCalledWith({ name: "My scenario", inputs: expect.anything() }));
   fireEvent.click(screen.getByRole("button", { name: /Lock in this plan/ }));
   await waitFor(() => expect(lockPayoffPlanAction).toHaveBeenCalled());
+});
+
+function planningFixture(): PlanningData {
+  return { ...data };
+}
+
+it("initialises from seedInputs when provided", () => {
+  const seed: ScenarioInputs = {
+    mode: "FORWARD",
+    baseIncomeCents: 496000,
+    raise: null,
+    discretionaryCents: 54000,
+    recurringEdits: [{ id: "rent", keep: true, monthlyCentsOverride: null }],
+    toDebtShareBps: 5000,
+    strategy: "AVALANCHE",
+    customOrder: null,
+    lumpSums: [],
+    targetMonth: null,
+  };
+  render(<ScenarioPlanner data={planningFixture()} mode="locked-edit" seedInputs={seed} name="My Saved Plan" />);
+  // name prop drives the header — "My Saved Plan" only appears if prop is wired
+  expect(screen.getByText("My Saved Plan")).toBeInTheDocument();
+  // Avalanche label appears in the strategy block / milestones header
+  expect(screen.getAllByText(/Avalanche/i).length).toBeGreaterThan(0);
 });
