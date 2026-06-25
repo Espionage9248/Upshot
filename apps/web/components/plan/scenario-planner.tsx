@@ -210,7 +210,8 @@ export function ScenarioPlanner({ data, mode = "hypothesis", seedInputs = null, 
               baselineDebtFreeMonth={preview?.baselineDebtFree ?? null}
               lump={lump}
               raise={inputs.raise}
-              height={320}
+              height={isDesktop ? 320 : 190}
+              compact={!isDesktop}
               loading={preview === null}
               lockedCurve={mode === "locked-edit" ? (data.lockedPlan?.projectedCurve ?? null) : null}
               {...(mode === "locked-edit" && data.lockedPlan

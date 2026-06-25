@@ -155,3 +155,19 @@ test("no notch when raise is null", () => {
   );
   expect(screen.queryByText(/pay rise/i)).toBeNull();
 });
+
+test("renders a rows-below legend in compact mode", () => {
+  render(
+    <PayoffChart
+      startMonth="2026-06"
+      scenario={[{ month: "2026-06", balanceCents: 300000 }, { month: "2027-06", balanceCents: 0 }]}
+      baseline={[{ month: "2026-06", balanceCents: 300000 }, { month: "2028-06", balanceCents: 0 }]}
+      scenarioDebtFreeMonth="2027-06"
+      baselineDebtFreeMonth="2028-06"
+      height={190}
+      compact
+    />,
+  );
+  expect(screen.getByText(/Your plan/i)).toBeInTheDocument();
+  expect(screen.getByText(/Doing nothing/i)).toBeInTheDocument();
+});

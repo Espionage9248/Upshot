@@ -23,6 +23,7 @@ interface PayoffChartProps {
   loading?: boolean;
   lockedCurve?: Point[] | null;
   youAreHere?: { month: string; balanceCents: number } | null;
+  compact?: boolean;
 }
 
 /** smallest nice ceiling ≥ v (cents). */
@@ -44,6 +45,7 @@ export function PayoffChart({
   loading = false,
   lockedCurve = null,
   youAreHere = null,
+  compact = false,
 }: PayoffChartProps): ReactElement {
   // --- Loading state ---
   if (loading) {
@@ -181,7 +183,7 @@ export function PayoffChart({
 
   const yTicks = [0, yMax / 4, yMax / 2, (yMax * 3) / 4, yMax];
   const xTicks: number[] = [];
-  for (let m = 0; m <= horizon; m += 6) xTicks.push(m);
+  for (let m = 0; m <= horizon; m += compact ? 12 : 6) xTicks.push(m);
 
   const scenMonths = scenarioDebtFreeMonth ? diffMonths(startMonth, scenarioDebtFreeMonth) : null;
   const baseMonths = baselineDebtFreeMonth ? diffMonths(startMonth, baselineDebtFreeMonth) : null;
@@ -201,7 +203,7 @@ export function PayoffChart({
     : null;
   const lumpY = lumpScenPoint ? Y(lumpScenPoint.balanceCents) : 0;
 
-  return (
+  const chartSvg = (
     <svg
       width="100%"
       viewBox={`0 0 ${W} ${H}`}
@@ -325,5 +327,20 @@ export function PayoffChart({
         </g>
       )}
     </svg>
+  );
+
+  if (!compact) return chartSvg;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {chartSvg}
+      <div style={{ display: "flex", gap: 16, fontSize: 11.5, color: "var(--text-3)" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 14, height: 0, borderTop: "2.8px solid var(--coral)" }} aria-hidden="true" /> Your plan
+        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 14, height: 0, borderTop: "2px dashed var(--proj)" }} aria-hidden="true" /> Doing nothing
+        </span>
+      </div>
+    </div>
   );
 }
