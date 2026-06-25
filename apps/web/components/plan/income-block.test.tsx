@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { vi, test, expect } from "vitest";
+import { vi, test, expect, describe, it } from "vitest";
 import type { ScenarioInputs } from "@upshot/db";
 import { IncomeBlock } from "./income-block";
 
@@ -48,6 +48,15 @@ test("month stepper clamps forward-only to [+1, +12]", () => {
   const atMax: ScenarioInputs = { ...base, raise: { toCents: 546000, fromMonth: "2027-06", toDebtBps: 5000 } };
   rerender(<IncomeBlock inputs={atMax} incomeSeedCents={496000} startMonth="2026-06" onPatch={onPatch} />);
   expect(screen.getByRole("button", { name: "Later raise month" })).toBeDisabled();
+});
+
+describe("IncomeBlock raise→debt slider", () => {
+  it("renders the share-of-raise slider as a sibling of the to/from row, not a child", () => {
+    render(<IncomeBlock inputs={{ ...base, raise: { toCents: 650000, fromMonth: "2026-09", toDebtBps: 5000 } }} incomeSeedCents={600000} startMonth="2026-06" onPatch={vi.fn()} />);
+    const slider = screen.getByRole("slider", { name: "Share of pay rise toward debt" });
+    const toFromRow = screen.getByText("to").closest("div");
+    expect(toFromRow?.contains(slider)).toBe(false);
+  });
 });
 
 test("raise→debt slider patches toDebtBps; hidden in TARGET_DATE", () => {

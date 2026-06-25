@@ -53,65 +53,68 @@ export function IncomeBlock({
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Model a pay rise</div>
           {raise ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginTop: 9,
-                flexWrap: "wrap",
-                fontSize: 12.5,
-                color: "var(--text-2)",
-              }}
-            >
-              <span>to</span>
-              <MoneyInput
-                valueCents={raise.toCents}
-                onCents={(c) => onPatch({ raise: { ...raise, toCents: c } })}
-                width={120}
-                size="sm"
-                aria-label="Raised income"
-              />
-              <span>from</span>
-              {(() => {
-                const minMonth = addMonths(startMonth, 1);
-                const maxMonth = addMonths(startMonth, 12);
-                const atMin = diffMonths(minMonth, raise.fromMonth) <= 0;
-                const atMax = diffMonths(raise.fromMonth, maxMonth) <= 0;
-                return (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      aria-label="Earlier raise month"
-                      disabled={atMin}
-                      onClick={() => onPatch({ raise: { ...raise, fromMonth: addMonths(raise.fromMonth, -1) } })}
-                      style={{ width: 34, padding: 0 }}
-                    >
-                      −
-                    </Button>
-                    <span className="tnum" style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, minWidth: 64, textAlign: "center" }}>
-                      {labelMonth(raise.fromMonth)}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 9 }}>
+              {/* row 1: to <input> from <stepper> */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  fontSize: 12.5,
+                  color: "var(--text-2)",
+                }}
+              >
+                <span>to</span>
+                <MoneyInput
+                  valueCents={raise.toCents}
+                  onCents={(c) => onPatch({ raise: { ...raise, toCents: c } })}
+                  width={120}
+                  size="sm"
+                  aria-label="Raised income"
+                />
+                <span>from</span>
+                {(() => {
+                  const minMonth = addMonths(startMonth, 1);
+                  const maxMonth = addMonths(startMonth, 12);
+                  const atMin = diffMonths(minMonth, raise.fromMonth) <= 0;
+                  const atMax = diffMonths(raise.fromMonth, maxMonth) <= 0;
+                  return (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        aria-label="Earlier raise month"
+                        disabled={atMin}
+                        onClick={() => onPatch({ raise: { ...raise, fromMonth: addMonths(raise.fromMonth, -1) } })}
+                        style={{ width: 34, padding: 0 }}
+                      >
+                        −
+                      </Button>
+                      <span className="tnum" style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, minWidth: 64, textAlign: "center" }}>
+                        {labelMonth(raise.fromMonth)}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        leadingIcon="plus"
+                        aria-label="Later raise month"
+                        disabled={atMax}
+                        onClick={() => onPatch({ raise: { ...raise, fromMonth: addMonths(raise.fromMonth, 1) } })}
+                        style={{ width: 34, padding: 0 }}
+                      />
                     </span>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      leadingIcon="plus"
-                      aria-label="Later raise month"
-                      disabled={atMax}
-                      onClick={() => onPatch({ raise: { ...raise, fromMonth: addMonths(raise.fromMonth, 1) } })}
-                      style={{ width: 34, padding: 0 }}
-                    />
-                  </span>
-                );
-              })()}
+                  );
+                })()}
+              </div>
+              {/* row 2 (sibling): share-of-raise slider */}
               {inputs.mode === "FORWARD" && (() => {
                 const raiseDeltaCents = Math.max(0, raise.toCents - inputs.baseIncomeCents);
                 const raiseBps = raise.toDebtBps ?? inputs.toDebtShareBps;
                 const raiseToDebtCents = Math.floor((raiseDeltaCents * raiseBps) / 10000);
                 const pctRaise = Math.round(raiseBps / 100);
                 return (
-                  <div style={{ marginTop: 12, width: "100%" }}>
+                  <div>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8, fontSize: 12, color: "var(--text-2)" }}>
                       <span>
                         Of your{" "}
