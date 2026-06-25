@@ -6,9 +6,7 @@ vi.mock("@/server-actions/recurring", () => ({
   acceptSuggestionAction: vi.fn(),
   dismissSuggestionAction: vi.fn(),
 }));
-vi.mock("@/server-actions/debts", () => ({
-  linkDebtPaymentToDebtAction: vi.fn().mockResolvedValue({ ok: true, data: "rule-1" }),
-}));
+vi.mock("@/server-actions/rules", () => ({ saveRuleAction: vi.fn() }));
 
 import { RecurringSuggestionCard } from "./recurring-suggestion-card";
 
@@ -29,26 +27,28 @@ const row = {
   updatedAt: "2026-01-01T00:00:00Z",
 };
 
+const ruleOptions = { categoryOptions: [], tagOptions: [], debtOptions: [], recurringOptions: [], installmentOptions: [] };
+
 describe("RecurringSuggestionCard", () => {
   it("renders accept and dismiss buttons", () => {
-    render(<RecurringSuggestionCard row={row as never} debtChoices={[]} />);
+    render(<RecurringSuggestionCard row={row as never} debtChoices={[]} ruleOptions={ruleOptions} />);
     expect(screen.getByRole("button", { name: /Accept/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Dismiss/i })).toBeInTheDocument();
   });
 
-  it("renders debt picker when debtChoices is non-empty", () => {
+  it("renders the debt-link trigger when debtChoices is non-empty", () => {
     render(
       <RecurringSuggestionCard
         row={row as never}
         debtChoices={[{ id: "zip", name: "Zip" }]}
+        ruleOptions={ruleOptions}
       />,
     );
-    expect(screen.getByLabelText("Choose a debt")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Link payment/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /link.*to a debt/i })).toBeInTheDocument();
   });
 
-  it("omits debt picker when debtChoices is empty", () => {
-    render(<RecurringSuggestionCard row={row as never} debtChoices={[]} />);
-    expect(screen.queryByLabelText("Choose a debt")).not.toBeInTheDocument();
+  it("omits the debt-link trigger when debtChoices is empty", () => {
+    render(<RecurringSuggestionCard row={row as never} debtChoices={[]} ruleOptions={ruleOptions} />);
+    expect(screen.queryByRole("button", { name: /link.*to a debt/i })).not.toBeInTheDocument();
   });
 });

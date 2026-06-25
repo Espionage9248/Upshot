@@ -2,14 +2,26 @@
 
 import { useTransition } from "react";
 import type { ReactNode } from "react";
-import { Card, CardHeader, CardTitle, CardBody, Badge, Money, Button } from "@upshot/ui";
+import { Card, CardHeader, CardTitle, CardBody, Badge, Money, Button, type UiSelectOption } from "@upshot/ui";
 import { useRouter } from "next/navigation";
 import { toMonthlyCostCents } from "@upshot/core";
 import { acceptSuggestionAction, dismissSuggestionAction } from "@/server-actions/recurring";
 import type { RecurringRow } from "@/app/(app)/plan/recurring/data";
-import { LinkDebtPayment } from "./link-debt-payment";
+import { DebtRuleLinkDialog } from "./debt-rule-link-dialog";
 
-export function RecurringSuggestionCard({ row, debtChoices }: { row: RecurringRow; debtChoices: { id: string; name: string }[] }): ReactNode {
+export function RecurringSuggestionCard({
+  row, debtChoices, ruleOptions,
+}: {
+  row: RecurringRow;
+  debtChoices: { id: string; name: string }[];
+  ruleOptions: {
+    categoryOptions: UiSelectOption[];
+    tagOptions: UiSelectOption[];
+    debtOptions: UiSelectOption[];
+    recurringOptions: UiSelectOption[];
+    installmentOptions: UiSelectOption[];
+  };
+}): ReactNode {
   const router = useRouter();
   const [acceptPending, startAccept] = useTransition();
   const [dismissPending, startDismiss] = useTransition();
@@ -74,11 +86,18 @@ export function RecurringSuggestionCard({ row, debtChoices }: { row: RecurringRo
             </Button>
           </div>
           {debtChoices.length > 0 && (
-            <LinkDebtPayment
-              debts={debtChoices}
-              defaultPattern={row.name}
+            <DebtRuleLinkDialog
+              debtId={debtChoices[0]!.id}
+              debtName={debtChoices[0]!.name}
+              seedDescription={row.name}
+              seedAmountCents={row.amountCents}
               suggestionId={row.id}
-              triggerLabel="This is a payment for"
+              categoryOptions={ruleOptions.categoryOptions}
+              tagOptions={ruleOptions.tagOptions}
+              debtOptions={ruleOptions.debtOptions}
+              recurringOptions={ruleOptions.recurringOptions}
+              installmentOptions={ruleOptions.installmentOptions}
+              trigger={<Button variant="ghost" size="sm" aria-label={`Link ${row.name} to a debt`}>This is a payment for a debt…</Button>}
             />
           )}
         </div>

@@ -45,6 +45,8 @@ const row2 = {
   updatedAt: "2026-01-01T00:00:00Z",
 };
 
+const ruleOptions = { categoryOptions: [], tagOptions: [], debtOptions: [], recurringOptions: [], installmentOptions: [] };
+
 const data: RecurringData = {
   active: [row1, row2] as never,
   paused: [],
@@ -54,6 +56,7 @@ const data: RecurringData = {
   driftAlerts: [],
   debtPayments: { count: 0, totalCents: 0 },
   debtChoices: [],
+  ruleOptions,
 };
 
 describe("RecurringList", () => {
@@ -90,6 +93,7 @@ describe("RecurringList", () => {
           driftAlerts: [],
           debtPayments: { count: 2, totalCents: 13300 },
           debtChoices: [],
+          ruleOptions,
         }}
       />,
     );
@@ -113,6 +117,7 @@ describe("RecurringList", () => {
           driftAlerts: [],
           debtPayments: { count: 0, totalCents: 0 },
           debtChoices: [],
+          ruleOptions,
         }}
       />,
     );

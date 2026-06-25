@@ -211,7 +211,7 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
           <SectionLabel>Suggested</SectionLabel>
           <CardGrid>
             {data.suggested.map((row) => (
-              <RecurringSuggestionCard key={row.id} row={row} debtChoices={data.debtChoices} />
+              <RecurringSuggestionCard key={row.id} row={row} debtChoices={data.debtChoices} ruleOptions={data.ruleOptions} />
             ))}
           </CardGrid>
         </div>
