@@ -451,6 +451,24 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // Close the dialog.
   await page.keyboard.press("Escape");
 
+  // --- Phase 3: responsive switch (Stepped accordion + sticky actions at 360px) ---
+  // The planner is mounted on /plan/debts in hypothesis mode (unlock ran earlier).
+  await page.goto("/plan/debts");
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
+  await page.setViewportSize({ width: 360, height: 780 });
+  const plannerMobile = page.getByRole("region", { name: "Scenario planner" });
+  // Stepped accordion: numbered step 1 header is present and expanded by default.
+  await expect(plannerMobile.getByRole("button", { name: /How much, by when/i })).toBeVisible({ timeout: 15000 });
+  // One-open-at-a-time: opening "Payoff order" collapses step 1.
+  await plannerMobile.getByRole("button", { name: /Payoff order/i }).click();
+  await expect(plannerMobile.getByRole("button", { name: /Payoff order/i })).toHaveAttribute("aria-expanded", "true");
+  // Sticky mobile actions are pinned.
+  const actions = plannerMobile.getByRole("group", { name: "Plan actions" });
+  await expect(actions.getByRole("button", { name: /^Save$/ })).toBeVisible();
+  await expect(actions.getByRole("button", { name: /Lock in|Update/ })).toBeVisible();
+  // Restore desktop so any trailing assertions/teardown see the default layout.
+  await page.setViewportSize({ width: 1280, height: 720 });
+
   // No Plan write action threw a Server Components / ReferenceError in the prod build.
   expect(pageErrors, `unexpected page errors: ${pageErrors.join(" | ")}`).toEqual([]);
 
