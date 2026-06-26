@@ -74,6 +74,8 @@ export { EmptyState, type EmptyStateProps } from "./finance/empty-state";
 export { CashflowChart, type CashflowChartProps } from "./finance/cashflow-chart";
 export { CategoryDonut, type CategoryDonutProps } from "./finance/category-donut";
 export { MoneyFlowSankey, type MoneyFlowSankeyProps } from "./finance/money-flow-sankey";
+export { SpendingHeatmap, type SpendingHeatmapProps } from "./finance/spending-heatmap";
+export { StreakIndicator, type StreakIndicatorProps } from "./finance/streak-indicator";
 export {
   Segmented,
   type SegmentedProps,
