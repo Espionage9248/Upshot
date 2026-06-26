@@ -95,7 +95,9 @@ export async function loadRecurringData(db: DbClient): Promise<RecurringData> {
   const categoryOptions = (await new DrizzleCategoryRepo(db).list()).map((c) => ({ value: c.id, label: c.name }));
   const tagOptions = db.select({ id: tables.tags.id }).from(tables.tags).all().map((t) => ({ value: t.id, label: t.id }));
   const debtOptions = debtRows.map((d) => ({ value: d.id, label: d.name }));
-  const recurringOptions = rows.map((i) => ({ value: i.id, label: i.name }));
+  const recurringOptions = rows
+    .filter((i) => i.status !== "CANCELLED")
+    .map((i) => ({ value: i.id, label: i.name }));
   const installmentOptions = (await new DrizzleInstallmentRepo(db).list()).map((p) => ({ value: p.id, label: p.merchant }));
 
   return {
