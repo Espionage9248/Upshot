@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDbClient, applyMigrations, tables, DrizzleInstallmentRepo, type DbClient } from "@upshot/db";
-import { buildInstallmentFromTransaction, deleteInstallmentPlan, setInstallmentNotes } from "./installments-core";
+import { buildInstallmentFromTransaction, createInstallmentFromTransaction, deleteInstallmentPlan, setInstallmentNotes } from "./installments-core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -116,4 +116,68 @@ test("Path A: 14-day cadence, derived total, ACTIVE when partly paid", () => {
 test("Path A: COMPLETE when installmentsPaid >= totalInstallments", () => {
   const p = buildInstallmentFromTransaction({ txDate: "2026-06-01", merchant: "X", installmentCents: 2500, totalInstallments: 4, installmentsPaid: 4 });
   expect(p.status).toBe("COMPLETE");
+});
+
+// ---------------------------------------------------------------------------
+// createInstallmentFromTransaction (Path A — DB-writing core)
+// ---------------------------------------------------------------------------
+
+/** Seed an account + transaction to satisfy FK constraints. */
+function seedTransaction(txDb: DbClient, txId: string): void {
+  txDb.insert(tables.accounts).values({
+    id: "acc-test",
+    name: "Spending",
+    type: "TRANSACTIONAL",
+    ownership: "INDIVIDUAL",
+    balanceCents: 0,
+    role: "SPENDING",
+    monthlyAllocationCents: 0,
+    lastSyncedAt: null,
+    updatedAt: new Date().toISOString(),
+  }).run();
+  txDb.insert(tables.transactions).values({
+    id: txId,
+    accountId: "acc-test",
+    status: "SETTLED",
+    description: "Afterpay – ACME",
+    amountCents: -10000,
+    createdAt: "2026-06-01",
+  }).run();
+}
+
+const baseInput = {
+  transactionId: "tx-bnpl-1",
+  txDate: "2026-06-01",
+  merchant: "Afterpay – ACME",
+  installmentCents: 2500,
+  totalInstallments: 4,
+  installmentsPaid: 1,
+};
+
+describe("createInstallmentFromTransaction", () => {
+  it("creates a plan and links the originating transaction on first call", async () => {
+    seedTransaction(db, "tx-bnpl-1");
+    const result = await createInstallmentFromTransaction(db, baseInput);
+    expect(result.ok).toBe(true);
+    expect(typeof (result as { ok: true; planId: string }).planId).toBe("string");
+
+    const plans = await new DrizzleInstallmentRepo(db).list();
+    expect(plans).toHaveLength(1);
+  });
+
+  it("rejects re-marking a transaction that is already linked to a BNPL plan", async () => {
+    seedTransaction(db, "tx-bnpl-1");
+
+    // first mark succeeds
+    const first = await createInstallmentFromTransaction(db, baseInput);
+    expect(first.ok).toBe(true);
+
+    // re-mark the SAME transaction — must be rejected, no 2nd plan created
+    const second = await createInstallmentFromTransaction(db, baseInput);
+    expect(second.ok).toBe(false);
+    expect((second as { ok: false; error: string }).error).toMatch(/already linked|already a BNPL|already tracked/i);
+
+    const plans = await new DrizzleInstallmentRepo(db).list();
+    expect(plans).toHaveLength(1);
+  });
 });

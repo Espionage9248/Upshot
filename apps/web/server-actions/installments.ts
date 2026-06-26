@@ -18,7 +18,7 @@ import { getDb } from "@/lib/db";
 import { DrizzleInstallmentRepo, tables } from "@upshot/db";
 import { matchInstallments, BNPL_RECENT_MATCH_WINDOW_DAYS } from "@upshot/core";
 import {
-  buildInstallmentFromTransaction,
+  createInstallmentFromTransaction,
   deleteInstallmentPlan,
   setInstallmentNotes,
 } from "./installments-core";
@@ -59,45 +59,25 @@ export interface CreateInstallmentFromTransactionInput {
 /**
  * Action (Path A): create a BNPL plan anchored to a known transaction.
  *
- * - Builds the plan via buildInstallmentFromTransaction.
- * - Persists it via repo.create.
- * - Immediately records the originating transaction as the first payment via
- *   repo.applyMatches so DETECT never double-counts it.
+ * - Pre-checks that the transaction is not already linked to a plan.
+ * - Builds the plan, persists it, and records the originating transaction as
+ *   the first payment so DETECT never double-counts it.
  * - installmentsPaid is clamped to [1, totalInstallments].
  *
- * Returns the new plan id.
+ * Returns the core result (ok/error) so the UI can surface a friendly message.
  */
 export const createInstallmentFromTransactionAction = action(
   async (
     _session,
     input: CreateInstallmentFromTransactionInput,
-  ): Promise<string> => {
-    const { transactionId, txDate, merchant, installmentCents, totalInstallments } = input;
-    // Clamp to [1, totalInstallments]: must be at least 1 (the originating tx)
-    // and cannot exceed the total count.
-    const installmentsPaid = Math.min(Math.max(1, input.installmentsPaid), totalInstallments);
-
+  ) => {
     const { db } = getDb();
-    const repo = new DrizzleInstallmentRepo(db);
-
-    const plan = buildInstallmentFromTransaction({
-      txDate,
-      merchant,
-      installmentCents,
-      totalInstallments,
-      installmentsPaid,
-    });
-
-    const planId = await repo.create(plan);
-
-    // Record the originating transaction so DETECT never re-counts it.
-    await repo.applyMatches([], [
-      { planId, transactionId, dueIndex: installmentsPaid, paidAt: txDate },
-    ]);
-
-    revalidatePath("/plan/installments");
-    revalidatePath("/plan");
-    return planId;
+    const result = await createInstallmentFromTransaction(db, input);
+    if (result.ok) {
+      revalidatePath("/plan/installments");
+      revalidatePath("/plan");
+    }
+    return result;
   },
 );
 

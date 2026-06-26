@@ -85,6 +85,17 @@ export class DrizzleInstallmentRepo implements InstallmentRepo {
     return new Set(rows.map((r) => r.transactionId));
   }
 
+  /** True when the transaction is already recorded as an installment payment. */
+  async isTransactionLinked(transactionId: string): Promise<boolean> {
+    const row = this.db
+      .select({ id: installmentPlanPayments.id })
+      .from(installmentPlanPayments)
+      .where(eq(installmentPlanPayments.transactionId, transactionId))
+      .limit(1)
+      .get();
+    return row !== undefined;
+  }
+
   /** Point this entity at a matching rule (or clear it with null). */
   async setMatchRule(id: string, ruleId: string | null): Promise<void> {
     this.db.update(installmentPlans).set({ matchRuleId: ruleId }).where(eq(installmentPlans.id, id)).run();

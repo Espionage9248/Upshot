@@ -77,6 +77,62 @@ export function buildInstallmentFromTransaction(
 export type InstallmentRow = Awaited<ReturnType<DrizzleInstallmentRepo["list"]>>[number];
 
 // ---------------------------------------------------------------------------
+// createInstallmentFromTransaction (Path A — DB-writing core)
+// ---------------------------------------------------------------------------
+
+export type CreateInstallmentFromTransactionCoreInput = {
+  transactionId: string;
+  txDate: string;
+  merchant: string;
+  installmentCents: number;
+  totalInstallments: number;
+  installmentsPaid: number;
+};
+
+export type CreateInstallmentFromTransactionResult =
+  | { ok: true; planId: string }
+  | { ok: false; error: string };
+
+/**
+ * Path A core: pre-checks that the originating transaction is not already
+ * linked to a BNPL plan, then creates the plan and records the payment.
+ *
+ * Returns `{ ok: false, error }` (never throws) so the caller can surface a
+ * friendly message without exposing internals through the action wrapper.
+ */
+export async function createInstallmentFromTransaction(
+  db: DbClient,
+  input: CreateInstallmentFromTransactionCoreInput,
+): Promise<CreateInstallmentFromTransactionResult> {
+  const { transactionId, txDate, merchant, installmentCents, totalInstallments } = input;
+  // Clamp to [1, totalInstallments]: must be at least 1 (the originating tx).
+  const installmentsPaid = Math.min(Math.max(1, input.installmentsPaid), totalInstallments);
+
+  const repo = new DrizzleInstallmentRepo(db);
+
+  if (await repo.isTransactionLinked(transactionId)) {
+    return { ok: false, error: "This transaction is already linked to a BNPL plan." };
+  }
+
+  const plan = buildInstallmentFromTransaction({
+    txDate,
+    merchant,
+    installmentCents,
+    totalInstallments,
+    installmentsPaid,
+  });
+
+  const planId = await repo.create(plan);
+
+  // Record the originating transaction so DETECT never re-counts it.
+  await repo.applyMatches([], [
+    { planId, transactionId, dueIndex: installmentsPaid, paidAt: txDate },
+  ]);
+
+  return { ok: true, planId };
+}
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
