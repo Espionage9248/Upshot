@@ -4,6 +4,7 @@ export { utilisation } from "./utilisation";
 export { accrueFee } from "./fees";
 export type { FeeAccrualInput } from "./fees";
 export { matchDebtPayments, compilePatternRegex } from "./match-payments";
+export { effectiveDebtPaymentCents } from "./effective-payment";
 export type { DebtMatcher, DebtPaymentMatch, DebtBalanceUpdate } from "./match-payments";
 export type {
   DebtStrategy,

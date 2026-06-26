@@ -23,6 +23,7 @@ export class InMemoryDebtRepo implements DebtRepo {
       monthsRemaining: input.monthsRemaining ?? null,
       totalInterestProjectedCents: input.totalInterestProjectedCents ?? null,
       lastFeeAppliedAt: input.lastFeeAppliedAt ?? null,
+      paymentsLinkedAt: input.paymentsLinkedAt ?? null,
     });
     return id;
   }

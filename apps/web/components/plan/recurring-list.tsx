@@ -13,6 +13,7 @@ import type { RecurringData, RecurringRow } from "@/app/(app)/plan/recurring/dat
 import { RecurringSuggestionCard } from "./recurring-suggestion-card";
 import { RecurringKindToggle } from "./recurring-kind-toggle";
 import { RecurringDeleteButton } from "./recurring-delete-button";
+import { RecurringAddDialog } from "./recurring-add-dialog";
 
 // ---------------------------------------------------------------------------
 // Section header
@@ -101,7 +102,7 @@ function CardGrid({ children }: { children: ReactNode }): ReactNode {
 
 export function RecurringList({ data }: { data: RecurringData }): ReactNode {
   const hasAny =
-    data.active.length > 0 || data.paused.length > 0 || data.suggested.length > 0;
+    data.active.length > 0 || data.paused.length > 0 || data.suggested.length > 0 || data.debtPayments.count > 0;
 
   const nameById = new Map(
     [...data.active, ...data.paused].map((r) => [r.id, r.name]),
@@ -109,23 +110,54 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
 
   return (
     <section aria-label="Recurring charges">
-      {/* Monthly total summary */}
-      {data.active.length > 0 && (
+      {/* Add button */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <RecurringAddDialog />
+      </div>
+
+      {/* Monthly total summary — includes debt payments */}
+      {(data.active.length > 0 || data.debtPayments.count > 0) && (
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
             marginBottom: 16,
-            padding: "10px 14px",
+            padding: "14px 16px",
             borderRadius: "var(--radius-data)",
             background: "var(--surface-2)",
+            border: "1px solid var(--line)",
           }}
         >
-          <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <span style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Monthly total
           </span>
-          <Money cents={data.monthlyTotalCents} kind="expense" size={16} weight={700} />
+          <Money cents={data.monthlyTotalCents} kind="expense" size={20} weight={700} />
+        </div>
+      )}
+
+      {/* Debt payments — read-only group (Approach A: owned by each debt, managed there) */}
+      {data.debtPayments.count > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionLabel>Debt payments</SectionLabel>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 14px",
+              borderRadius: "var(--radius-data)",
+              border: "1px solid var(--line)",
+              background: "color-mix(in oklch, var(--debt) 8%, transparent)",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 11, color: "var(--text-3)" }}>
+                {data.debtPayments.count} debt{data.debtPayments.count === 1 ? "" : "s"} · Managed on each debt
+              </div>
+            </div>
+            <Money cents={data.debtPayments.totalCents} kind="expense" size={16} weight={700} />
+          </div>
         </div>
       )}
 
@@ -180,7 +212,7 @@ export function RecurringList({ data }: { data: RecurringData }): ReactNode {
           <SectionLabel>Suggested</SectionLabel>
           <CardGrid>
             {data.suggested.map((row) => (
-              <RecurringSuggestionCard key={row.id} row={row} />
+              <RecurringSuggestionCard key={row.id} row={row} debtChoices={data.debtChoices} ruleOptions={data.ruleOptions} />
             ))}
           </CardGrid>
         </div>

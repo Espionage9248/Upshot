@@ -4,6 +4,7 @@ import { toSnakeCase } from "drizzle-orm/casing";
 import { schema } from "./schema";
 import { accounts } from "./schema/accounts";
 import { transactions } from "./schema/transactions";
+import { debts } from "./schema/debts";
 
 describe("schema wiring", () => {
   it("exposes every expected table on the schema object", () => {
@@ -14,7 +15,8 @@ describe("schema wiring", () => {
         "categories", "dashboard_widgets", "debt_expenses", "debt_payments", "debts", "event_log",
         "installment_plan_payments", "installment_plans", "job_runs", "match_actions",
         "match_conditions", "match_rules", "monthly_snapshot_categories", "monthly_snapshots",
-        "passkey", "purchase_images", "purchases", "recurring_items", "session", "tags",
+        "passkey", "payoff_plan", "planning_scenarios", "purchase_images", "purchases",
+        "recurring_items", "session", "tags",
         "transaction_tags", "transactions", "two_up_transactions", "user", "verification",
       ].sort(),
     );
@@ -30,5 +32,10 @@ describe("schema wiring", () => {
     const idx = getTableConfig(transactions).indexes.map((i) => i.config.name);
     expect(idx).toContain("transactions_account_idx");
     expect(idx).toContain("transactions_created_idx");
+  });
+
+  it("debts carries the payments-linked-at column", () => {
+    const cols = getTableConfig(debts).columns.map((c) => toSnakeCase(c.name));
+    expect(cols).toContain("payments_linked_at");
   });
 });

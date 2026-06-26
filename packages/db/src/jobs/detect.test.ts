@@ -1,4 +1,5 @@
 import { afterEach, describe, it, expect } from "vitest";
+import { eq } from "drizzle-orm";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -262,7 +263,7 @@ describe("runDetectOnce", () => {
       value: "zip",
     }).run();
 
-    // Seed a debt with balance 20000, linked to the match rule
+    // Seed a debt with balance 20000, linked to the match rule, paymentsLinkedAt before the tx
     const debtId = "debt-zip-1";
     db.insert(tables.debts).values({
       id: debtId,
@@ -274,6 +275,7 @@ describe("runDetectOnce", () => {
       includeInSnowball: true,
       includeInNetWorth: true,
       matchRuleId: ruleId,
+      paymentsLinkedAt: "2025-01-01",
     }).run();
 
     // Seed a -3000 "ZipPay payment" transaction within the last 12 months
@@ -430,6 +432,73 @@ describe("runDetectOnce", () => {
     expect(patreon2!.nextExpectedDate).toBe("2026-07-01");
   });
 
+  it("excludes debt-matched transactions from generic recurring detection", async () => {
+    const db = freshDb();
+    seedAccount(db);
+
+    // Seed a match rule + condition for "ZIP PAYMENT"
+    db.insert(tables.matchRules).values({ id: "zip-rule", name: "Zip", isActive: true, priority: 50 }).run();
+    db.insert(tables.matchConditions).values({
+      id: "zc1", ruleId: "zip-rule", field: "description", mode: "contains", value: "ZIP PAYMENT",
+    }).run();
+
+    // Seed a debt linked to that rule
+    db.insert(tables.debts).values({
+      id: "zip",
+      name: "Zip",
+      type: "BNPL",
+      currentBalanceCents: 50000,
+      monthlyPaymentCents: 8000,
+      payoffPriority: 1,
+      includeInSnowball: true,
+      includeInNetWorth: true,
+      matchRuleId: "zip-rule",
+    }).run();
+
+    // Three monthly ZIP PAYMENT txns (would otherwise be a perfect generic suggestion)
+    for (let i = 1; i <= 3; i++) {
+      db.insert(tables.transactions).values({
+        id: `zip-tx-${i}`,
+        accountId: "acc-1",
+        status: "SETTLED",
+        description: "ZIP PAYMENT",
+        amountCents: -8000,
+        isTransfer: false,
+        isSalary: false,
+        createdAt: `2026-0${i}-12T10:00:00.000Z`,
+        settledAt: `2026-0${i}-12T10:00:00.000Z`,
+      }).run();
+    }
+    // Three NETFLIX txns that SHOULD still be detected
+    for (let i = 1; i <= 3; i++) {
+      db.insert(tables.transactions).values({
+        id: `nf-tx-${i}`,
+        accountId: "acc-1",
+        status: "SETTLED",
+        description: "NETFLIX",
+        amountCents: -1899,
+        isTransfer: false,
+        isSalary: false,
+        createdAt: `2026-0${i}-20T10:00:00.000Z`,
+        settledAt: `2026-0${i}-20T10:00:00.000Z`,
+      }).run();
+    }
+
+    const jobRuns = new DrizzleJobRunRepo(db);
+    const now = () => new Date("2026-04-01T00:00:00.000Z");
+
+    // Run 1: debt matching only — links the ZIP txns so listLinkedPaymentTxIds is populated.
+    await runDetectOnce({ db, jobRuns, now, settings: { autoDetectRecurring: false } });
+    // Run 2: detection enabled — ZIP txns are now excluded so ZIP must NOT be suggested.
+    await runDetectOnce({ db, jobRuns, now, settings: { autoDetectRecurring: true } });
+
+    const suggestions = new DrizzleRecurringRepo(db);
+    const suggested = await suggestions.listByStatus("SUGGESTED");
+    const names = suggested.map((s) => s.name.toLowerCase());
+    expect(names.some((n) => n.includes("zip"))).toBe(false);
+    expect(names.some((n) => n.includes("netflix"))).toBe(true);
+  });
+
   it("rule-driven recurring item does NOT get double-processed by description-substring drift", async () => {
     const db = freshDb();
     const now = () => new Date("2026-06-15T00:00:00.000Z");
@@ -489,5 +558,61 @@ describe("runDetectOnce", () => {
     expect(run!.status).toBe("SUCCESS");
     // drifted must be 0: rule-driven items are skipped by the description-substring step
     expect(run!.counts).toMatchObject({ drifted: 0 });
+  });
+
+  it("DETECT step 4 records all matched payments but only decrements forward of paymentsLinkedAt", async () => {
+    const db = freshDb();
+    const jobRuns = new DrizzleJobRunRepo(db);
+    db.insert(tables.accounts).values({ id: "acc", name: "Spend", type: "TRANSACTIONAL", ownership: "INDIVIDUAL", balanceCents: 0, role: "SPENDING" }).run();
+    // a debt linked with a rule whose single condition matches "ZipPay", balance 10000, linked 2026-03-01
+    const ruleId = "rule-zip";
+    db.insert(tables.matchRules).values({ id: ruleId, name: "Zip", isActive: true, priority: 50 }).run();
+    db.insert(tables.matchConditions).values({ id: "cz", ruleId, field: "description", mode: "contains", value: "zip" }).run();
+    db.insert(tables.debts).values({
+      id: "debt-zip", name: "Zip", type: "BNPL", currentBalanceCents: 10000,
+      monthlyPaymentCents: 0, payoffPriority: 999, includeInSnowball: true, includeInNetWorth: true,
+      matchRuleId: ruleId, paymentsLinkedAt: "2026-03-01",
+    }).run();
+    db.insert(tables.transactions).values([
+      { id: "tx-pre", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -3000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2026-01-10T00:00:00Z", settledAt: "2026-01-10T00:00:00Z" },
+      { id: "tx-post", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -2000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2026-06-10T00:00:00Z", settledAt: "2026-06-10T00:00:00Z" },
+    ]).run();
+
+    await runDetectOnce({ db, jobRuns, now: () => new Date("2026-06-24T00:00:00Z"), settings: { autoDetectRecurring: false } });
+
+    const payments = db.select().from(tables.debtPayments).where(eq(tables.debtPayments.debtId, "debt-zip")).all();
+    expect(payments.map((p) => p.transactionId).sort()).toEqual(["tx-post", "tx-pre"]);
+    const debt = db.select().from(tables.debts).where(eq(tables.debts.id, "debt-zip")).get();
+    expect(debt?.currentBalanceCents).toBe(8000); // 10000 - 2000 (only the post-link payment)
+  });
+
+  it("DETECT step 4 records payments older than the 12-month window but never decrements for them", async () => {
+    const db = freshDb();
+    const jobRuns = new DrizzleJobRunRepo(db);
+    db.insert(tables.accounts).values({ id: "acc", name: "Spend", type: "TRANSACTIONAL", ownership: "INDIVIDUAL", balanceCents: 0, role: "SPENDING" }).run();
+    const ruleId = "rule-zip";
+    db.insert(tables.matchRules).values({ id: ruleId, name: "Zip", isActive: true, priority: 50 }).run();
+    db.insert(tables.matchConditions).values({ id: "cz", ruleId, field: "description", mode: "contains", value: "zip" }).run();
+    // linkedAt deliberately ancient: the linkedAt gate alone would decrement the old payment,
+    // so the only thing protecting the balance is the recent-window decrement floor.
+    db.insert(tables.debts).values({
+      id: "debt-zip", name: "Zip", type: "BNPL", currentBalanceCents: 10000,
+      monthlyPaymentCents: 0, payoffPriority: 999, includeInSnowball: true, includeInNetWorth: true,
+      matchRuleId: ruleId, paymentsLinkedAt: "2020-01-01",
+    }).run();
+    // now = 2026-06-24 → 12-month cutoff = 2025-06-24. tx-old (2024) is pre-cutoff; tx-recent is in-window.
+    db.insert(tables.transactions).values([
+      { id: "tx-old", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -3000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2024-01-10T00:00:00Z", settledAt: "2024-01-10T00:00:00Z" },
+      { id: "tx-recent", accountId: "acc", status: "SETTLED", description: "ZipPay", amountCents: -2000, isTransfer: false, isSalary: false, isInterest: false, isTaxDeductible: false, createdAt: "2026-06-10T00:00:00Z", settledAt: "2026-06-10T00:00:00Z" },
+    ]).run();
+
+    await runDetectOnce({ db, jobRuns, now: () => new Date("2026-06-24T00:00:00Z"), settings: { autoDetectRecurring: false } });
+
+    // Full-history recording: BOTH payments recorded (the old one would be excluded by the 12-month window).
+    const payments = db.select().from(tables.debtPayments).where(eq(tables.debtPayments.debtId, "debt-zip")).all();
+    expect(payments.map((p) => p.transactionId).sort()).toEqual(["tx-old", "tx-recent"]);
+    // Decrement stays window-scoped: only tx-recent draws down. 10000 - 2000 = 8000 (tx-old recorded, not decremented).
+    const debt = db.select().from(tables.debts).where(eq(tables.debts.id, "debt-zip")).get();
+    expect(debt?.currentBalanceCents).toBe(8000);
   });
 });

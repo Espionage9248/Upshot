@@ -324,3 +324,4 @@ describe("whatIf (computeWhatIf — pure)", () => {
     expect(result.interestSavedCents).toBe(0);
   });
 });
+

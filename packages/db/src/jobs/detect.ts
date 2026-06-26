@@ -48,6 +48,7 @@ export async function runDetectOnce(deps: {
         id: tables.transactions.id,
         description: tables.transactions.description,
         rawText: tables.transactions.rawText,
+        note: tables.transactions.note,
         amountCents: tables.transactions.amountCents,
         currency: tables.transactions.currency,
         foreignAmountCents: tables.transactions.foreignAmountCents,
@@ -71,22 +72,68 @@ export async function runDetectOnce(deps: {
       .all();
     const categoryNameById = new Map(categoryRows.map((c) => [c.id, c.name]));
 
+    // Debt-matched transactions are owned by their debt (Approach A) — never
+    // offer them as a generic recurring suggestion (spec §7). Built once here
+    // and reused by Step 4 below.
+    const debtRepo = new DrizzleDebtRepo(deps.db);
+    const linkedDebtTxIds = await debtRepo.listLinkedPaymentTxIds();
+
     // Shape for detectRecurring: needs amountCents < 0 expenses, date as YYYY-MM-DD.
-    const detectableTxs = txRows.map((tx) => ({
-      description: tx.description,
-      amountCents: tx.amountCents,
-      date: tx.createdAt.slice(0, 10),
-      categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
-      accountId: tx.accountId,
-      isTransfer: tx.isTransfer,
-      isSalary: tx.isSalary,
-    }));
+    // Exclude transactions already matched to a debt (owned by the debt).
+    const detectableTxs = txRows
+      .filter((tx) => !linkedDebtTxIds.has(tx.id))
+      .map((tx) => ({
+        description: tx.description,
+        amountCents: tx.amountCents,
+        date: tx.createdAt.slice(0, 10),
+        categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
+        accountId: tx.accountId,
+        isTransfer: tx.isTransfer,
+        isSalary: tx.isSalary,
+      }));
 
     // Shape for matchInstallments (and debt matching).
     const matchableTxs = txRows.map((tx) => ({
       id: tx.id,
       description: tx.description,
       rawText: tx.rawText ?? null,
+      note: tx.note ?? null,
+      amountCents: tx.amountCents,
+      currency: tx.currency ?? "AUD",
+      foreignAmountCents: tx.foreignAmountCents ?? null,
+      foreignCurrency: tx.foreignCurrency ?? null,
+      categoryName: tx.categoryId ? (categoryNameById.get(tx.categoryId) ?? null) : null,
+      createdAt: tx.createdAt,
+      settledAt: tx.settledAt ?? null,
+      isTransfer: tx.isTransfer,
+    }));
+
+    // Debt-payment matching (Step 4) records the FULL transaction history so the
+    // debt-detail payments surface is a complete accounting — not just the last
+    // 12 months. The balance decrement is kept scoped to the recent window via
+    // `decrementSince` below, so widening the record set never widens the decrement.
+    const debtTxRows = deps.db
+      .select({
+        id: tables.transactions.id,
+        description: tables.transactions.description,
+        rawText: tables.transactions.rawText,
+        note: tables.transactions.note,
+        amountCents: tables.transactions.amountCents,
+        currency: tables.transactions.currency,
+        foreignAmountCents: tables.transactions.foreignAmountCents,
+        foreignCurrency: tables.transactions.foreignCurrency,
+        categoryId: tables.transactions.categoryId,
+        isTransfer: tables.transactions.isTransfer,
+        settledAt: tables.transactions.settledAt,
+        createdAt: tables.transactions.createdAt,
+      })
+      .from(tables.transactions)
+      .all();
+    const debtMatchableTxs = debtTxRows.map((tx) => ({
+      id: tx.id,
+      description: tx.description,
+      rawText: tx.rawText ?? null,
+      note: tx.note ?? null,
       amountCents: tx.amountCents,
       currency: tx.currency ?? "AUD",
       foreignAmountCents: tx.foreignAmountCents ?? null,
@@ -181,6 +228,7 @@ export async function runDetectOnce(deps: {
           description: tx.description,
           categoryName: tx.categoryName,
           rawText: tx.rawText,
+          note: tx.note,
           amountCents: tx.amountCents,
           currency: tx.currency,
           foreignAmountCents: tx.foreignAmountCents,
@@ -213,14 +261,15 @@ export async function runDetectOnce(deps: {
       recurringLinked++;
     }
 
-    // Step 4: Debt payment matching (Zip et al.) — reuses the matchableTxs already built above.
-    const debtRepo = new DrizzleDebtRepo(deps.db);
+    // Step 4: Debt payment matching (Zip et al.) — scans the FULL history
+    // (debtMatchableTxs) so every matched payment is recorded for the debt-detail
+    // surface. `decrementSince = cutoffISO` keeps the balance decrement scoped to
+    // the same recent window as before: pre-window payments record but don't draw down.
     const withRules = await debtRepo.listWithRule();
     const matchers = withRules
       .filter((w) => w.conditions.length > 0)
-      .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, conditions: w.conditions }));
-    const linkedDebtTxIds = await debtRepo.listLinkedPaymentTxIds();
-    const { payments, balanceUpdates } = matchDebtPayments(matchers, matchableTxs, linkedDebtTxIds);
+      .map((w) => ({ debtId: w.debt.id, currentBalanceCents: w.debt.currentBalanceCents, conditions: w.conditions, linkedAt: w.debt.paymentsLinkedAt }));
+    const { payments, balanceUpdates } = matchDebtPayments(matchers, debtMatchableTxs, linkedDebtTxIds, cutoffISO.slice(0, 10));
     await debtRepo.applyPaymentMatches(payments, balanceUpdates);
     const debtPayments = payments.length;
 

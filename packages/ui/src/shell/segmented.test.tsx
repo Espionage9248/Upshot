@@ -52,4 +52,18 @@ describe("Segmented", () => {
     const realtimeBtn = screen.getByRole("radio", { name: "Real-time" });
     expect(realtimeBtn).toHaveAttribute("data-state", "off");
   });
+
+  it("fullWidth: root carries flex + w-full; items carry flex-1", () => {
+    render(
+      <Segmented options={OPTIONS} defaultValue="realtime" aria-label="Cadence" fullWidth />,
+    );
+    const root = screen.getByRole("group", { name: "Cadence" });
+    expect(root.className).toContain("flex");
+    expect(root.className).toContain("w-full");
+    // Each item should have flex-1
+    const items = screen.getAllByRole("radio");
+    for (const item of items) {
+      expect(item.className).toContain("flex-1");
+    }
+  });
 });

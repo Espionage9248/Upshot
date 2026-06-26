@@ -69,6 +69,7 @@ export class SyncService {
           description: mapped.description,
           categoryName: mapped.categoryId ? nameById.get(mapped.categoryId) ?? null : null,
           rawText: mapped.rawText,
+          note: mapped.note,
           amountCents: mapped.amountCents,
           currency: mapped.currency,
           foreignAmountCents: mapped.foreignAmountCents,

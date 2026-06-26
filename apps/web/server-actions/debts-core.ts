@@ -46,12 +46,9 @@ export type DebtRow = Awaited<ReturnType<DrizzleDebtRepo["list"]>>[number];
 // upsertDebtPaymentRule
 // ---------------------------------------------------------------------------
 
-/**
- * Insert a match_rules row + one match_conditions row per pattern, then
- * update the debt's matchRuleId. Returns the new ruleId.
- *
- * Column shape mirrors packages/db/src/seed.ts db.insert(matchRules) lines ~14-20.
- */
+// NOTE: retained only for the createDebt/updateDebt `paymentPatterns` convenience input.
+// It sets matchRuleId directly and does NOT stamp paymentsLinkedAt (stays null → conservative
+// no-decrement). The canonical debt-payment link path is the RuleEditor → saveRule (Task 7).
 export function upsertDebtPaymentRule(
   db: DbClient,
   debtId: string,
@@ -155,3 +152,14 @@ export async function recordDebtPayment(
     },
   );
 }
+
+// ---------------------------------------------------------------------------
+// clearDebtMatchedPayments
+// ---------------------------------------------------------------------------
+
+/** Wipe a debt's matched payments + unlink its rule (FK-only clear). */
+export async function clearDebtMatchedPayments(db: DbClient, debtId: string): Promise<void> {
+  await new DrizzleDebtRepo(db).clearMatchedPayments(debtId);
+  logEvent(db, "clear_matched_payments", debtId, `Cleared matched payments + unlinked rule for debt ${debtId}`, { debtId });
+}
+

@@ -1,9 +1,15 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { vi, test, expect } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi, test, expect, describe } from "vitest";
+import type { DebtRow } from "@/app/(app)/plan/debts/data";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
+const updateMock = vi.fn<(input: unknown) => Promise<{ ok: true; data: undefined }>>(
+  async () => ({ ok: true as const, data: undefined }),
+);
 vi.mock("@/server-actions/debts", () => ({
   createDebtAction: vi.fn(async () => ({ ok: true as const, data: "debt-1" })),
+  updateDebtAction: (input: unknown) => updateMock(input),
 }));
 
 import { DebtFormDialog } from "./debt-form-dialog";
@@ -42,4 +48,47 @@ test("name-empty error is associated with the Name input, not the interest-rate 
   const nameInput = screen.getByRole("textbox", { name: /^Name$/i });
   const nameDescribedBy = nameInput.getAttribute("aria-describedby") ?? "";
   expect(nameDescribedBy).toContain(errorId);
+});
+
+const debt: DebtRow = {
+  id: "d1",
+  name: "Zip",
+  type: "BNPL",
+  currentBalanceCents: 10000,
+  originalBalanceCents: null,
+  creditLimitCents: null,
+  monthlyPaymentCents: 5000,
+  minimumPaymentCents: null,
+  interestRate: null,
+  monthlyFeeCents: null,
+  feeDueDay: null,
+  lastFeeAppliedAt: null,
+  payoffPriority: 999,
+  includeInSnowball: true,
+  includeInNetWorth: true,
+  matchRuleId: null,
+  paymentsLinkedAt: null,
+  accountNumber: null,
+  institutionName: null,
+  notes: null,
+  estimatedPayoffDate: null,
+  monthsRemaining: null,
+  totalInterestProjectedCents: null,
+};
+
+describe("DebtFormDialog edit mode", () => {
+  test("pre-populates and calls updateDebtAction with the edited balance", async () => {
+    updateMock.mockClear();
+    render(<DebtFormDialog initialValues={debt} trigger={<button>Edit</button>} />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const balance = screen.getByLabelText("Current balance") as HTMLInputElement;
+    expect(balance.value).toBe("100.00");
+    fireEvent.change(balance, { target: { value: "250.00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "d1", currentBalanceCents: 25000 }),
+      );
+    });
+  });
 });

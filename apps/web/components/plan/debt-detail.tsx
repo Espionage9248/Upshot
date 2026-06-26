@@ -1,8 +1,16 @@
 import type { ReactNode } from "react";
-import { Card, CardBody, CardHeader, CardTitle, Badge, Money, UiProgress } from "@upshot/ui";
+import { Card, CardBody, CardHeader, CardTitle, Badge, Money, UiProgress, Button } from "@upshot/ui";
 import type { DebtDetailData } from "@/app/(app)/plan/debts/[id]/data";
 import type { MonthlyPayment } from "@upshot/core";
-import { WhatIfPanel } from "./what-if-panel";
+import { DebtDeleteButton } from "./debt-delete-button";
+import { DebtRuleLinkDialog } from "./debt-rule-link-dialog";
+import { DebtFormDialog } from "./debt-form-dialog";
+import { DebtUnlinkButton } from "./debt-unlink-button";
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 function formatMonth(month: string): string {
   const [y, m] = month.split("-");
@@ -70,6 +78,8 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
           <Badge tone="neutral">
             {debt.type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
           </Badge>
+          <DebtFormDialog initialValues={debt} trigger={<Button variant="ghost" size="sm">Edit</Button>} />
+          <DebtDeleteButton debtId={debt.id} debtName={debt.name} />
         </CardHeader>
         <CardBody>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -78,10 +88,12 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
                 <span style={{ fontSize: 11, color: "var(--text-3)" }}>Balance</span>
                 <Money cents={debt.currentBalanceCents} kind="expense" size={20} weight={700} />
               </div>
-              {debt.monthlyPaymentCents > 0 && (
+              {data.effectivePaymentCents > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <span style={{ fontSize: 11, color: "var(--text-3)" }}>Monthly payment</span>
-                  <Money cents={debt.monthlyPaymentCents} kind="neutral" size={16} weight={600} />
+                  <span style={{ fontSize: 11, color: "var(--text-3)" }}>
+                    {data.paymentIsActual ? "Monthly payment · actual" : "Monthly payment · typed"}
+                  </span>
+                  <Money cents={data.effectivePaymentCents} kind="neutral" size={16} weight={600} />
                 </div>
               )}
               {debt.interestRate !== null && (
@@ -147,21 +159,25 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
                 </div>
               </div>
             )}
+            {debt.matchRuleId === null && (
+              <DebtRuleLinkDialog
+                debtId={debt.id}
+                debtName={debt.name}
+                seedDescription={debt.name}
+                categoryOptions={data.ruleOptions.categoryOptions}
+                tagOptions={data.ruleOptions.tagOptions}
+                debtOptions={data.ruleOptions.debtOptions}
+                recurringOptions={data.ruleOptions.recurringOptions}
+                installmentOptions={data.ruleOptions.installmentOptions}
+                trigger={<Button variant="ghost" size="sm">Link this debt&apos;s payment</Button>}
+              />
+            )}
+            {debt.matchRuleId !== null && (
+              <DebtUnlinkButton debtId={debt.id} debtName={debt.name} />
+            )}
           </div>
         </CardBody>
       </Card>
-
-      {/* What-if slider */}
-      {debt.includeInSnowball && (
-        <Card>
-          <CardHeader>
-            <CardTitle>What if I pay extra?</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <WhatIfPanel debts={[{ id: debt.id, name: debt.name }]} />
-          </CardBody>
-        </Card>
-      )}
 
       {/* Payoff timeline */}
       {shownMonths.length > 0 && (
@@ -209,6 +225,32 @@ export function DebtDetail({ data }: { data: DebtDetailData }): ReactNode {
                   Showing first 24 of {totalMonths} months
                 </div>
               )}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+      {/* Matched payments */}
+      {data.payments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Matched payments</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+              <span style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+                Total paid
+              </span>
+              <Money cents={data.totalPaidCents} kind="expense" size={16} weight={700} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {data.payments.map((p, i) => (
+                <div key={`${p.paymentDate}-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span style={{ fontSize: 12, color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>
+                    {formatDate(p.paymentDate)}
+                  </span>
+                  <Money cents={p.amountCents} kind="expense" size={12} />
+                </div>
+              ))}
             </div>
           </CardBody>
         </Card>

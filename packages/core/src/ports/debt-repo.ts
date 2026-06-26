@@ -1,8 +1,8 @@
 import type { Debt, DebtPayment } from "@upshot/contracts";
 
 /** New-debt input: computed/optional projection fields omitted (or overrideable). */
-export type NewDebt = Omit<Debt, "estimatedPayoffDate" | "monthsRemaining" | "totalInterestProjectedCents" | "lastFeeAppliedAt">
-  & { estimatedPayoffDate?: string | null; monthsRemaining?: number | null; totalInterestProjectedCents?: number | null; lastFeeAppliedAt?: string | null };
+export type NewDebt = Omit<Debt, "estimatedPayoffDate" | "monthsRemaining" | "totalInterestProjectedCents" | "lastFeeAppliedAt" | "paymentsLinkedAt">
+  & { estimatedPayoffDate?: string | null; monthsRemaining?: number | null; totalInterestProjectedCents?: number | null; lastFeeAppliedAt?: string | null; paymentsLinkedAt?: string | null };
 
 export interface RecordDebtPayment {
   debtId: string;

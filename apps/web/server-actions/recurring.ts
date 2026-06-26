@@ -14,6 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { action } from "@/lib/action";
 import { getDb } from "@/lib/db";
+import { DrizzleRecurringRepo } from "@upshot/db";
 import {
   acceptSuggestion,
   dismissSuggestion,
@@ -69,6 +70,41 @@ export const setRecurringKindAction = action(
     await setRecurringKind(db, id, kind);
     revalidatePath("/plan/recurring");
     revalidatePath("/plan");
+  },
+);
+
+/** Action: manually create a recurring item (status ACTIVE, not auto-detected). */
+export const createRecurringAction = action(
+  async (
+    _session,
+    input: {
+      name: string;
+      amountCents: number;
+      frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
+      kind: "BILL" | "SUBSCRIPTION";
+    },
+  ): Promise<string> => {
+    const { db } = getDb();
+    const repo = new DrizzleRecurringRepo(db);
+    const id = await repo.create({
+      name: input.name,
+      amountCents: input.amountCents,
+      frequency: input.frequency,
+      kind: input.kind,
+      status: "ACTIVE",
+      isAutoDetected: false,
+      category: null,
+      merchant: null,
+      matchRuleId: null,
+      accountId: null,
+      firstDetectedDate: null,
+      lastDetectedDate: null,
+      nextExpectedDate: null,
+      notes: null,
+    });
+    revalidatePath("/plan/recurring");
+    revalidatePath("/plan/debts");
+    return id;
   },
 );
 

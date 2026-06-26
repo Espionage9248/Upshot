@@ -83,3 +83,17 @@ describe("ConditionRow — amount/tolerance/currency inputs", () => {
     expect(input.value).toBe("8.00");
   });
 });
+
+describe("ConditionRow — note field", () => {
+  it("offers Note as a selectable field option", () => {
+    render(
+      <ConditionRow
+        condition={makeCondition({ field: "note" })}
+        onChange={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+    const select = screen.getByLabelText("Condition field");
+    expect(select.textContent).toContain("Note");
+  });
+});

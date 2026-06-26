@@ -22,6 +22,7 @@ export const debts = sqliteTable(
     includeInSnowball: integer({ mode: "boolean" }).notNull().default(true),
     includeInNetWorth: integer({ mode: "boolean" }).notNull().default(true),
     matchRuleId: text().references(() => matchRules.id),
+    paymentsLinkedAt: text(),
     accountNumber: text(),
     institutionName: text(),
     notes: text(),

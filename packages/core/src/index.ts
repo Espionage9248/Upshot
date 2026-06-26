@@ -49,7 +49,7 @@ export { matchInstallments, planProgress, bnplRollup, BNPL_RECENT_MATCH_WINDOW_D
 export type { InstallmentPlanInput, MatchableTransaction, InstallmentMatch, PlanUpdate } from "./installments";
 
 // Debts (Phase 5)
-export { addMonths, monthsBetween, computeSnowball, computeWhatIf, utilisation, accrueFee, matchDebtPayments, compilePatternRegex } from "./debt";
+export { addMonths, monthsBetween, computeSnowball, computeWhatIf, utilisation, accrueFee, matchDebtPayments, compilePatternRegex, effectiveDebtPaymentCents } from "./debt";
 export type { DebtStrategy, DebtInput, MonthlyPayment, PayoffSchedule, SnowballAnalysis, FeeAccrualInput, DebtMatcher, DebtPaymentMatch, DebtBalanceUpdate } from "./debt";
 export type { DebtRepo, NewDebt, RecordDebtPayment, DebtProjection } from "./ports";
 export { InMemoryDebtRepo } from "./testing/in-memory-debt-repo";
@@ -58,6 +58,18 @@ export { InMemoryInstallmentRepo } from "./testing/in-memory-installment-repo";
 
 // Purchases (Plan Room)
 export { monthlySaveTarget } from "./purchases";
+
+// Payoff planner (Scenario Planner)
+export { orderByStrategy, simulatePayoff, solveExtraForTargetDate, headroomCents, evaluatePlanStatus } from "./payoff";
+export type {
+  PayoffDebtInput,
+  LumpSum,
+  ExtraStep,
+  PayoffInputs,
+  PayoffResult,
+  PlanStatus,
+  EvaluatePlanStatusArgs,
+} from "./payoff";
 
 // Recurring (Phase 5)
 export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring";

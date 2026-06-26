@@ -133,7 +133,83 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await debtDialog.getByLabel("Current balance").fill("2500");
   await debtDialog.getByLabel("Monthly payment").fill("200");
   await debtDialog.getByRole("button", { name: "Add debt" }).click();
-  await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
+
+  // --- Scenario planner: preview → save → lock → unlock (write paths) ---
+  const planner = page.getByRole("region", { name: "Scenario planner" });
+  await expect(planner).toBeVisible();
+
+  // Set a to-debt share so a preview computes (Radix slider — keyboard-driven).
+  const allocationSlider = planner.getByRole("slider", { name: "Share of spare cash toward debt" });
+  await allocationSlider.focus();
+  for (let i = 0; i < 12; i++) await allocationSlider.press("ArrowRight");
+
+  // Model a pay rise: open Income, toggle it on, nudge the month, push share to debt.
+  await planner.getByRole("button", { name: "Income" }).click();
+  await planner.getByRole("switch", { name: "Model a pay rise" }).click();
+  await planner.getByRole("button", { name: "Later raise month" }).click();
+  const raiseSlider = planner.getByRole("slider", { name: "Share of pay rise toward debt" });
+  await raiseSlider.focus();
+  for (let i = 0; i < 10; i++) await raiseSlider.press("ArrowRight");
+
+  // Custom strategy → author a payoff order (write path: customOrder flows into the scenario).
+  // (Needs ≥1 included debt; "Visa card" was added earlier. A second debt makes reorder meaningful,
+  //  but with one debt the Custom list still renders and selecting Custom must not error.)
+  await planner.getByRole("radio", { name: "Custom" }).click();
+  const customList = planner.getByRole("list", { name: "Custom payoff order" });
+  await expect(customList).toBeVisible({ timeout: 15000 });
+  // If a second debt exists, exercise a move; otherwise the single row's buttons are disabled.
+  const downButtons = customList.getByRole("button", { name: /^Move .* down$/ });
+  if ((await downButtons.count()) > 0 && (await downButtons.first().isEnabled())) {
+    await downButtons.first().click();
+  }
+
+  // Save as scenario (auto-accept the name prompt).
+  page.once("dialog", (d) => d.accept("E2E scenario"));
+  await planner.getByRole("button", { name: "Save as scenario" }).click();
+
+  // Saved list shows it. SavedScenariosList renders a <div>, not a <section>,
+  // so we locate the card by its name text directly.
+  await expect(page.getByText("E2E scenario").first()).toBeVisible({ timeout: 15000 });
+
+  // 1) Lock (with confirm): click "Lock in this plan" → confirm dialog → "Lock it in".
+  await planner.getByRole("button", { name: "Lock in this plan" }).click();
+  const lockDialog = page.getByRole("dialog");
+  await expect(lockDialog.getByRole("button", { name: "Lock it in" })).toBeVisible({ timeout: 15000 });
+  await lockDialog.getByRole("button", { name: "Lock it in" }).click();
+
+  // Locked banner appears; eyebrow reads "Your tracked plan".
+  const banner = page.getByRole("region", { name: "Locked debt plan" });
+  await expect(banner).toBeVisible({ timeout: 15000 });
+  await expect(banner.getByText("Your tracked plan", { exact: false })).toBeVisible();
+
+  // 2) Re-model → locked-edit → Stop editing.
+  await banner.getByRole("button", { name: "Re-model" }).click();
+  // Planner switches to locked-edit mode — header reads "Editing your tracked plan".
+  await expect(planner.getByText("Editing your tracked plan", { exact: false })).toBeVisible({ timeout: 15000 });
+  await planner.getByRole("button", { name: "Stop editing" }).click();
+  // Banner re-asserts visible (locked-edit exits back to hypothesis mode, banner persists).
+  await expect(banner).toBeVisible({ timeout: 15000 });
+
+  // 3) Promote a what-if: click "Promote to locked plan" on the E2E scenario card.
+  // SavedScenariosList renders cards with icon-only buttons using aria-label.
+  await page.getByRole("button", { name: "Promote to locked plan" }).first().click();
+  const promoteDialog = page.getByRole("dialog");
+  await expect(promoteDialog.getByRole("button", { name: "Promote & lock" })).toBeVisible({ timeout: 15000 });
+  await promoteDialog.getByRole("button", { name: "Promote & lock" }).click();
+  // After promote, the locked banner reappears (new plan is now tracked).
+  await expect(banner).toBeVisible({ timeout: 15000 });
+
+  // 4) Unlock (danger confirm): click banner "Unlock" → confirm → banner hidden.
+  await banner.getByRole("button", { name: "Unlock" }).click();
+  const unlockDialog = page.getByRole("dialog");
+  await expect(unlockDialog.getByRole("button", { name: "Unlock" })).toBeVisible({ timeout: 15000 });
+  await unlockDialog.getByRole("button", { name: "Unlock" }).click();
+  await expect(banner).toBeHidden({ timeout: 15000 });
+
+  // 5) Delete a what-if: the saved scenarios list now has at least one card;
+  //    use .first() since promote/unlock may shift the set.
+  await page.getByRole("button", { name: "Delete scenario" }).first().click();
 
   // 9) /plan/installments route smoke: navigates, renders empty state (no plans seeded).
   // The BNPL list was rebuilt in the Phase-5 rebuild: the button is "Add BNPL plan"
@@ -174,31 +250,75 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await kindToggle.click();
   await expect(kindToggle).toContainText("Subscription", { timeout: 15000 });
 
+  // 10a-link) Link-a-debt-payment write path (debt-payments feature). The seeded
+  // "ZIP PAYMENT" SUGGESTED item carries a "This is a payment for a debt…" trigger
+  // (DebtRuleLinkDialog — quick-link was replaced by the seeded RuleEditor in Tasks 6-7).
+  // Saving creates a LINK_DEBT match_rule + sets Visa card's matchRuleId + dismisses.
+  await page.goto("/plan/recurring");
+  await expect(page.getByText("ZIP PAYMENT")).toBeVisible({ timeout: 15000 });
+  // The trigger has aria-label "Link ZIP PAYMENT to a debt" (set on the Button).
+  await page.getByRole("button", { name: "Link ZIP PAYMENT to a debt" }).click();
+  const zipLinkDialog = page.getByRole("dialog").filter({ has: page.getByLabel("Rule name") });
+  await expect(zipLinkDialog).toBeVisible();
+  // Condition value is pre-seeded with the suggestion name ("ZIP PAYMENT"); just save.
+  await zipLinkDialog.getByRole("button", { name: "Save" }).click();
+  await expect(zipLinkDialog).not.toBeVisible({ timeout: 15000 });
+  // After saving, the suggestion is dismissed (CANCELLED) → leaves the list.
+  await expect(page.getByText("ZIP PAYMENT")).not.toBeVisible({ timeout: 15000 });
+
   // ─── Extended write-path coverage (Task 19) ───────────────────────────────
 
-  // 10a) Strategy toggle (Task 10): Avalanche option on the Debt payoff strategy
-  // Segmented. Navigate back to debts where the dashboard now has the control.
+  // 10a) Strategy toggle (Task 10): Avalanche option on the Payoff strategy
+  // Segmented inside the Scenario planner. Navigate back to debts.
   await page.goto("/plan/debts");
   // Wait until the "Visa card" debt is visible (page is re-rendered from DB).
-  await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
-  await page
-    .getByLabel("Debt payoff strategy")
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
+  const plannerRegion = page.getByRole("region", { name: "Scenario planner" });
+  await plannerRegion
+    .getByLabel("Payoff strategy")
     .getByRole("radio", { name: "Avalanche" })
     .click();
   // The page must survive the strategy toggle — no crash.
-  await expect(page.getByLabel("Debt payoff strategy")).toBeVisible();
+  await expect(plannerRegion.getByLabel("Payoff strategy")).toBeVisible();
 
-  // 10b) What-if panel (Task 11): fill "New interest rate % p.a." and pick the
-  // refinance-target debt. The panel renders when debts.length > 0.
-  // Fill the rate; this alone doesn't trigger recompute (needs a debt selected).
-  await page.getByLabel("New interest rate % p.a.").fill("5");
-  // Open the "Debt" combobox in the what-if section (Radix Select portal).
-  // role="combobox" with name "Debt" — the UiSelect render.
-  await page.getByRole("combobox", { name: "Debt" }).click();
-  // Wait for the Radix Select portal to open and the option to appear.
-  await expect(page.getByRole("option", { name: "Visa card" })).toBeVisible({ timeout: 5000 });
-  await page.getByRole("option", { name: "Visa card" }).click();
-  // The input change triggers recompute; assert no page error.
+  // 10b) Debt detail: navigate to the Visa card detail page and confirm it renders.
+  // (WhatIfPanel was removed in the UAT pass; the detail view now shows the
+  // overview + payoff timeline + the new Delete-debt control. We assert the
+  // control is present but do NOT delete — later steps still need the debt.)
+  await page.getByRole("link", { name: /Visa card/ }).first().click();
+  await page.waitForURL("**/plan/debts/**");
+  await expect(page.getByRole("button", { name: "Delete debt" })).toBeVisible({ timeout: 15000 });
+
+  // 10b-edit) Edit-debt write path (UAT-2): open Edit → change the balance → Save → persists.
+  // Drives the real updateDebtAction against the prod build.
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  const editDialog = page.getByRole("dialog");
+  await expect(editDialog).toBeVisible();
+  const editBalance = editDialog.getByLabel("Current balance");
+  await editBalance.fill("1234.00");
+  await editDialog.getByRole("button", { name: "Save" }).click();
+  await expect(editDialog).not.toBeVisible({ timeout: 15000 });
+  // The detail overview reflects the edited balance ($1,234.00).
+  await expect(page.getByText("$1,234", { exact: false }).first()).toBeVisible({ timeout: 15000 });
+
+  // 10b-link) Link-via-rule-editor write path (UAT-2). At this point Visa card's
+  // matchRuleId is already set (from 10a-link above), so "Unlink & clear payments"
+  // is visible. Unlink first (window.confirm accepted), then re-link via the seeded
+  // RuleEditor to verify the full link flow against the prod build.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Unlink & clear payments" }).click();
+  // After clearing, matchRuleId → null → "Link this debt's payment" reappears.
+  await expect(page.getByRole("button", { name: "Link this debt's payment" })).toBeVisible({ timeout: 15000 });
+  // Open the seeded RuleEditor (DebtRuleLinkDialog), confirm its condition, then save.
+  await page.getByRole("button", { name: "Link this debt's payment" }).click();
+  const linkDialog = page.getByRole("dialog").filter({ has: page.getByLabel("Rule name") });
+  await expect(linkDialog).toBeVisible();
+  // Condition value is pre-seeded with the debt name ("Visa card"); refine to "Visa" and save.
+  await linkDialog.getByLabel("Condition value").first().fill("Visa");
+  await linkDialog.getByRole("button", { name: "Save" }).click();
+  await expect(linkDialog).not.toBeVisible({ timeout: 15000 });
+  // After linking, the "Unlink & clear payments" affordance reappears (matchRuleId set).
+  await expect(page.getByRole("button", { name: "Unlink & clear payments" })).toBeVisible({ timeout: 15000 });
 
   // 10c) BNPL Path B (Task 15): Add BNPL plan with merchant/amount/count.
   await page.goto("/plan/installments");
@@ -306,7 +426,7 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
 
   // 10i) Validation-error paths: open the debt dialog, submit with empty name.
   await page.goto("/plan/debts");
-  await expect(page.getByText("Visa card")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
   await page.getByRole("button", { name: "Add debt" }).first().click();
   const validationDebtDialog = page.getByRole("dialog");
   await expect(validationDebtDialog).toBeVisible();
@@ -330,6 +450,24 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   ).toBeVisible();
   // Close the dialog.
   await page.keyboard.press("Escape");
+
+  // --- Phase 3: responsive switch (Stepped accordion + sticky actions at 360px) ---
+  // The planner is mounted on /plan/debts in hypothesis mode (unlock ran earlier).
+  await page.goto("/plan/debts");
+  await expect(page.getByText("Visa card").first()).toBeVisible({ timeout: 15000 });
+  await page.setViewportSize({ width: 360, height: 780 });
+  const plannerMobile = page.getByRole("region", { name: "Scenario planner" });
+  // Stepped accordion: numbered step 1 header is present and expanded by default.
+  await expect(plannerMobile.getByRole("button", { name: /How much, by when/i })).toBeVisible({ timeout: 15000 });
+  // One-open-at-a-time: opening "Payoff order" collapses step 1.
+  await plannerMobile.getByRole("button", { name: /Payoff order/i }).click();
+  await expect(plannerMobile.getByRole("button", { name: /Payoff order/i })).toHaveAttribute("aria-expanded", "true");
+  // Sticky mobile actions are pinned.
+  const actions = plannerMobile.getByRole("group", { name: "Plan actions" });
+  await expect(actions.getByRole("button", { name: /^Save$/ })).toBeVisible();
+  await expect(actions.getByRole("button", { name: /Lock in|Update/ })).toBeVisible();
+  // Restore desktop so any trailing assertions/teardown see the default layout.
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   // No Plan write action threw a Server Components / ReferenceError in the prod build.
   expect(pageErrors, `unexpected page errors: ${pageErrors.join(" | ")}`).toEqual([]);

@@ -334,6 +334,28 @@ describe("saveRule LINK_* FK reconciliation", () => {
     expect(debt?.matchRuleId).toBe("r-link-debt");
   });
 
+  it("2.4a-2: LINK_DEBT stamps paymentsLinkedAt; dropping the action nulls it", async () => {
+    await seedDebt("debt-stamp-1");
+    const linked = makeRule("r-stamp", "zip", [
+      { id: "a-stamp", type: "LINK_DEBT", targetId: "debt-stamp-1" },
+    ]);
+    await saveRule(db, linked, () => new Date("2026-06-25T00:00:00Z"));
+
+    const repo = new DrizzleDebtRepo(db);
+    let debt = await repo.getById("debt-stamp-1");
+    expect(debt?.matchRuleId).toBe("r-stamp");
+    expect(debt?.paymentsLinkedAt).toBe("2026-06-25");
+
+    // Re-save the SAME rule id with no LINK_DEBT action → debt unlinked + stamp nulled.
+    const unlinked = makeRule("r-stamp", "zip", [
+      { id: "a-stamp-2", type: "RENAME", value: "Zip payment" },
+    ]);
+    await saveRule(db, unlinked, () => new Date("2026-07-01T00:00:00Z"));
+    debt = await repo.getById("debt-stamp-1");
+    expect(debt?.matchRuleId).toBeNull();
+    expect(debt?.paymentsLinkedAt).toBeNull();
+  });
+
   it("2.4b: LINK_INSTALLMENT sets the installment plan's matchRuleId", async () => {
     await seedInstallment("plan-link-1");
     const rule = makeRule("r-link-inst", "afterpay", [

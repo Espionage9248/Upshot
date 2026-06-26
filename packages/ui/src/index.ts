@@ -18,6 +18,7 @@ export {
 export { UiProgress, type UiProgressProps } from "./primitives/progress";
 export { Skeleton, type SkeletonProps } from "./primitives/skeleton";
 export { Alert, type AlertProps, type AlertTone } from "./primitives/alert";
+export { Toaster, toast, type ToastInput, type ToastTone } from "./primitives/toast";
 export { Card, CardHeader, CardTitle, CardBody } from "./primitives/card";
 export {
   Table,

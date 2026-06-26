@@ -66,6 +66,7 @@ export function RuleEditor({
   recurringOptions,
   installmentOptions,
   onClose,
+  onSaved,
 }: {
   rule: LoadedRule | null;
   categoryOptions: UiSelectOption[];
@@ -74,6 +75,7 @@ export function RuleEditor({
   recurringOptions: UiSelectOption[];
   installmentOptions: UiSelectOption[];
   onClose: () => void;
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<LoadedRule>(() => initialRule(rule));
@@ -118,6 +120,7 @@ export function RuleEditor({
         return;
       }
       router.refresh();
+      onSaved?.();
       onClose();
     });
   }

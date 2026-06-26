@@ -7,6 +7,7 @@ export interface MatchTarget {
   description: string;
   categoryName: string | null;
   rawText: string | null;
+  note: string | null;
   amountCents: number;
   currency: string;
   foreignAmountCents: number | null;
@@ -84,6 +85,7 @@ function fieldValue(field: MatchCondition["field"], t: MatchTarget): string | nu
     case "description": return t.description;
     case "categoryName": return t.categoryName;
     case "rawText": return t.rawText;
+    case "note": return t.note;
     default: return assertNever(field);
   }
 }

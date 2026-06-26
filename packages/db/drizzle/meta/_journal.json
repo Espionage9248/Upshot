@@ -29,6 +29,27 @@
       "when": 1781862116052,
       "tag": "0003_past_leech",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1782037404044,
+      "tag": "0004_amusing_golden_guardian",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1782248364609,
+      "tag": "0005_odd_victor_mancha",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1782342253199,
+      "tag": "0006_dapper_lester",
+      "breakpoints": true
     }
   ]
 }

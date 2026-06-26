@@ -15,6 +15,8 @@ export interface SegmentedProps {
   onValueChange?: (value: string) => void;
   "aria-label"?: string;
   className?: string;
+  /** When true, the control fills its container and segments share width evenly. */
+  fullWidth?: boolean;
 }
 
 export function Segmented({
@@ -24,6 +26,7 @@ export function Segmented({
   onValueChange,
   "aria-label": ariaLabel,
   className,
+  fullWidth = false,
 }: SegmentedProps) {
   return (
     <ToggleGroup.Root
@@ -33,7 +36,8 @@ export function Segmented({
       onValueChange={onValueChange}
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex items-center",
+        "items-center",
+        fullWidth ? "flex w-full" : "inline-flex",
         "bg-[var(--surface-2)] border border-[var(--line)]",
         "rounded-[var(--radius-pill)] p-[3px] gap-[2px]",
         className,
@@ -46,6 +50,7 @@ export function Segmented({
           className={cn(
             "text-[12.5px] font-semibold px-[14px] py-[6px]",
             "rounded-[var(--radius-pill)] cursor-pointer outline-none",
+            fullWidth && "flex-1 justify-center",
             // round3.jsx: active = solid coral fill + on-coral text; inactive = text-3
             "text-[var(--text-3)]",
             "data-[state=on]:bg-[var(--coral)] data-[state=on]:text-[var(--on-coral)]",

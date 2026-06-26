@@ -1,9 +1,11 @@
-import { DrizzleRecurringRepo, type DbClient } from "@upshot/db";
+import { DrizzleRecurringRepo, DrizzleDebtRepo, DrizzleCategoryRepo, DrizzleInstallmentRepo, tables, type DbClient } from "@upshot/db";
 import {
   toMonthlyCostCents,
   findOverlaps,
+  effectiveDebtPaymentCents,
   type OverlapGroup,
 } from "@upshot/core";
+import type { UiSelectOption } from "@upshot/ui";
 
 /** Recurring item row as returned by the repo — avoids a direct @upshot/contracts dep in apps/web. */
 export type RecurringRow = Awaited<ReturnType<DrizzleRecurringRepo["list"]>>[number];
@@ -15,6 +17,15 @@ export interface RecurringData {
   monthlyTotalCents: number;
   overlaps: OverlapGroup[];
   driftAlerts: { id: string; name: string; previousAmountCents: number; amountCents: number }[];
+  debtPayments: { count: number; totalCents: number };
+  debtChoices: { id: string; name: string }[];
+  ruleOptions: {
+    categoryOptions: UiSelectOption[];
+    tagOptions: UiSelectOption[];
+    debtOptions: UiSelectOption[];
+    recurringOptions: UiSelectOption[];
+    installmentOptions: UiSelectOption[];
+  };
 }
 
 /**
@@ -62,5 +73,37 @@ export async function loadRecurringData(db: DbClient): Promise<RecurringData> {
       amountCents: row.amountCents,
     }));
 
-  return { active, paused, suggested, monthlyTotalCents, overlaps, driftAlerts };
+  // Debt payments are owned by their debt (Approach A): summarise read-only here.
+  const debtRepo = new DrizzleDebtRepo(db);
+  const debtRows = await debtRepo.list();
+  const latest = await debtRepo.latestPaymentCentsByDebt();
+  let debtCount = 0;
+  let debtTotalCents = 0;
+  for (const row of debtRows) {
+    const actual = latest.get(row.id)?.amountCents ?? null;
+    const eff = effectiveDebtPaymentCents({
+      actualPaymentCents: actual,
+      minimumPaymentCents: row.minimumPaymentCents ?? null,
+      monthlyPaymentCents: row.monthlyPaymentCents,
+    });
+    if (eff > 0) {
+      debtCount++;
+      debtTotalCents += eff;
+    }
+  }
+
+  const categoryOptions = (await new DrizzleCategoryRepo(db).list()).map((c) => ({ value: c.id, label: c.name }));
+  const tagOptions = db.select({ id: tables.tags.id }).from(tables.tags).all().map((t) => ({ value: t.id, label: t.id }));
+  const debtOptions = debtRows.map((d) => ({ value: d.id, label: d.name }));
+  const recurringOptions = rows.map((i) => ({ value: i.id, label: i.name }));
+  const installmentOptions = (await new DrizzleInstallmentRepo(db).list()).map((p) => ({ value: p.id, label: p.merchant }));
+
+  return {
+    active, paused, suggested,
+    monthlyTotalCents: monthlyTotalCents + debtTotalCents,
+    overlaps, driftAlerts,
+    debtPayments: { count: debtCount, totalCents: debtTotalCents },
+    debtChoices: debtRows.map((d) => ({ id: d.id, name: d.name })),
+    ruleOptions: { categoryOptions, tagOptions, debtOptions, recurringOptions, installmentOptions },
+  };
 }

@@ -45,6 +45,8 @@ const row2 = {
   updatedAt: "2026-01-01T00:00:00Z",
 };
 
+const ruleOptions = { categoryOptions: [], tagOptions: [], debtOptions: [], recurringOptions: [], installmentOptions: [] };
+
 const data: RecurringData = {
   active: [row1, row2] as never,
   paused: [],
@@ -52,6 +54,9 @@ const data: RecurringData = {
   monthlyTotalCents: 1899 + 1199,
   overlaps: [{ groupKey: "category:Entertainment", itemIds: ["r1", "r2"] }],
   driftAlerts: [],
+  debtPayments: { count: 0, totalCents: 0 },
+  debtChoices: [],
+  ruleOptions,
 };
 
 describe("RecurringList", () => {
@@ -74,5 +79,48 @@ describe("RecurringList", () => {
     const { container } = render(<RecurringList data={data} />);
     expect(container.querySelector("#recurring-r1")).not.toBeNull();
     expect(container.querySelector("#recurring-r2")).not.toBeNull();
+  });
+
+  it("renders a read-only Debt payments group when debt payments exist", () => {
+    render(
+      <RecurringList
+        data={{
+          active: [],
+          paused: [],
+          suggested: [],
+          monthlyTotalCents: 0,
+          overlaps: [],
+          driftAlerts: [],
+          debtPayments: { count: 2, totalCents: 13300 },
+          debtChoices: [],
+          ruleOptions,
+        }}
+      />,
+    );
+    expect(screen.getByText("Debt payments")).toBeInTheDocument();
+    expect(screen.getByText(/2 debts/)).toBeInTheDocument();
+    // $133.00
+    expect(screen.getByText(/133/)).toBeInTheDocument();
+    // managed-on-debt note, no edit affordance inside the group
+    expect(screen.getByText(/Managed on each debt/i)).toBeInTheDocument();
+  });
+
+  it("omits the Debt payments group when count is zero", () => {
+    render(
+      <RecurringList
+        data={{
+          active: [],
+          paused: [],
+          suggested: [],
+          monthlyTotalCents: 0,
+          overlaps: [],
+          driftAlerts: [],
+          debtPayments: { count: 0, totalCents: 0 },
+          debtChoices: [],
+          ruleOptions,
+        }}
+      />,
+    );
+    expect(screen.queryByText("Debt payments")).not.toBeInTheDocument();
   });
 });

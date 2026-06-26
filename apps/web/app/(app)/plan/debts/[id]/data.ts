@@ -1,11 +1,23 @@
-import { DrizzleDebtRepo, tables, type DbClient } from "@upshot/db";
-import { computeSnowball, type DebtStrategy, type SnowballAnalysis, type PayoffSchedule } from "@upshot/core";
+import { DrizzleDebtRepo, DrizzleCategoryRepo, DrizzleRecurringRepo, DrizzleInstallmentRepo, DrizzlePayoffPlanRepo, tables, type DbClient } from "@upshot/db";
+import { computeSnowball, effectiveDebtPaymentCents, type DebtStrategy, type SnowballAnalysis, type PayoffSchedule } from "@upshot/core";
+import type { UiSelectOption } from "@upshot/ui";
 import type { DebtRow } from "../data";
 
 export interface DebtDetailData {
   debt: DebtRow;
   schedule: PayoffSchedule | null;
   analysis: SnowballAnalysis;
+  effectivePaymentCents: number;
+  paymentIsActual: boolean;
+  ruleOptions: {
+    categoryOptions: UiSelectOption[];
+    tagOptions: UiSelectOption[];
+    debtOptions: UiSelectOption[];
+    recurringOptions: UiSelectOption[];
+    installmentOptions: UiSelectOption[];
+  };
+  payments: { paymentDate: string; amountCents: number }[];
+  totalPaidCents: number;
 }
 
 function toStrategy(raw: string): DebtStrategy {
@@ -28,13 +40,10 @@ export async function loadDebtDetail(
 
   const startMonth = monthOf(now);
 
-  const settings = db
-    .select({ debtStrategy: tables.appSettings.debtStrategy, extraPaymentCents: tables.appSettings.extraPaymentCents })
-    .from(tables.appSettings)
-    .get();
-
-  const strategy = toStrategy(settings?.debtStrategy ?? "SNOWBALL");
-  const extraPaymentCents = settings?.extraPaymentCents ?? 0;
+  const lockedPlan = await new DrizzlePayoffPlanRepo(db).get();
+  const strategy: DebtStrategy = lockedPlan ? toStrategy(lockedPlan.strategy) : "SNOWBALL";
+  const extraPaymentCents = lockedPlan?.extraPaymentCents ?? 0;
+  const customOrder = lockedPlan?.customOrder ?? undefined;
 
   const allDebts = await repo.list();
   const debtInputs = allDebts.map((row) => ({
@@ -47,8 +56,29 @@ export async function loadDebtDetail(
     includeInSnowball: row.includeInSnowball,
   }));
 
-  const analysis = computeSnowball(debtInputs, { strategy, extraPaymentCents, startMonth });
+  const analysis = computeSnowball(debtInputs, { strategy, extraPaymentCents, startMonth, ...(customOrder ? { customOrder } : {}) });
   const schedule = analysis.schedules.find((s) => s.debtId === id) ?? null;
 
-  return { debt, schedule, analysis };
+  const latest = await repo.latestPaymentCentsByDebt();
+  const actual = latest.get(id)?.amountCents ?? null;
+  const effectivePaymentCents = effectiveDebtPaymentCents({
+    actualPaymentCents: actual,
+    minimumPaymentCents: debt.minimumPaymentCents ?? null,
+    monthlyPaymentCents: debt.monthlyPaymentCents,
+  });
+  const paymentIsActual = actual !== null;
+
+  const categoryOptions = (await new DrizzleCategoryRepo(db).list()).map((c) => ({ value: c.id, label: c.name }));
+  const tagOptions = db.select({ id: tables.tags.id }).from(tables.tags).all().map((t) => ({ value: t.id, label: t.id }));
+  const debtOptions = allDebts.map((d) => ({ value: d.id, label: d.name }));
+  const recurringOptions = (await new DrizzleRecurringRepo(db).list()).map((i) => ({ value: i.id, label: i.name }));
+  const installmentOptions = (await new DrizzleInstallmentRepo(db).list()).map((p) => ({ value: p.id, label: p.merchant }));
+
+  const rawPayments = await repo.listPayments(id);
+  const payments = rawPayments
+    .map((p) => ({ paymentDate: p.paymentDate, amountCents: p.amountCents }))
+    .sort((a, b) => (a.paymentDate < b.paymentDate ? 1 : -1)); // most-recent first
+  const totalPaidCents = payments.reduce((sum, p) => sum + p.amountCents, 0);
+
+  return { debt, schedule, analysis, effectivePaymentCents, paymentIsActual, ruleOptions: { categoryOptions, tagOptions, debtOptions, recurringOptions, installmentOptions }, payments, totalPaidCents };
 }
