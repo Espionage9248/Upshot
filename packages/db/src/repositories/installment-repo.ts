@@ -52,7 +52,7 @@ export class DrizzleInstallmentRepo implements InstallmentRepo {
           transactionId: p.transactionId,
           dueIndex: p.dueIndex,
           paidAt: p.paidAt,
-        }).run();
+        }).onConflictDoNothing().run();
       }
     });
   }
@@ -83,6 +83,17 @@ export class DrizzleInstallmentRepo implements InstallmentRepo {
       .from(installmentPlanPayments)
       .all();
     return new Set(rows.map((r) => r.transactionId));
+  }
+
+  /** True when the transaction is already recorded as an installment payment. */
+  async isTransactionLinked(transactionId: string): Promise<boolean> {
+    const row = this.db
+      .select({ id: installmentPlanPayments.id })
+      .from(installmentPlanPayments)
+      .where(eq(installmentPlanPayments.transactionId, transactionId))
+      .limit(1)
+      .get();
+    return row !== undefined;
   }
 
   /** Point this entity at a matching rule (or clear it with null). */

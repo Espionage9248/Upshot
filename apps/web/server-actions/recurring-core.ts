@@ -82,11 +82,12 @@ export async function pauseRecurring(db: DbClient, id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Permanently delete a recurring item and write an event_log row.
+ * Delete a recurring item: soft-cancels it (status CANCELLED, NOT a hard delete) so the
+ * pattern stays in knownPatterns() and the sync engine won't re-suggest it. Mirrors dismiss.
  */
 export async function removeRecurring(db: DbClient, id: string): Promise<void> {
   const repo = new DrizzleRecurringRepo(db);
-  await repo.delete(id);
+  await repo.setStatus(id, "CANCELLED");
   logEvent(db, "delete_recurring", id, `Deleted recurring item ${id}`, { id });
 }
 

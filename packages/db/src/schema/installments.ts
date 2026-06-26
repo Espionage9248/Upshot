@@ -21,7 +21,7 @@ export const installmentPlans = sqliteTable("installment_plans", {
 export const installmentPlanPayments = sqliteTable("installment_plan_payments", {
   id: text().primaryKey(),
   planId: text().notNull().references(() => installmentPlans.id, { onDelete: "cascade" }),
-  transactionId: text().notNull().references(() => transactions.id),
+  transactionId: text().notNull().unique().references(() => transactions.id),
   dueIndex: integer().notNull(),
   paidAt: text().notNull(),
 });

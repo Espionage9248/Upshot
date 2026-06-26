@@ -96,6 +96,33 @@ describe("loadRecurringData", () => {
     expect(result.suggested).toHaveLength(0);
   });
 
+  it("excludes CANCELLED items from rule-link recurringOptions but keeps active ones", async () => {
+    const db = freshDb();
+    const repo = new DrizzleRecurringRepo(db);
+
+    await repo.create({
+      name: "Active Sub",
+      kind: "SUBSCRIPTION",
+      amountCents: 1000,
+      frequency: "MONTHLY",
+      status: "ACTIVE",
+    } as Parameters<typeof repo.create>[0]);
+
+    await repo.create({
+      name: "Deleted Sub",
+      kind: "SUBSCRIPTION",
+      amountCents: 999,
+      frequency: "MONTHLY",
+      status: "CANCELLED",
+    } as Parameters<typeof repo.create>[0]);
+
+    const result = await loadRecurringData(db);
+    const labels = result.ruleOptions.recurringOptions.map((o) => o.label);
+
+    expect(labels).toContain("Active Sub");
+    expect(labels).not.toContain("Deleted Sub");
+  });
+
   it("computes monthlyTotalCents over ACTIVE items only", async () => {
     const db = freshDb();
     const repo = new DrizzleRecurringRepo(db);
