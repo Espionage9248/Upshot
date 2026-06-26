@@ -52,7 +52,7 @@ export class DrizzleInstallmentRepo implements InstallmentRepo {
           transactionId: p.transactionId,
           dueIndex: p.dueIndex,
           paidAt: p.paidAt,
-        }).run();
+        }).onConflictDoNothing().run();
       }
     });
   }

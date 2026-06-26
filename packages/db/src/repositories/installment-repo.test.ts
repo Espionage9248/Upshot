@@ -2,10 +2,11 @@ import { afterEach, describe, it, expect } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { eq } from "drizzle-orm";
 import { createDbClient, type DbClient } from "../client";
 import { applyMigrations } from "../migrate";
 import { DrizzleInstallmentRepo } from "./installment-repo";
-import { accounts, transactions } from "../schema";
+import { accounts, transactions, installmentPlanPayments } from "../schema";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -250,6 +251,35 @@ describe("DrizzleInstallmentRepo", () => {
     expect((await repo.getById(id))?.matchRuleId).toBe("rule-x");
     await repo.clearMatchRuleByRule("rule-x");
     expect((await repo.getById(id))?.matchRuleId).toBeNull();
+  });
+
+  it("does not double-insert a payment for the same transaction (unique transaction_id + onConflictDoNothing)", async () => {
+    const db = freshDb();
+    seedTransactions(db, ["txn-dedup"]);
+    const repo = new DrizzleInstallmentRepo(db);
+
+    const planId = await repo.create({
+      id: "plan-dedup",
+      merchant: "Zip",
+      totalCents: 20000,
+      installmentCents: 5000,
+      totalInstallments: 4,
+      frequencyDays: 14,
+      firstDueDate: "2026-06-01",
+      matchRuleId: null,
+      notes: null,
+    });
+    const payment = { planId, transactionId: "txn-dedup", dueIndex: 0, paidAt: "2026-06-01T00:00:00.000Z" };
+
+    await repo.applyMatches([], [payment]);
+    await repo.applyMatches([], [payment]); // same tx again — must be a no-op, not a 2nd row / crash
+
+    const rows = db
+      .select()
+      .from(installmentPlanPayments)
+      .where(eq(installmentPlanPayments.transactionId, "txn-dedup"))
+      .all();
+    expect(rows).toHaveLength(1);
   });
 
   it("delete cascades to installment_plan_payments", async () => {
