@@ -19,3 +19,14 @@
     display: none !important;
   }
 }
+
+/* Phase 3: ensure ≥44px tap targets inside the mobile Stepped accordion. */
+@media (max-width: 639px) {
+  .stepped-controls button,
+  .stepped-controls [role="slider"] {
+    min-height: 44px;
+  }
+  .stepped-controls button {
+    min-width: 44px;
+  }
+}
