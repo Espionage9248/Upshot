@@ -79,6 +79,10 @@ export function MarkAsBnplDialog({ txId, txDate, amountCents, description }: Mar
         setErrors({ form: res.error.message });
         return;
       }
+      if (!res.data.ok) {
+        setErrors({ form: res.data.error });
+        return;
+      }
       reset();
       setOpen(false);
       router.refresh();

@@ -67,7 +67,7 @@ describe("MarkAsBnplDialog", () => {
   });
 
   it("clicking Add plan after +1 calls the action with correct args", async () => {
-    createInstallmentFromTransactionAction.mockResolvedValue({ ok: true, data: "plan-1" });
+    createInstallmentFromTransactionAction.mockResolvedValue({ ok: true, data: { ok: true, planId: "plan-1" } });
     openDialog();
     // Increment paid to 2.
     fireEvent.click(screen.getByRole("button", { name: /increase installments paid/i }));
@@ -82,5 +82,22 @@ describe("MarkAsBnplDialog", () => {
         installmentsPaid: 2,
       });
     });
+  });
+
+  it("surfaces the friendly error when the transaction is already linked (double-wrapped domain failure)", async () => {
+    createInstallmentFromTransactionAction.mockResolvedValue({
+      ok: true,
+      data: { ok: false, error: "This transaction is already linked to a BNPL plan." },
+    });
+    openDialog();
+    fireEvent.click(screen.getByRole("button", { name: /add plan/i }));
+
+    // The friendly error is shown as a form-level alert.
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/already linked to a BNPL plan/i);
+    });
+    // And the dialog did NOT close (success path not taken): the dialog
+    // description (only rendered inside the open DialogContent) is still present.
+    expect(screen.getByText(/buy-now-pay-later installment plan/i)).toBeInTheDocument();
   });
 });
