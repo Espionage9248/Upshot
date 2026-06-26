@@ -9,7 +9,7 @@ import {
   tables,
   type DbClient,
 } from "@upshot/db";
-import { acceptSuggestion, dismissSuggestion, pauseRecurring, setRecurringKind } from "./recurring-core";
+import { acceptSuggestion, dismissSuggestion, pauseRecurring, removeRecurring, setRecurringKind } from "./recurring-core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -144,6 +144,34 @@ describe("pauseRecurring", () => {
     expect(logs).toHaveLength(1);
     expect(logs[0]!.entityId).toBe(id);
     expect(logs[0]!.category).toBe("recurring");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// removeRecurring
+// ---------------------------------------------------------------------------
+
+describe("removeRecurring", () => {
+  it("deleting a recurring item soft-cancels it so DETECT won't re-suggest the pattern", async () => {
+    const repo = new DrizzleRecurringRepo(db);
+    const id = await createActive("Netflix");
+
+    await removeRecurring(db, id);
+
+    // row still exists, now CANCELLED (not hard-deleted)
+    const row = (await repo.listByStatus("CANCELLED")).find((r) => r.id === id);
+    expect(row).toBeDefined();
+
+    // pattern is suppressed: knownPatterns() contains "netflix"
+    const patterns = await repo.knownPatterns();
+    expect(patterns.has("netflix")).toBe(true);
+  });
+
+  it("writes a delete_recurring event_log entry", async () => {
+    await removeRecurring(db, await createActive("Hulu"));
+
+    const logs = recurringEventRows("delete_recurring");
+    expect(logs).toHaveLength(1);
   });
 });
 
