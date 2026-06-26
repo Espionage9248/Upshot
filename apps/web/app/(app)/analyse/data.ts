@@ -2,11 +2,13 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   deriveSalaryPeriods,
   buildMonthlyReport,
+  buildYearlyReport,
   buildCashflow,
   momDelta,
   type ReportTxn,
   type SalaryPeriod,
   type MonthlyReport,
+  type YearlyReport,
   type CashflowPoint,
   type EnvelopePerformanceItem,
   type DebtPaymentBreakdownItem,
@@ -26,21 +28,30 @@ export interface ReportsDeltas {
   net: MoMDelta;
 }
 
+/** Report view mode — drives which report type is built and rendered. */
+export type ReportView = "month" | "year" | "fy";
+
 /**
  * Serializable DTO for the /analyse Reports surface. Domain data only — never
  * the encryption key, env, or raw error stacks.
  */
 export interface ReportsData {
+  /** Active view mode. */
+  view: ReportView;
   /** All derived salary periods (most-recent-first), for the period switcher. */
   periods: SalaryPeriod[];
   /** The period the report below is built for (clamped into range). */
   selectedIndex: number;
-  /** The monthly report for the selected period. */
+  /** The monthly report for the selected period (month view only). */
   report: MonthlyReport;
-  /** Day-bucketed cashflow series scoped to the selected period. */
+  /** Day-bucketed cashflow series scoped to the selected period (month view only). */
   cashflow: CashflowPoint[];
-  /** MoM deltas: selected period vs the immediately-previous period. */
+  /** MoM deltas: selected period vs the immediately-previous period (month view only). */
   deltas: ReportsDeltas;
+  /** The yearly/FY report (year or fy view only). */
+  yearlyReport?: YearlyReport;
+  /** The year/FY ending-year in use (year/fy view only). */
+  selectedYear?: number;
 }
 
 /**
@@ -52,13 +63,17 @@ export interface ReportsData {
  * deriveSalaryPeriods → scope to the chosen period → buildMonthlyReport +
  * buildCashflow + MoM deltas (current vs previous period).
  *
+ * For year/fy views: loads all txns, calls buildYearlyReport for the chosen year,
+ * passing prior-year txns for the YoY comparison.
+ *
  * `now` is injected as an ISO string so period derivation is deterministic.
  */
 export async function loadReportsData(
   db: DbClient,
-  opts: { periodIndex: number; now: string },
+  opts: { periodIndex: number; now: string; view?: ReportView; year?: number },
 ): Promise<ReportsData> {
   const { now } = opts;
+  const view: ReportView = opts.view ?? "month";
 
   // 1. Categories → id → { name, parentName } map for the breakdown.
   const categories = await new DrizzleCategoryRepo(db).list();
@@ -79,7 +94,8 @@ export async function loadReportsData(
     periods.length === 0 ? 0 : Math.min(Math.max(opts.periodIndex, 0), periods.length - 1);
   const period = periods[selectedIndex] ?? emptyPeriod(now);
 
-  // 4. Scope txns to [period.start, period.end] (settledAt ?? createdAt).
+  // 4. Always build a monthly report (monthly view uses it; yearly view needs the
+  //    period fields for the period switcher to work). Scope txns to the period.
   const periodTxns = scopeToPeriod(txns, period);
 
   // 5. Envelope performance (savers) + debt payment breakdown for this period.
@@ -87,7 +103,7 @@ export async function loadReportsData(
   const envelopePerformance = loadEnvelopePerformance(db, month, period);
   const debtPaymentBreakdown = await loadDebtPaymentBreakdown(db, period);
 
-  // 6. Build the report.
+  // 6. Build the monthly report.
   const report = buildMonthlyReport({
     period,
     txns: periodTxns,
@@ -109,7 +125,47 @@ export async function loadReportsData(
   const prevPeriod = periods[selectedIndex + 1];
   const deltas = computeDeltas(report, prevPeriod ? scopeToPeriod(txns, prevPeriod) : null);
 
-  return { periods, selectedIndex, report, cashflow, deltas };
+  // 9. Yearly / financial-year view: build YearlyReport.
+  if (view === "year" || view === "fy") {
+    const nowDate = new Date(now);
+    // Default year: current calendar year (or FY ending year).
+    const selectedYear =
+      opts.year ??
+      (view === "fy"
+        ? // FY ending year: if we're in Jul-Dec, the FY ending year = next calendar year;
+          // if Jan-Jun, it's the current calendar year.
+          nowDate.getUTCMonth() >= 6
+          ? nowDate.getUTCFullYear() + 1
+          : nowDate.getUTCFullYear()
+        : nowDate.getUTCFullYear());
+
+    // Prior-year txns for YoY comparison.
+    // Calendar: prior year = selectedYear - 1 (Jan–Dec).
+    // FY: prior year ending = selectedYear - 1 (Jul–Jun window).
+    const priorYear = selectedYear - 1;
+    const previousYearTxns = view === "fy"
+      ? txns.filter((tx) => {
+          const at = tx.settledAt ?? tx.createdAt;
+          const fyStart = `${priorYear - 1}-07-01T00:00:00.000Z`;
+          const fyEnd = `${priorYear}-06-30T23:59:59.999Z`;
+          return at >= fyStart && at <= fyEnd;
+        })
+      : txns.filter((tx) => {
+          const at = tx.settledAt ?? tx.createdAt;
+          return at.startsWith(`${priorYear}-`);
+        });
+
+    const yearlyReport = buildYearlyReport(txns, selectedYear, {
+      isFinancialYear: view === "fy",
+      now,
+      categoryNames,
+      previousYearTxns: previousYearTxns.length > 0 ? previousYearTxns : undefined,
+    });
+
+    return { view, periods, selectedIndex, report, cashflow, deltas, yearlyReport, selectedYear };
+  }
+
+  return { view, periods, selectedIndex, report, cashflow, deltas };
 }
 
 // ---------------------------------------------------------------------------

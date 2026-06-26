@@ -255,4 +255,167 @@ describe("loadReportsData", () => {
     const result = await loadReportsData(db, { periodIndex: 0, now: NOW });
     expect(JSON.stringify(result)).not.toContain(KEY);
   });
+
+  it("clamps out-of-range periodIndex without throwing (bounds-safety)", async () => {
+    const db = freshDb();
+    seedPeriod(db);
+    // periodIndex: 999 far exceeds the number of periods; must clamp to last valid index.
+    const result = await loadReportsData(db, { periodIndex: 999, now: NOW });
+    expect(result.periods.length).toBeGreaterThan(0);
+    expect(result.selectedIndex).toBeLessThanOrEqual(result.periods.length - 1);
+    // Must not throw — report still returns something sensible.
+    expect(result.report).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Yearly / financial-year view tests
+// ---------------------------------------------------------------------------
+
+/**
+ * Seed transactions across two calendar months (Jan + Feb 2026) plus a
+ * prior-year salary in Jan 2025, so that:
+ *   - view=year (2026) returns a YearlyReport with totalIncomeCents=900000
+ *   - previousYearComparison is non-null (prior-year txns exist)
+ */
+function seedYearlyData(db: DbClient): void {
+  db.insert(tables.accounts)
+    .values({
+      id: "acc-y-spend",
+      name: "Spending",
+      type: "TRANSACTIONAL",
+      ownership: "INDIVIDUAL",
+      balanceCents: 1000000,
+      role: "SPENDING",
+      monthlyAllocationCents: 0,
+    })
+    .run();
+
+  db.insert(tables.categories)
+    .values([
+      { id: "cat-food", name: "Food", parentId: null },
+    ])
+    .run();
+
+  // Jan 2026: salary + expense
+  db.insert(tables.transactions)
+    .values([
+      {
+        id: "ty-sal-jan",
+        accountId: "acc-y-spend",
+        status: "SETTLED",
+        description: "Salary Jan",
+        amountCents: 500000,
+        currency: "AUD",
+        categoryId: null,
+        parentCategoryId: null,
+        isTransfer: false,
+        isSalary: true,
+        settledAt: "2026-01-05T00:00:00.000Z",
+        createdAt: "2026-01-05T00:00:00.000Z",
+      },
+      {
+        id: "ty-exp-jan",
+        accountId: "acc-y-spend",
+        status: "SETTLED",
+        description: "Groceries Jan",
+        amountCents: -30000,
+        currency: "AUD",
+        categoryId: "cat-food",
+        parentCategoryId: null,
+        isTransfer: false,
+        isSalary: false,
+        settledAt: "2026-01-15T00:00:00.000Z",
+        createdAt: "2026-01-15T00:00:00.000Z",
+      },
+      // Feb 2026: salary
+      {
+        id: "ty-sal-feb",
+        accountId: "acc-y-spend",
+        status: "SETTLED",
+        description: "Salary Feb",
+        amountCents: 400000,
+        currency: "AUD",
+        categoryId: null,
+        parentCategoryId: null,
+        isTransfer: false,
+        isSalary: true,
+        settledAt: "2026-02-05T00:00:00.000Z",
+        createdAt: "2026-02-05T00:00:00.000Z",
+      },
+      // Prior year (2025) — for YoY comparison
+      {
+        id: "ty-sal-2025",
+        accountId: "acc-y-spend",
+        status: "SETTLED",
+        description: "Salary 2025",
+        amountCents: 600000,
+        currency: "AUD",
+        categoryId: null,
+        parentCategoryId: null,
+        isTransfer: false,
+        isSalary: true,
+        settledAt: "2025-01-10T00:00:00.000Z",
+        createdAt: "2025-01-10T00:00:00.000Z",
+      },
+    ])
+    .run();
+}
+
+const NOW_MAR = "2026-03-01T00:00:00.000Z";
+
+describe("loadReportsData — yearly view", () => {
+  it("returns a YearlyReport with 12-month breakdown and non-null previousYearComparison", async () => {
+    const db = freshDb();
+    seedYearlyData(db);
+
+    const result = await loadReportsData(db, {
+      periodIndex: 0,
+      now: NOW_MAR,
+      view: "year",
+      year: 2026,
+    });
+
+    expect(result.yearlyReport).toBeDefined();
+    const yr = result.yearlyReport!;
+    // Jan 500000 + Feb 400000 = 900000 income
+    expect(yr.totalIncomeCents).toBe(900000);
+    expect(yr.totalExpensesCents).toBe(30000);
+    expect(yr.monthlyBreakdown.length).toBe(12);
+    // Jan has income; Feb has income
+    const jan = yr.monthlyBreakdown.find((m) => m.month === "2026-01");
+    expect(jan?.incomeCents).toBe(500000);
+    const feb = yr.monthlyBreakdown.find((m) => m.month === "2026-02");
+    expect(feb?.incomeCents).toBe(400000);
+    // Prior year comparison non-null (2025 has 600000 income)
+    expect(yr.previousYearComparison).not.toBeNull();
+    // income went from 600k → 900k (partial year) — pct should be positive
+    expect(yr.previousYearComparison!.incomeChangePct).toBeGreaterThan(0);
+  });
+
+  it("returns a YearlyReport for financial-year view", async () => {
+    const db = freshDb();
+    seedYearlyData(db);
+
+    const result = await loadReportsData(db, {
+      periodIndex: 0,
+      now: NOW_MAR,
+      view: "fy",
+      year: 2026,
+    });
+
+    expect(result.yearlyReport).toBeDefined();
+    const yr = result.yearlyReport!;
+    // FY2026 = 1 Jul 2025 – 30 Jun 2026; Jan + Feb 2026 salaries fall inside
+    expect(yr.totalIncomeCents).toBe(900000);
+    expect(yr.monthlyBreakdown.length).toBe(12);
+  });
+
+  it("monthly view still returns no yearlyReport", async () => {
+    const db = freshDb();
+    seedPeriod(db);
+
+    const result = await loadReportsData(db, { periodIndex: 0, now: NOW });
+    expect(result.yearlyReport).toBeUndefined();
+  });
 });
