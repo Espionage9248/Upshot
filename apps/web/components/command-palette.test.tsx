@@ -29,7 +29,7 @@ describe("CommandPalette", () => {
     render(<CommandPalette />);
     openPalette();
     expect(screen.getByRole("dialog")).toBeTruthy();
-    for (const label of ["Today", "Money", "Budget", "Plan", "Analyze"]) {
+    for (const label of ["Today", "Money", "Budget", "Plan", "Analyse"]) {
       expect(screen.getByText(label)).toBeTruthy();
     }
   });

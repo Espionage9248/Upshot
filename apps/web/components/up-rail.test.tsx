@@ -28,7 +28,7 @@ describe("UpRail", () => {
   it("renders the 5 rooms with their labels and hrefs", () => {
     pathname = "/today";
     const { getByText, getByRole } = render(<UpRail />);
-    for (const label of ["Today", "Money", "Budget", "Plan", "Analyze"]) {
+    for (const label of ["Today", "Money", "Budget", "Plan", "Analyse"]) {
       expect(getByText(label)).toBeTruthy();
     }
     expect(getByRole("link", { name: /Money/ })).toHaveAttribute("href", "/money");

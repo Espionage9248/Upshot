@@ -13,5 +13,5 @@ export const ROOMS: ReadonlyArray<{ id: UIconKey; label: string; href: string }>
   { id: "ledger", label: "Money", href: "/money" },
   { id: "wallet", label: "Budget", href: "/budget" },
   { id: "plan", label: "Plan", href: "/plan" },
-  { id: "look", label: "Analyze", href: "/analyze" },
+  { id: "look", label: "Analyse", href: "/analyse" },
 ];
