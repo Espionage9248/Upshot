@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import { Money, UIcon, Card, type UIconKey } from "@upshot/ui";
 import type { DebtRow, BnplPlanView } from "@/app/(app)/plan/debts/data";
+import { useMediaQuery } from "@/lib/use-media-query";
 import { PlannerLabel } from "./planner-atoms";
 import { DebtFormDialog } from "./debt-form-dialog";
 
@@ -68,10 +69,11 @@ export function DebtSummary({
   reflectsLocked: boolean;
   lockedStrategyLabel: string;
 }): ReactElement {
+  const isWide = useMediaQuery("(min-width: 640px)", true);
   const totalCents = debts.reduce((s, d) => s + d.row.currentBalanceCents, 0);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
+    <div data-debt-summary-grid style={{ display: "grid", gridTemplateColumns: isWide ? "1.5fr 1fr" : "1fr", gap: 16 }}>
       <Card className="p-0">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "15px 18px 13px", borderBottom: "1px solid var(--line)" }}>
           <div>

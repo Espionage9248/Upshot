@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { vi, test, expect } from "vitest";
+import { vi, test, expect, describe, afterEach } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/server-actions/debts", () => ({ createDebtAction: vi.fn() }));
@@ -88,4 +88,18 @@ test("shows the empty BNPL hint when there are no plans", () => {
   render(<DebtSummary debts={[]} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} bnplPlans={[]} reflectsLocked={false} lockedStrategyLabel="Avalanche" />);
   expect(screen.getByText("No BNPL plans tracked.")).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /Manage all/ })).not.toBeInTheDocument();
+});
+
+describe("responsive grid", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  test("stacks to a single column on narrow viewports", () => {
+    // jsdom matchMedia returns matches:false by default → useMediaQuery("(min-width: 640px)", true)
+    // resolves to false after mount → grid should render as "1fr"
+    const { container } = render(
+      <DebtSummary debts={[]} rollup={{ remainingCents: 0, activeCount: 0, nextDueDate: null }} bnplPlans={[]} reflectsLocked={false} lockedStrategyLabel="Avalanche" />,
+    );
+    const grid = container.querySelector("[data-debt-summary-grid]") as HTMLElement;
+    expect(grid.style.gridTemplateColumns).toBe("1fr");
+  });
 });
