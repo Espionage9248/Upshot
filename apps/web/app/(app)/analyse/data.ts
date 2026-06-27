@@ -351,7 +351,9 @@ function computeDeltas(report: MonthlyReport, prevTxns: ReportTxn[] | null): Rep
     const flat: MoMDelta = { changePct: null, direction: "flat" };
     return { income: flat, expense: flat, net: flat };
   }
-  const prevIncome = prevTxns.filter((t) => t.amountCents > 0).reduce((s, t) => s + t.amountCents, 0);
+  const prevIncome = prevTxns
+    .filter((t) => t.amountCents > 0 && !t.isTransfer)
+    .reduce((s, t) => s + t.amountCents, 0);
   const prevExpense = prevTxns
     .filter((t) => t.amountCents < 0 && !t.isTransfer)
     .reduce((s, t) => s + Math.abs(t.amountCents), 0);

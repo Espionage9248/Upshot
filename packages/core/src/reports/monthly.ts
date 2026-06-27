@@ -163,8 +163,10 @@ function buildInsights(
 export function buildMonthlyReport(input: MonthlyReportInput): MonthlyReport {
   const { period, txns, categoryNames, envelopePerformance, debtPaymentBreakdown } = input;
 
-  // Partition txns: income = positive, expense = negative non-transfer
-  const incomeTxns = txns.filter((tx) => tx.amountCents > 0);
+  // Partition txns: income = positive non-transfer, expense = negative non-transfer.
+  // Internal transfers (incoming OR outgoing) are excluded from both — matches
+  // yearly.ts; otherwise incoming transfers inflate a pay-period's income.
+  const incomeTxns = txns.filter((tx) => tx.amountCents > 0 && !tx.isTransfer);
   const expenseTxns = txns.filter((tx) => tx.amountCents < 0 && !tx.isTransfer);
 
   // Aggregate income

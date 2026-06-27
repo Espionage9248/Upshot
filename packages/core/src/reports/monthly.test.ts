@@ -93,6 +93,28 @@ describe("buildMonthlyReport", () => {
     expect(report.categoryBreakdown[2]!.totalCents).toBe(6000);
   });
 
+  it("excludes positive (incoming) transfers from income", () => {
+    // Internal transfers IN (e.g. money moved from a saver into spending) are NOT
+    // income. Must match yearly.ts, which excludes transfers — otherwise a
+    // pay-period's income reads far too high. Regression for UAT feedback.
+    const txns = [
+      t("sal", { amountCents: 500000, isSalary: true }),
+      t("bonus", { amountCents: 50000 }),
+      t("xfer-in", { amountCents: 40000, isTransfer: true }),
+    ];
+
+    const report = buildMonthlyReport({
+      period,
+      txns,
+      categoryNames: catMap,
+      envelopePerformance: noEnvelopes,
+      debtPaymentBreakdown: noDebts,
+    });
+
+    expect(report.otherIncomeCents).toBe(50000); // not 90000
+    expect(report.totalIncomeCents).toBe(550000); // not 590000
+  });
+
   it("savingsRate is 0 when no income", () => {
     const txns = [t("exp", { amountCents: -5000, categoryId: "cat-groceries" })];
     const report = buildMonthlyReport({
