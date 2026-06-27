@@ -113,7 +113,7 @@ export function RuleList({
                     {summarise(r)}
                   </div>
                 </div>
-                <div style={{ width: 44, flexShrink: 0 }}>
+                <div style={{ flexShrink: 0 }}>
                   <ToggleRow
                     label="Active"
                     checked={r.rule.isActive}
