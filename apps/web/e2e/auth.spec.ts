@@ -10,7 +10,7 @@ import { test, expect } from "./fixtures";
  * `authenticatorId` is requested so the virtual-authenticator fixture attaches
  * before any WebAuthn call runs.
  */
-test("register passkey → login → Today → theme → Settings → 401 Reconnect → Plan → debts smoke → installments smoke → recurring smoke → strategy/what-if/BNPL-PathB/mark-BNPL/wishlist/mark-purchase/recurring-delete/detect/validation → auth redirect", async ({
+test("register passkey → login → Today → theme → Settings → 401 Reconnect → Plan → debts smoke → installments smoke → recurring smoke → strategy/what-if/BNPL-PathB/mark-BNPL/wishlist/mark-purchase/recurring-delete/detect/validation → Analyse smoke → auth redirect", async ({
   page,
   context,
   authenticatorId,
@@ -469,7 +469,23 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // Restore desktop so any trailing assertions/teardown see the default layout.
   await page.setViewportSize({ width: 1280, height: 720 });
 
-  // No Plan write action threw a Server Components / ReferenceError in the prod build.
+  // --- Analyse room: Reports + Analytics smoke (real read paths) ---
+  await page.goto("/analyse");
+  await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible({ timeout: 15000 });
+  // Switch to year mode via the "Select report mode" selector — a real server navigation read path.
+  await page.getByRole("combobox", { name: "Select report mode" }).click();
+  await page.getByRole("option", { name: "Calendar year" }).click();
+  await expect(page).toHaveURL(/[?&]view=year/, { timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible({ timeout: 15000 });
+  // Navigate to Analytics via the Analyse section nav.
+  await page.getByRole("navigation", { name: "Analyse navigation" }).getByText("Analytics").click();
+  await expect(page).toHaveURL(/\/analyse\/analytics/, { timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Analytics" })).toBeVisible({ timeout: 15000 });
+  // Budget health card is always rendered (even with zero data, the score circle appears).
+  // CardTitle is a <div>, so assert visible text rather than heading role.
+  await expect(page.getByText("Budget health").first()).toBeVisible({ timeout: 15000 });
+
+  // No Plan or Analyse action threw a Server Components / ReferenceError in the prod build.
   expect(pageErrors, `unexpected page errors: ${pageErrors.join(" | ")}`).toEqual([]);
 
   // 11) Unauthenticated access to a protected route → redirected to /login.
