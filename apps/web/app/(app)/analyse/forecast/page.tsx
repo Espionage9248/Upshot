@@ -17,6 +17,8 @@ function one(v: string | string[] | undefined): string | undefined {
 }
 
 const VALID_HORIZONS = [30, 60, 90] as const;
+const VALID_TABS = ["forecast", "salary", "expense"] as const;
+type ForecastTab = (typeof VALID_TABS)[number];
 
 export default async function ForecastPage({
   searchParams,
@@ -33,6 +35,12 @@ export default async function ForecastPage({
     ? (hParsed as 30 | 60 | 90)
     : 90;
 
+  // ?tab → "forecast" | "salary" | "expense" (default "forecast")
+  const rawTab = one(sp.tab);
+  const tab: ForecastTab = VALID_TABS.includes(rawTab as ForecastTab)
+    ? (rawTab as ForecastTab)
+    : "forecast";
+
   const data = await loadForecastData(db, {
     now: new Date().toISOString(),
     horizon,
@@ -41,7 +49,7 @@ export default async function ForecastPage({
   return (
     <>
       <TopBar title="Forecast" sub="30/60/90-DAY CASH-FLOW · WHAT-IF" />
-      <ForecastPanel forecast={data.forecast} horizon={horizon} />
+      <ForecastPanel forecast={data.forecast} horizon={horizon} tab={tab} />
     </>
   );
 }

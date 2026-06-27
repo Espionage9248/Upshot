@@ -322,6 +322,9 @@ export async function loadForecastData(
 
   let avgDailyDiscretionaryCents = 0;
   let stdDevDailyDiscretionaryCents = 0;
+  // Total non-transfer, non-salary spending-account OUTFLOW over the 90-day
+  // window (BEFORE scheduled-outflow subtraction) → the actual-expense baseline.
+  let totalOutflowCents90 = 0;
 
   if (spendingAccountId !== undefined && spendingAccountId !== "") {
     const outflowTxns90 = db
@@ -389,7 +392,9 @@ export async function loadForecastData(
       if (t.isTransfer || t.isSalary) continue;
       if (t.amountCents >= 0) continue; // only outflows
       const day = t.createdAt.slice(0, 10);
-      byDay90.set(day, (byDay90.get(day) ?? 0) + Math.abs(t.amountCents));
+      const mag = Math.abs(t.amountCents);
+      byDay90.set(day, (byDay90.get(day) ?? 0) + mag);
+      totalOutflowCents90 += mag; // total expenses (pre-scheduled-subtraction)
     }
 
     // Subtract scheduled outflows from each day
@@ -479,7 +484,10 @@ export async function loadForecastData(
 
   const hasExplicitSavingsAccounts = saverAccounts.length > 0;
   const monthlyExplicitSavingsCents = totalMonthlyAllocationCents;
-  const monthlyExpensesCents = totalMonthlyAllocationCents;
+  // Actual average monthly spending-account outflow (90-day total ÷ 3). This is
+  // the salary simulator's total-expense baseline; disjoint from debt minimums
+  // (totalMonthlyDebtCents), matching V1's "expenses exclude debt payments".
+  const monthlyExpensesCents = Math.round(totalOutflowCents90 / 3);
 
   const salaryBaseline: ForecastPageData["salaryBaseline"] = {
     currentMonthlyIncomeCents,

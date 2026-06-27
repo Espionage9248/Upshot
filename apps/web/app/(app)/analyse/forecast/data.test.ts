@@ -295,6 +295,16 @@ describe("loadForecastData", () => {
     expect(ids).toContain("acc-ef");
   });
 
+  it("salaryBaseline.monthlyExpensesCents is actual avg outflow (90d total ÷ 3), not allocations", async () => {
+    const db = freshDb();
+    seedData(db);
+    const data = await loadForecastData(db, { now: NOW, horizon: 30 });
+    // 3 grocery outflows (8000 + 6000 + 4000 = 18000) within the 90-day window
+    // → round(18000 / 3) = 6000. Disjoint from saver allocations (25000).
+    expect(data.salaryBaseline.monthlyExpensesCents).toBe(6000);
+    expect(data.salaryBaseline.monthlyExpensesCents).not.toBe(25000);
+  });
+
   it("salaryBaseline.debts includes only includeInSnowball=true debts", async () => {
     const db = freshDb();
     seedData(db);

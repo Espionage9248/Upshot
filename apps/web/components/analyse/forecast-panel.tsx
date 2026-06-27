@@ -8,16 +8,17 @@ import type { CashflowForecast } from "@upshot/core";
 interface ForecastPanelProps {
   forecast: CashflowForecast;
   horizon: 30 | 60 | 90;
+  tab: "forecast" | "salary" | "expense";
 }
 
 const HORIZONS = [30, 60, 90] as const;
 
 /**
  * ForecastPanel — the forecast chart card + 30/60/90-day horizon tab links.
- * Links set ?h= while preserving ?tab=forecast.
+ * Links set ?h= while preserving the active ?tab= (Task 6 reads the same tab).
  * Simulator panels land in Task 6's ForecastView.
  */
-export function ForecastPanel({ forecast, horizon }: ForecastPanelProps): ReactElement {
+export function ForecastPanel({ forecast, horizon, tab }: ForecastPanelProps): ReactElement {
   return (
     <Card>
       <CardHeader>
@@ -33,7 +34,7 @@ export function ForecastPanel({ forecast, horizon }: ForecastPanelProps): ReactE
             return (
               <Link
                 key={h}
-                href={`/analyse/forecast?h=${h}&tab=forecast`}
+                href={`/analyse/forecast?h=${h}&tab=${tab}`}
                 role="tab"
                 aria-selected={isActive}
                 style={{
