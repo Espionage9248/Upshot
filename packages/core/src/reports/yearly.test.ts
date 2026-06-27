@@ -184,6 +184,100 @@ describe("buildYearlyReport — calendar year", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Category breakdown windowing
+// ---------------------------------------------------------------------------
+
+describe("buildYearlyReport — categoryBreakdown window scoping", () => {
+  it("calendar year: excludes expenses from a different year", () => {
+    const catNames = new Map([
+      ["cat-food", { name: "Groceries", parentName: null }],
+      ["cat-rent", { name: "Rent", parentName: null }],
+    ]);
+
+    const txns: ReportTxn[] = [
+      // 2025 expenses (the selected year)
+      t("exp-2025-a", {
+        amountCents: -50000,
+        categoryId: "cat-food",
+        createdAt: "2025-03-10T00:00:00.000Z",
+      }),
+      t("exp-2025-b", {
+        amountCents: -30000,
+        categoryId: "cat-food",
+        createdAt: "2025-09-01T00:00:00.000Z",
+      }),
+      // 2024 expense (a DIFFERENT year — must be excluded from breakdown)
+      t("exp-2024-rent", {
+        amountCents: -200000,
+        categoryId: "cat-rent",
+        createdAt: "2024-11-15T00:00:00.000Z",
+      }),
+    ];
+
+    const report = buildYearlyReport(txns, 2025, {
+      isFinancialYear: false,
+      now: "2026-06-27T00:00:00.000Z",
+      categoryNames: catNames,
+    });
+
+    // Only 2025 expenses should appear — Groceries with 80000 total
+    expect(report.categoryBreakdown).toHaveLength(1);
+    const groceries = report.categoryBreakdown[0]!;
+    expect(groceries.categoryName).toBe("Groceries");
+    expect(groceries.totalCents).toBe(80000); // 50000 + 30000
+    expect(groceries.transactionCount).toBe(2);
+
+    // Prior-year Rent must NOT appear
+    const rent = report.categoryBreakdown.find((c) => c.categoryName === "Rent");
+    expect(rent).toBeUndefined();
+  });
+
+  it("financial year: excludes expenses outside the FY window", () => {
+    const catNames = new Map([
+      ["cat-dine", { name: "Dining", parentName: null }],
+      ["cat-gym", { name: "Gym", parentName: null }],
+    ]);
+
+    const txns: ReportTxn[] = [
+      // FY2025 expenses (1 Jul 2024 – 30 Jun 2025)
+      t("exp-fy25-a", {
+        amountCents: -40000,
+        categoryId: "cat-dine",
+        createdAt: "2024-08-10T00:00:00.000Z",
+      }),
+      t("exp-fy25-b", {
+        amountCents: -20000,
+        categoryId: "cat-dine",
+        createdAt: "2025-04-15T00:00:00.000Z",
+      }),
+      // FY2024 expense (1 Jul 2023 – 30 Jun 2024) — must be excluded
+      t("exp-fy24-gym", {
+        amountCents: -150000,
+        categoryId: "cat-gym",
+        createdAt: "2024-02-20T00:00:00.000Z",
+      }),
+    ];
+
+    const report = buildYearlyReport(txns, 2025, {
+      isFinancialYear: true,
+      now: "2026-06-27T00:00:00.000Z",
+      categoryNames: catNames,
+    });
+
+    // Only FY2025 expenses: Dining = 60000
+    expect(report.categoryBreakdown).toHaveLength(1);
+    const dining = report.categoryBreakdown[0]!;
+    expect(dining.categoryName).toBe("Dining");
+    expect(dining.totalCents).toBe(60000); // 40000 + 20000
+    expect(dining.transactionCount).toBe(2);
+
+    // Prior-FY Gym must NOT appear
+    const gym = report.categoryBreakdown.find((c) => c.categoryName === "Gym");
+    expect(gym).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Australian financial year
 // ---------------------------------------------------------------------------
 

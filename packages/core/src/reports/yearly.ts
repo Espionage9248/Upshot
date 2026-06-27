@@ -322,7 +322,11 @@ export function buildYearlyReport(
   const averageMonthlyIncomeCents = Math.round(totalIncomeCents / monthsElapsed);
   const averageMonthlyExpensesCents = Math.round(totalExpensesCents / monthsElapsed);
 
-  const categoryBreakdown = buildCategoryBreakdown(txns, opts.categoryNames);
+  const windowedTxns = txns.filter((tx) => {
+    const ms = new Date(tx.settledAt ?? tx.createdAt).getTime();
+    return ms >= window.startMs && ms <= window.endMs;
+  });
+  const categoryBreakdown = buildCategoryBreakdown(windowedTxns, opts.categoryNames);
 
   const previousYearComparison =
     opts.previousYearTxns !== undefined
