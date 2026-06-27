@@ -72,6 +72,7 @@ export { InsightCard, type InsightCardProps } from "./finance/insight-card";
 export { UpcomingBills, type UpcomingBillsProps, type BillItem } from "./finance/upcoming-bills";
 export { EmptyState, type EmptyStateProps } from "./finance/empty-state";
 export { CashflowChart, type CashflowChartProps } from "./finance/cashflow-chart";
+export { ForecastChart, type ForecastChartProps } from "./finance/forecast-chart";
 export { CategoryDonut, type CategoryDonutProps } from "./finance/category-donut";
 export { MoneyFlowSankey, type MoneyFlowSankeyProps } from "./finance/money-flow-sankey";
 export { SpendingHeatmap, type SpendingHeatmapProps } from "./finance/spending-heatmap";
