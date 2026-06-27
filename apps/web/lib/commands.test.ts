@@ -15,7 +15,7 @@ describe("buildResults", () => {
     expect(all.slice(0, 5).every((c) => c.kind === "go-to")).toBe(true);
     expect(all.slice(5).every((c) => c.kind === "action")).toBe(true);
     expect(all[0]?.label).toBe("Today");
-    expect(all[4]?.label).toBe("Analyze");
+    expect(all[4]?.label).toBe("Analyse");
   });
 
   it("treats a whitespace-only query as empty", () => {
@@ -65,7 +65,7 @@ describe("roomForDigit", () => {
     expect(roomForDigit(2)).toBe("/money");
     expect(roomForDigit(3)).toBe("/budget");
     expect(roomForDigit(4)).toBe("/plan");
-    expect(roomForDigit(5)).toBe("/analyze");
+    expect(roomForDigit(5)).toBe("/analyse");
   });
 
   it("returns undefined out of range", () => {

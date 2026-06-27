@@ -71,6 +71,9 @@ export type {
   EvaluatePlanStatusArgs,
 } from "./payoff";
 
+// Reports (Phase 6)
+export * from "./reports";
+
 // Recurring (Phase 5)
 export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring";
 export { toMonthlyCostCents } from "./recurring";

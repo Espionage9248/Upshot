@@ -20,7 +20,7 @@
 import { UpClient, type UpClientPort, type LoadedRule } from "@upshot/core";
 import { action } from "@/lib/action";
 import { getDb } from "@/lib/db";
-import { listRules, saveRule, deleteRule, previewRule, applyRule } from "./rules-core";
+import { listRules, saveAndApplyRule, deleteRule, previewRule, applyRule } from "./rules-core";
 
 export type { SaveRuleResult, ApplyRuleResult } from "./rules-core";
 
@@ -39,10 +39,11 @@ export const listRulesAction = action(async () => {
   return listRules(db);
 });
 
-/** Action: create or update a match rule. Validates targets; bad target → typed result. */
+/** Action: create or update a match rule, then auto-apply it (if active) to existing
+ * matching transactions. Validates targets; bad target → typed result (nothing applied). */
 export const saveRuleAction = action(async (_session, rule: LoadedRule) => {
   const { db } = getDb();
-  return saveRule(db, rule);
+  return saveAndApplyRule(db, buildUpClient(), rule);
 });
 
 /** Action: delete a match rule. */

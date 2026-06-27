@@ -88,7 +88,7 @@ export function groupResults(
   })).filter((g) => g.items.length > 0);
 }
 
-/** 1→/today … 5→/analyze; out-of-range → undefined. */
+/** 1→/today … 5→/analyse; out-of-range → undefined. */
 export function roomForDigit(d: number): string | undefined {
   return ROOMS[d - 1]?.href;
 }

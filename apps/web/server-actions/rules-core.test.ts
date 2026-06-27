@@ -18,6 +18,7 @@ import { UpAuthError } from "@upshot/core";
 import {
   listRules,
   saveRule,
+  saveAndApplyRule,
   deleteRule,
   previewRule,
   applyRule,
@@ -142,6 +143,33 @@ beforeEach(() => {
 
 afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// saveAndApplyRule (apply-on-save)
+// ---------------------------------------------------------------------------
+
+describe("saveAndApplyRule", () => {
+  it("auto-applies an active MARK_SALARY rule to existing matching txns on save", async () => {
+    await seedTransaction("tx1", "ACME PAYROLL SALARY");
+    const rule = makeRule("rs", "SALARY", [{ id: "as", type: "MARK_SALARY" }]);
+
+    const res = await saveAndApplyRule(db, null, rule);
+
+    expect(res.ok).toBe(true);
+    expect(txRow("tx1")!.isSalary).toBe(true);
+  });
+
+  it("does NOT apply an inactive rule on save", async () => {
+    await seedTransaction("tx2", "ACME PAYROLL SALARY");
+    const base = makeRule("ri", "SALARY", [{ id: "ai", type: "MARK_SALARY" }]);
+    const inactive: LoadedRule = { ...base, rule: { ...base.rule, isActive: false } };
+
+    const res = await saveAndApplyRule(db, null, inactive);
+
+    expect(res.ok).toBe(true);
+    expect(txRow("tx2")!.isSalary).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

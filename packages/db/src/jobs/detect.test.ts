@@ -240,6 +240,42 @@ describe("runDetectOnce", () => {
     expect(all).toHaveLength(0);
   });
 
+  it("applies active MARK_SALARY rule (description match) to existing transactions", async () => {
+    const db = freshDb();
+    const now = () => new Date("2026-06-15T00:00:00.000Z");
+    seedAccount(db);
+
+    // Active rule: description contains "salary" → MARK_SALARY.
+    db.insert(tables.matchRules).values({ id: "r-sal", name: "Salary", isActive: true, priority: 10 }).run();
+    db.insert(tables.matchConditions).values({
+      id: "c-sal", ruleId: "r-sal", field: "description", mode: "contains", value: "salary",
+      amountCents: null, toleranceCents: null, currency: null,
+    }).run();
+    db.insert(tables.matchActions).values({
+      id: "a-sal", ruleId: "r-sal", type: "MARK_SALARY", value: null, targetId: null,
+    }).run();
+
+    // A matching (unmarked) salary txn + a non-matching txn, both within 12 months.
+    db.insert(tables.transactions).values({
+      id: "tx-pay", accountId: "acc-1", status: "SETTLED",
+      description: "ACME PAYROLL SALARY", amountCents: 500_000,
+      isTransfer: false, isSalary: false, createdAt: "2026-06-01T00:00:00.000Z",
+    }).run();
+    db.insert(tables.transactions).values({
+      id: "tx-shop", accountId: "acc-1", status: "SETTLED",
+      description: "Woolworths", amountCents: -4_200,
+      isTransfer: false, isSalary: false, createdAt: "2026-06-02T00:00:00.000Z",
+    }).run();
+
+    const jobRuns = new DrizzleJobRunRepo(db);
+    await runDetectOnce({ db, jobRuns, now, settings: { autoDetectRecurring: true } });
+
+    const pay = db.select().from(tables.transactions).where(eq(tables.transactions.id, "tx-pay")).all()[0];
+    const shop = db.select().from(tables.transactions).where(eq(tables.transactions.id, "tx-shop")).all()[0];
+    expect(pay!.isSalary).toBe(true); // rule auto-applied by DETECT
+    expect(shop!.isSalary).toBe(false); // non-matching untouched
+  });
+
   it("matches debt payments, updates balance, records debtPayments count, and is idempotent", async () => {
     const db = freshDb();
     // Fix 'now' to 2026-06-15; last-12-months window covers 2025-06-15 onwards.
