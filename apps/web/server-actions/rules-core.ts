@@ -111,6 +111,25 @@ export async function saveRule(
   return { ok: true };
 }
 
+/**
+ * Save a rule, then — when it is active — immediately apply it to all existing
+ * matching transactions. This is the backfill users expect on creating/editing a
+ * rule (so "save" alone marks history, without a separate manual Apply step or a
+ * DETECT run). Apply is best-effort: a failed Up push never rolls back the save.
+ */
+export async function saveAndApplyRule(
+  db: DbClient,
+  up: UpClientPort | null,
+  rule: LoadedRule,
+  now: () => Date = () => new Date(),
+): Promise<SaveRuleResult> {
+  const result = await saveRule(db, rule, now);
+  if (result.ok && rule.rule.isActive) {
+    await applyRule(db, up, rule.rule.id);
+  }
+  return result;
+}
+
 /** Delete a rule (cascade removes its conditions + actions). Also clears any entity FK pointing at this rule. */
 export async function deleteRule(db: DbClient, id: string): Promise<void> {
   await new DrizzleRecurringRepo(db).clearMatchRuleByRule(id);

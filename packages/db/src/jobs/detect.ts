@@ -5,9 +5,10 @@ import type { Frequency } from "@upshot/core";
 import { DrizzleInstallmentRepo } from "../repositories/installment-repo";
 import { DrizzleRecurringRepo } from "../repositories/recurring-repo";
 import { DrizzleDebtRepo } from "../repositories/debt-repo";
+import { DrizzleMatchRuleRepo } from "../repositories/match-rule-repo";
 import type { DbClient } from "../client";
 import * as tables from "../schema";
-import { gte } from "drizzle-orm";
+import { eq, gte } from "drizzle-orm";
 
 /**
  * One DETECT tick: auto-detect recurring suggestions, match installment
@@ -57,6 +58,9 @@ export async function runDetectOnce(deps: {
         accountId: tables.transactions.accountId,
         isTransfer: tables.transactions.isTransfer,
         isSalary: tables.transactions.isSalary,
+        isInterest: tables.transactions.isInterest,
+        isTaxDeductible: tables.transactions.isTaxDeductible,
+        taxDeductionCategory: tables.transactions.taxDeductionCategory,
         settledAt: tables.transactions.settledAt,
         createdAt: tables.transactions.createdAt,
       })
@@ -273,11 +277,56 @@ export async function runDetectOnce(deps: {
     await debtRepo.applyPaymentMatches(payments, balanceUpdates);
     const debtPayments = payments.length;
 
+    // Step 5: Apply active standalone match rules' LOCAL flag actions
+    // (MARK_SALARY / MARK_TRANSFER / MARK_INTEREST / MARK_DEDUCTIBLE / RENAME) to
+    // existing transactions — the backfill "run detection" users expect. Category /
+    // tag actions push to Up and are handled by sync + the rule editor's Apply, not
+    // here, so this step stays a pure local DB write with no Up calls. categoryName
+    // conditions can't be evaluated cheaply in the job (matches applyRule semantics).
+    const activeRules = await new DrizzleMatchRuleRepo(deps.db).loadActive();
+    let rulesApplied = 0;
+    for (const tx of txRows) {
+      if (activeRules.length === 0) break;
+      const target = {
+        description: tx.description,
+        categoryName: null,
+        rawText: tx.rawText,
+        note: tx.note,
+        amountCents: tx.amountCents,
+        currency: tx.currency,
+        foreignAmountCents: tx.foreignAmountCents,
+        foreignCurrency: tx.foreignCurrency,
+      };
+      const set: Partial<{
+        isSalary: boolean; isTransfer: boolean; isInterest: boolean;
+        isTaxDeductible: boolean; taxDeductionCategory: string | null; description: string;
+      }> = {};
+      for (const { conditions, actions } of activeRules) {
+        if (conditions.length === 0) continue;
+        if (!conditions.every((c) => evaluateCondition(c, target))) continue;
+        for (const a of actions) {
+          if (a.type === "MARK_SALARY" && !tx.isSalary) set.isSalary = true;
+          else if (a.type === "MARK_TRANSFER" && !tx.isTransfer) set.isTransfer = true;
+          else if (a.type === "MARK_INTEREST" && !tx.isInterest) set.isInterest = true;
+          else if (a.type === "MARK_DEDUCTIBLE" && !tx.isTaxDeductible) {
+            set.isTaxDeductible = true;
+            set.taxDeductionCategory = a.value;
+          } else if (a.type === "RENAME" && a.value !== null && a.value !== tx.description) {
+            set.description = a.value;
+          }
+        }
+      }
+      if (Object.keys(set).length > 0) {
+        deps.db.update(tables.transactions).set(set).where(eq(tables.transactions.id, tx.id)).run();
+        rulesApplied++;
+      }
+    }
+
     await deps.jobRuns.finish(id, {
       status: "SUCCESS",
       finishedAt: nowISO,
       cursor: nowISO.slice(0, 10),
-      counts: { suggested, matched, drifted, debtPayments, recurringLinked },
+      counts: { suggested, matched, drifted, debtPayments, recurringLinked, rulesApplied },
       error: null,
     });
   } catch (err) {
