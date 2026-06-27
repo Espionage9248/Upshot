@@ -328,7 +328,6 @@ export function computeNoSpendStreak(txns: ReportTxn[], now: string): NoSpendStr
   }
 
   // Walk the window day-by-day and track runs
-  let currentDays = 0;
   let bestDays = 0;
   let bestEndedOn: string | null = null;
   let runLen = 0;
@@ -349,7 +348,7 @@ export function computeNoSpendStreak(txns: ReportTxn[], now: string): NoSpendStr
   }
 
   // Handle trailing run (includes today)
-  currentDays = runLen;
+  const currentDays = runLen;
   if (runLen > bestDays) {
     bestDays = runLen;
     // The current (ongoing) streak hasn't "ended" yet
