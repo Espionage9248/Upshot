@@ -53,3 +53,24 @@ export interface CashflowForecast {
   overdraftRisk: boolean;
   horizon: 30 | 60 | 90;
 }
+
+export interface ExpenseChangeSaver { saverId: string; saverName: string; monthlyAllocationCents: number; }
+export interface ExpenseAdjustmentInput { saverId: string; newAllocationCents: number; }
+export interface ExpenseChangeInput {
+  currentIncomeCents: number;
+  savers: ExpenseChangeSaver[];
+  adjustments: ExpenseAdjustmentInput[];
+  totalMonthlyDebtCents: number;
+  monthlyExplicitSavingsCents: number;
+  hasExplicitSavingsAccounts: boolean;
+}
+export interface ExpenseAdjustmentResult {
+  saverId: string; saverName: string;
+  currentAllocationCents: number; newAllocationCents: number; changeCents: number;
+}
+export interface ExpenseChangeResult {
+  adjustments: ExpenseAdjustmentResult[];
+  currentTotalAllocatedCents: number; newTotalAllocatedCents: number; allocationChangeCents: number;
+  currentSavingsRate: number; projectedSavingsRate: number;  // 0..100
+  monthlyImpactCents: number; yearlyImpactCents: number;
+}
