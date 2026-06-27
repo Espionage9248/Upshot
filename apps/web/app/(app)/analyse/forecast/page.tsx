@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { TopBar } from "@/components/top-bar";
 import { getDb } from "@/lib/db";
-import { ForecastPanel } from "@/components/analyse/forecast-panel";
+import { ForecastView } from "@/components/analyse/forecast-view";
 import { loadForecastData } from "./data";
 
 // The DB client is constructed from env at request time, so this route must
@@ -49,7 +49,13 @@ export default async function ForecastPage({
   return (
     <>
       <TopBar title="Forecast" sub="30/60/90-DAY CASH-FLOW · WHAT-IF" />
-      <ForecastPanel forecast={data.forecast} horizon={horizon} tab={tab} />
+      <ForecastView
+        forecast={data.forecast}
+        salaryBaseline={data.salaryBaseline}
+        expenseBaseline={data.expenseBaseline}
+        horizon={horizon}
+        tab={tab}
+      />
     </>
   );
 }
