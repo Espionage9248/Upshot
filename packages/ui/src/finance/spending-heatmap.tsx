@@ -53,11 +53,9 @@ export function SpendingHeatmap({ days }: SpendingHeatmapProps): ReactElement {
       aria-label="Daily spending heatmap"
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(7, 15px)",
-        gridAutoRows: "15px",
-        gap: 3,
-        justifyContent: "start",
-        width: "max-content",
+        gridTemplateColumns: "repeat(7, 1fr)",
+        gridAutoRows: "20px",
+        gap: 4,
       }}
     >
       {days.map((day) => {
