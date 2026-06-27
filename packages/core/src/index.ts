@@ -74,6 +74,9 @@ export type {
 // Reports (Phase 6)
 export * from "./reports";
 
+// Scenarios / Forecast (Phase 6.2)
+export * from "./scenarios";
+
 // Recurring (Phase 5)
 export { detectRecurring, detectFrequency, nextExpectedDate } from "./recurring";
 export { toMonthlyCostCents } from "./recurring";
