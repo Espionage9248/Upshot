@@ -485,6 +485,30 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // CardTitle is a <div>, so assert visible text rather than heading role.
   await expect(page.getByText("Budget health").first()).toBeVisible({ timeout: 15000 });
 
+  // --- Forecast surface + salary-change simulator action round-trip (Task 7) ---
+  // Navigate to /analyse/forecast via the Analyse section nav.
+  await page.getByRole("navigation", { name: "Analyse navigation" }).getByText("Forecast").click();
+  await expect(page).toHaveURL(/\/analyse\/forecast/, { timeout: 15000 });
+  // The forecast heading includes the horizon (e.g. "Cash-flow forecast — 30-day outlook").
+  await expect(page.getByText(/Cash-flow forecast/, { exact: false })).toBeVisible({ timeout: 15000 });
+
+  // Switch to the 60-day horizon: click the "60d" tab link inside the "Forecast horizon" tablist.
+  await page.getByRole("tablist", { name: "Forecast horizon" }).getByRole("tab", { name: "60d" }).click();
+  await expect(page).toHaveURL(/[?&]h=60/, { timeout: 15000 });
+  await expect(page.getByText(/60-day outlook/, { exact: false })).toBeVisible({ timeout: 15000 });
+
+  // Switch to the "Salary change" tab via the "Forecast view" tablist.
+  await page.getByRole("tablist", { name: "Forecast view" }).getByRole("tab", { name: "Salary change" }).click();
+  await expect(page).toHaveURL(/[?&]tab=salary/, { timeout: 15000 });
+
+  // Drive the salary simulator: fill new monthly income and click Recalculate.
+  // This is the real recomputeSalaryChangeAction server action round-trip.
+  await page.getByLabel("New monthly income").fill("7500.00");
+  await page.getByRole("button", { name: "Recalculate" }).click();
+  // The "Projected impact" result card must appear with an "Income change" stat.
+  await expect(page.getByText("Projected impact")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("Income change")).toBeVisible({ timeout: 15000 });
+
   // No Plan or Analyse action threw a Server Components / ReferenceError in the prod build.
   expect(pageErrors, `unexpected page errors: ${pageErrors.join(" | ")}`).toEqual([]);
 

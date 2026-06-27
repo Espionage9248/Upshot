@@ -17,7 +17,7 @@ const VIZ_NET = "var(--viz-1)";
 /**
  * CashflowChart — historical income/expense bar chart with a net line overlay.
  * Design ref: design_handoff_upshot/Upshot Component Specs.md §Cashflow/Forecast.
- * Actual line = --viz-1 (coral). Projected tail (dashed) + "Today" divider are 6.2.
+ * Actual line = --viz-1 (coral). Projected tail / "Today" divider / confidence band live in the sibling `ForecastChart` (6.2).
  * Client component; serializable cents props only.
  */
 export function CashflowChart({ points, w = 540, h = 220 }: CashflowChartProps): ReactElement {

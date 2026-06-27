@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 const ANALYSE_SECTIONS = [
   { label: "Reports", href: "/analyse" },
   { label: "Analytics", href: "/analyse/analytics" },
+  { label: "Forecast", href: "/analyse/forecast" },
 ];
 
 export function AnalyseNavRail() {
