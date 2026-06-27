@@ -356,7 +356,7 @@ export async function loadForecastData(
 
       // Walk backwards to find occurrences in past 90 days
       // Start from nextExpectedDate and subtract frequency
-      let dateMs = Date.parse(item.nextExpectedDate + "T00:00:00.000Z");
+      const dateMs = Date.parse(item.nextExpectedDate + "T00:00:00.000Z");
       // Also add any that are in the past 90 days before nextExpectedDate
       // Walk back from nextExpectedDate
       let backMs = dateMs - freqDays * DAY_MS;
