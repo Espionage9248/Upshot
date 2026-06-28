@@ -20,6 +20,8 @@ import {
 } from "@upshot/ui";
 import type { ReportsData } from "@/app/(app)/analyse/data";
 import type { YearlyMonth } from "@upshot/core";
+import { exportReportCsvAction } from "@/server-actions/export";
+import { ExportButton, PrintButton } from "@/components/export-button";
 
 /** Map a MoM delta to a short, AUS-spelt trend label. */
 function deltaLabel(delta: ReportsData["deltas"]["income"]): string {
@@ -195,6 +197,16 @@ export function ReportsView({ data }: { data: ReportsData }) {
                 />
               </div>
             )}
+            <ExportButton
+              onExport={() =>
+                exportReportCsvAction({
+                  view,
+                  periodIndex: selectedIndex,
+                  year: selectedYear,
+                })
+              }
+            />
+            <PrintButton />
           </div>
         </CardHeader>
       </Card>

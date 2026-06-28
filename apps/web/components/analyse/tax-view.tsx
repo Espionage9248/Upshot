@@ -2,6 +2,8 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardBody, Money } from "@upshot/ui";
 import type { TaxData } from "@/app/(app)/analyse/tax/data";
+import { exportTaxCsvAction } from "@/server-actions/export";
+import { ExportButton, PrintButton } from "@/components/export-button";
 
 interface TaxViewProps {
   data: TaxData;
@@ -61,8 +63,10 @@ export function TaxView({ data }: TaxViewProps): ReactElement {
             Estimate only · not tax advice
           </div>
         </div>
-        {/* Export/Print buttons wired in Task 8 */}
-        <div />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ExportButton onExport={exportTaxCsvAction} />
+          <PrintButton />
+        </div>
       </div>
 
       {/* ── Stat cards ──────────────────────────────────────────────────── */}

@@ -20,7 +20,7 @@ const ANALYSE_SECTIONS = [
 export function AnalyseNavRail() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Analyse navigation" className="flex flex-col gap-[2px] w-[230px] shrink-0">
+    <nav data-app-subnav aria-label="Analyse navigation" className="flex flex-col gap-[2px] w-[230px] shrink-0">
       {ANALYSE_SECTIONS.map((item) => {
         const isActive = pathname === item.href;
         return (

@@ -30,3 +30,9 @@
     min-width: 44px;
   }
 }
+
+@media print {
+  .no-print { display: none !important; }
+  /* App chrome hidden so a report prints clean. */
+  [data-app-rail], [data-app-topbar], [data-app-subnav] { display: none !important; }
+}
