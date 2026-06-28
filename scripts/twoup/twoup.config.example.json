@@ -1,0 +1,10 @@
+{
+  "owners": { "JAMES": ["<owner-first-name>", "<owner-short>"], "BRITTNEY": ["<partner-full>", "<partner-short>", "<partner-surname>"] },
+  "interestPatterns": ["interest"],
+  "reversalPatterns": ["dishonour"],
+  "categoryRules": [
+    { "patterns": ["woolworths", "coles", "aldi"], "category": "Groceries" },
+    { "patterns": ["bp ", "shell", "ampol", "7-eleven"], "category": "Fuel" }
+  ],
+  "personalDebt": [{ "owner": "BRITTNEY", "patterns": ["<lender-name>"] }]
+}
