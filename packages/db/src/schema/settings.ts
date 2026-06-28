@@ -17,5 +17,7 @@ export const appSettings = sqliteTable("app_settings", {
   dateFormat: text().notNull().default("DD/MM/YYYY"),
   financialYearStartMonth: integer().notNull().default(7),
   medicareLevyApplies: integer({ mode: "boolean" }).notNull().default(true),
+  taxableIncomeGrossCents: integer().notNull().default(0),
+  paygWithheldCents: integer().notNull().default(0),
   updatedAt: text().notNull().$defaultFn(() => new Date().toISOString()),
 });

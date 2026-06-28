@@ -92,6 +92,13 @@ describe("DrizzleSettingsRepo", () => {
     db.insert(appSettings).values({ id: "default", syncCadence: "HOURLY" }).run();
     expect((await repo.get())?.syncCadence).toBe("HOURLY");
   });
+
+  it("persists tax income inputs", async () => {
+    const repo = new DrizzleSettingsRepo(freshDb());
+    const saved = await repo.update({ taxableIncomeGrossCents: 9_000_000, paygWithheldCents: 2_000_000 });
+    expect(saved.taxableIncomeGrossCents).toBe(9_000_000);
+    expect(saved.paygWithheldCents).toBe(2_000_000);
+  });
 });
 
 describe("DrizzleMatchRuleRepo CRUD", () => {
