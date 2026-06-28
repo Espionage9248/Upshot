@@ -142,6 +142,50 @@ export function seedTestDb(): TestDb {
     })
     .run();
 
+  // 2Up: synthetic transactions for the /analyse/2up surfaces + mark-owner write path.
+  // Values are entirely invented — no real names, amounts, or balances.
+  client
+    .insert(tables.twoUpTransactions)
+    .values([
+      {
+        id: "e2e-2up-1",
+        rowHash: "e2e-hash-1",
+        date: "2024-03-01",
+        description: "Synthetic Inflow A",
+        amountCents: 150000,
+        contributor: "UNASSIGNED",
+        category: "Income",
+      },
+      {
+        id: "e2e-2up-2",
+        rowHash: "e2e-hash-2",
+        date: "2024-03-05",
+        description: "Synthetic Spend B",
+        amountCents: -4500,
+        contributor: "SHARED",
+        category: "Groceries",
+      },
+      {
+        id: "e2e-2up-3",
+        rowHash: "e2e-hash-3",
+        date: "2024-03-10",
+        description: "Synthetic Inflow C",
+        amountCents: 200000,
+        contributor: "JAMES",
+        category: "Income",
+      },
+      {
+        id: "e2e-2up-4",
+        rowHash: "e2e-hash-4",
+        date: "2024-03-15",
+        description: "Synthetic Spend D",
+        amountCents: -8800,
+        contributor: "BRITTNEY",
+        category: "Dining",
+      },
+    ])
+    .run();
+
   client
     .insert(tables.eventLog)
     .values([

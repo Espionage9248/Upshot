@@ -525,6 +525,24 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   // Brief settle so the async server action completes before pageErrors are read.
   await page.waitForTimeout(1500);
 
+  // --- 2Up: overview + ledger read surfaces + mark-owner write path ---
+  // The mark-owner button for the UNASSIGNED row has aria-label "Set owner — Unassigned".
+  // After clicking "James" menuitem, the button label changes to "Set owner — James".
+  await page.goto("/analyse/2up");
+  await expect(page.getByText("Total put in")).toBeVisible({ timeout: 15000 });
+
+  await page.goto("/analyse/2up/ledger");
+  await expect(page.getByRole("heading", { name: /2Up/i })).toBeVisible({ timeout: 15000 });
+
+  // Mark the UNASSIGNED inflow row's owner → James (real write: updateTwoUpAttributionAction).
+  const markBtn = page.getByRole("button", { name: /Set owner — Unassigned/i }).first();
+  await markBtn.click();
+  await page.getByRole("menuitem", { name: "James" }).click();
+  // After the transition completes the button label reflects the new owner.
+  await expect(
+    page.getByRole("button", { name: /Set owner — James/i }).first(),
+  ).toBeVisible({ timeout: 15000 });
+
   // No Plan or Analyse action threw a Server Components / ReferenceError in the prod build.
   expect(pageErrors, `unexpected page errors: ${pageErrors.join(" | ")}`).toEqual([]);
 
