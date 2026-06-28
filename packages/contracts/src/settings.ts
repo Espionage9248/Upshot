@@ -19,6 +19,8 @@ export const appSettingsSchema = z.object({
   dateFormat: z.string().default("DD/MM/YYYY"),
   financialYearStartMonth: z.number().int().default(7),
   medicareLevyApplies: z.boolean().default(true),
+  taxableIncomeGrossCents: z.number().int().default(0),
+  paygWithheldCents: z.number().int().default(0),
   updatedAt: z.string(),
 });
 export type AppSettings = z.infer<typeof appSettingsSchema>;

@@ -19,6 +19,7 @@ interface TopBarProps {
 export function TopBar({ title, sub, health }: TopBarProps) {
   return (
     <div
+      data-app-topbar
       style={{
         display: "flex",
         alignItems: "flex-start",

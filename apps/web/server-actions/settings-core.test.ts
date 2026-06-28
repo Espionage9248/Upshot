@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDbClient, applyMigrations, DrizzleSettingsRepo, type DbClient } from "@upshot/db";
-import { setCadence, setAutomationFlag, loadSettings } from "./settings-core";
+import { setCadence, setAutomationFlag, loadSettings, updateTaxIncome } from "./settings-core";
 
 const KEY = "0123456789abcdef0123456789abcdef";
 const dirs: string[] = [];
@@ -60,5 +60,12 @@ describe("settings-core", () => {
     expect(await loadSettings(db)).toBeNull();
     await setCadence(db, "REALTIME");
     expect((await loadSettings(db))?.syncCadence).toBe("REALTIME");
+  });
+
+  it("updateTaxIncome rejects non-integer cents and persists valid values", async () => {
+    const db = freshDb();
+    await expect(updateTaxIncome(db, { taxableIncomeGrossCents: 1.5, paygWithheldCents: 0 })).rejects.toThrow();
+    const saved = await updateTaxIncome(db, { taxableIncomeGrossCents: 9_000_000, paygWithheldCents: 2_000_000 });
+    expect(saved.taxableIncomeGrossCents).toBe(9_000_000);
   });
 });

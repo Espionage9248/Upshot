@@ -16,6 +16,7 @@ export function UpRail() {
 
   return (
     <nav
+      data-app-rail
       aria-label="Primary"
       style={{
         width: 84,

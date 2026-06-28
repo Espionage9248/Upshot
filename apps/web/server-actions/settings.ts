@@ -21,6 +21,7 @@ import {
   setCadence,
   setAutomationFlag,
   updateTaxSettings,
+  updateTaxIncome,
   type SyncCadence,
   type AutomationFlag,
 } from "./settings-core";
@@ -46,5 +47,13 @@ export const updateTaxSettingsAction = action(
   async (_session, input: { financialYearStartMonth: number; medicareLevyApplies: boolean }) => {
     const { db } = getDb();
     return updateTaxSettings(db, input);
+  },
+);
+
+/** Action: persist the annual tax income inputs (gross income + PAYG withheld). */
+export const updateTaxIncomeAction = action(
+  async (_session, input: { taxableIncomeGrossCents: number; paygWithheldCents: number }) => {
+    const { db } = getDb();
+    return updateTaxIncome(db, input);
   },
 );

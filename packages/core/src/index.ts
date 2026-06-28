@@ -85,3 +85,9 @@ export { priceDrift, findOverlaps } from "./recurring";
 export type { Frequency, DetectableTransaction, DetectedRecurring, DriftResult, OverlapGroup } from "./recurring";
 export type { RecurringRepo, NewRecurring } from "./ports";
 export { InMemoryRecurringRepo } from "./testing/in-memory-recurring-repo";
+
+// Tax (Phase 6.3)
+export * from "./tax";
+
+// Export (Phase 6.3)
+export * from "./export";

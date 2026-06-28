@@ -61,6 +61,22 @@ export async function setAutomationFlag(
 }
 
 /**
+ * Persist the annual tax income inputs (gross income + PAYG withheld). Both are
+ * integer cents ≥ 0 (a UI/programmer guard — an invalid value throws and the
+ * action() wrapper maps it to a safe error).
+ */
+export async function updateTaxIncome(
+  db: DbClient,
+  input: { taxableIncomeGrossCents: number; paygWithheldCents: number },
+): Promise<AppSettings> {
+  const { taxableIncomeGrossCents, paygWithheldCents } = input;
+  for (const v of [taxableIncomeGrossCents, paygWithheldCents]) {
+    if (!Number.isInteger(v) || v < 0) throw new Error("Invalid tax income input");
+  }
+  return new DrizzleSettingsRepo(db).update({ taxableIncomeGrossCents, paygWithheldCents });
+}
+
+/**
  * Persist the tax settings. The financial-year start month must be an integer
  * in 1..12 (a UI/programmer guard, so an out-of-range value throws — the
  * action() wrapper maps it to a safe error rather than a user-facing result).
