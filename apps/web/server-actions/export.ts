@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 import { buildTaxCsv, buildReportCsv } from "./export-core";
 import type { ReportView } from "@/app/(app)/analyse/data";
 
-export const exportTaxCsvAction = action(async (_session) => {
+export const exportTaxCsvAction = action(async () => {
   const { db } = getDb();
   return buildTaxCsv(db, { now: new Date().toISOString() });
 });

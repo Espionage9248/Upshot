@@ -509,6 +509,22 @@ test("register passkey → login → Today → theme → Settings → 401 Reconn
   await expect(page.getByText("Projected impact")).toBeVisible({ timeout: 15000 });
   await expect(page.getByText("Income change")).toBeVisible({ timeout: 15000 });
 
+  // --- Tax view + CSV export round-trip ---
+  await page.getByRole("navigation", { name: "Analyse navigation" }).getByText("Tax", { exact: true }).click();
+  await expect(page).toHaveURL(/\/analyse\/tax/, { timeout: 15000 });
+  await expect(page.getByText("Deductible total")).toBeVisible({ timeout: 15000 });
+
+  // ExportButton uses a Blob anchor click (not a browser-native download event),
+  // so waitForEvent("download") does not fire. Assert the button is visible and
+  // enabled, then click it — the real exportTaxCsvAction round-trip runs
+  // server-side, and the final pageErrors guard below catches any action crash.
+  const exportCsvBtn = page.getByRole("button", { name: "Export CSV" });
+  await expect(exportCsvBtn).toBeVisible({ timeout: 15000 });
+  await expect(exportCsvBtn).toBeEnabled();
+  await exportCsvBtn.click();
+  // Brief settle so the async server action completes before pageErrors are read.
+  await page.waitForTimeout(1500);
+
   // No Plan or Analyse action threw a Server Components / ReferenceError in the prod build.
   expect(pageErrors, `unexpected page errors: ${pageErrors.join(" | ")}`).toEqual([]);
 
