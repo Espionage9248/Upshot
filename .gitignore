@@ -42,6 +42,9 @@ backups/
 exports/
 *.statement.*
 *.pdf
+# 2Up source statements + any derived extract (PDF already covered above; this
+# also catches non-PDF derivations). Real financial data — never committed.
+docs/2up/
 
 # ── V1 reference material (local-only; not part of the V2 codebase) ──
 reference/
