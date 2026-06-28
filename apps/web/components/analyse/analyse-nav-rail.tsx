@@ -15,6 +15,7 @@ const ANALYSE_SECTIONS = [
   { label: "Analytics", href: "/analyse/analytics" },
   { label: "Forecast", href: "/analyse/forecast" },
   { label: "Tax", href: "/analyse/tax" },
+  { label: "2Up", href: "/analyse/2up" },
 ];
 
 export function AnalyseNavRail() {
