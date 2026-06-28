@@ -26,6 +26,8 @@ const DEFAULTS = {
   dateFormat: "DD/MM/YYYY",
   financialYearStartMonth: 7,
   medicareLevyApplies: true,
+  taxableIncomeGrossCents: 0,
+  paygWithheldCents: 0,
   updatedAt: new Date(0).toISOString(),
 } as const;
 

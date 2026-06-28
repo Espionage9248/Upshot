@@ -8,7 +8,12 @@ import { TaxSettings } from "@/components/settings/tax-settings";
 export const dynamic = "force-dynamic";
 
 /** Defaults for a fresh, unseeded DB (no app_settings row yet). */
-const DEFAULTS = { financialYearStartMonth: 7, medicareLevyApplies: true } as const;
+const DEFAULTS = {
+  financialYearStartMonth: 7,
+  medicareLevyApplies: true,
+  taxableIncomeGrossCents: 0,
+  paygWithheldCents: 0,
+} as const;
 
 export default async function TaxPage(): Promise<ReactNode> {
   const { db } = getDb();
@@ -26,6 +31,8 @@ export default async function TaxPage(): Promise<ReactNode> {
       <TaxSettings
         financialYearStartMonth={settings.financialYearStartMonth}
         medicareLevyApplies={settings.medicareLevyApplies}
+        taxableIncomeGrossCents={settings.taxableIncomeGrossCents}
+        paygWithheldCents={settings.paygWithheldCents}
       />
     </>
   );
