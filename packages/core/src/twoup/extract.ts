@@ -17,7 +17,7 @@
  *  5. Only emit a row once a time token has been seen (excludes Summary block).
  */
 
-import type { PositionedText, RawRow } from "./types";
+import type { PositionedText, RawRow, StatementSummary } from "./types";
 import { parseAmountCents, parseMoneyCents, parseStatementDate } from "./parse";
 
 export interface Bands {
@@ -162,4 +162,102 @@ export function assembleTransactions(
   flushTransaction();
 
   return rows;
+}
+
+// Tokens that look like money values: "$X", "+$X", "-$X"
+const MONEY_RE = /^[+-]?\$/;
+
+/**
+ * Parse the statement summary block (Opening Balance / Money In / Money Out /
+ * Closing Balance) from positioned-text items and return integer cents.
+ *
+ * Algorithm:
+ *  1. Slide a window across y-sorted items joining adjacent same-y tokens to
+ *     detect each multi-word label ("Opening Balance", "Money In", etc.).
+ *  2. For each label, find the nearest money token (MONEY_RE) by Euclidean
+ *     distance from the label centroid. Tokens at or below the label y
+ *     (Δy ≥ 0 in pdfjs bottom-left, i.e. token.y ≤ label.y) are preferred
+ *     by halving their effective distance.
+ *  3. Parse with parseMoneyCents and take the magnitude (all four figures are
+ *     reported positive on the statement).
+ *  4. Throws if any of the four labels cannot be found.
+ */
+export function parseSummary(items: PositionedText[]): StatementSummary {
+  const LABELS = [
+    { key: "opening", words: ["Opening", "Balance"] },
+    { key: "in",      words: ["Money", "In"] },
+    { key: "out",     words: ["Money", "Out"] },
+    { key: "closing", words: ["Closing", "Balance"] },
+  ] as const;
+
+  // Group items by y (same y = same line), sorted top-to-bottom (y desc)
+  const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
+
+  // Money tokens
+  const moneyTokens = sorted.filter((i) => MONEY_RE.test(i.str.trim()));
+
+  // Find label positions by scanning lines for matching consecutive tokens
+  const found: Record<string, { x: number; y: number }> = {};
+
+  // Build lines
+  interface Line { y: number; items: PositionedText[] }
+  const lines: Line[] = [];
+  for (const item of sorted) {
+    const last = lines[lines.length - 1];
+    if (last && last.y === item.y) {
+      last.items.push(item);
+    } else {
+      lines.push({ y: item.y, items: [item] });
+    }
+  }
+
+  for (const line of lines) {
+    const strs = line.items.map((i) => i.str.trim());
+    for (const label of LABELS) {
+      if (found[label.key]) continue;
+      // Scan all positions in the line for the first word of the label
+      for (let idx = 0; idx < strs.length; idx++) {
+        if (strs[idx] !== label.words[0]) continue;
+        // Check remaining words appear consecutively
+        let match = true;
+        for (let w = 1; w < label.words.length; w++) {
+          if (strs[idx + w] !== label.words[w]) { match = false; break; }
+        }
+        if (!match) continue;
+        // Centroid x of the label tokens
+        const labelItems = line.items.slice(idx, idx + label.words.length);
+        const cx = labelItems.reduce((s, i) => s + i.x, 0) / labelItems.length;
+        found[label.key] = { x: cx, y: line.y };
+        break;
+      }
+    }
+  }
+
+  for (const label of LABELS) {
+    if (!found[label.key]) {
+      throw new Error(`parseSummary: label "${label.words.join(" ")}" not found`);
+    }
+  }
+
+  function nearestMoney(lx: number, ly: number): number {
+    let best: PositionedText | null = null;
+    let bestDist = Infinity;
+    for (const t of moneyTokens) {
+      const dx = t.x - lx;
+      const dy = ly - t.y; // positive = token is below label (pdfjs bottom-left)
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      // Prefer tokens at or below label y (dy ≥ 0)
+      if (dy < 0) dist *= 2;
+      if (dist < bestDist) { bestDist = dist; best = t; }
+    }
+    if (!best) throw new Error("parseSummary: no money token found");
+    return Math.abs(parseMoneyCents(best.str));
+  }
+
+  return {
+    openingCents: nearestMoney(found["opening"]!.x, found["opening"]!.y),
+    moneyInCents:  nearestMoney(found["in"]!.x,      found["in"]!.y),
+    moneyOutCents: nearestMoney(found["out"]!.x,     found["out"]!.y),
+    closingCents:  nearestMoney(found["closing"]!.x, found["closing"]!.y),
+  };
 }
